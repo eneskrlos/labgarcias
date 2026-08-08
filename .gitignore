@@ -1,0 +1,174 @@
+# ---------------------------------------------------------------
+# Lab. Garcia's Connect — .gitignore
+# Backend: Java / Spring Boot  |  Frontend: React  |  BD: PostgreSQL
+# ---------------------------------------------------------------
+
+# ===============================================================
+# SECRETOS Y CONFIGURACIÓN LOCAL  —  lo más importante del archivo
+# ===============================================================
+.env
+.env.*
+!.env.example
+
+# Configuración local de Spring (credenciales de BD, SMTP, Google, JWT)
+**/application-local.yml
+**/application-local.yaml
+**/application-local.properties
+**/application-secrets.yml
+**/application-prod.yml
+**/application-prod.properties
+
+# Claves y certificados
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+secrets/
+
+
+# ===============================================================
+# ARCHIVOS SUBIDOS POR LOS ODONTÓLOGOS (RN-13)
+# Los adjuntos de las órdenes se guardan en disco, no en la BD.
+# Contienen datos de pacientes: NUNCA deben versionarse.
+# ===============================================================
+uploads/
+archivos/
+storage/
+**/uploads/
+backend/files/
+
+
+# ===============================================================
+# BACKEND — Java / Spring Boot
+# ===============================================================
+target/
+build/
+!**/src/**/target/
+!**/src/**/build/
+
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+
+# Maven
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.properties
+
+# Gradle
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+.gradletasknamecache
+
+
+# ===============================================================
+# FRONTEND — React
+# ===============================================================
+node_modules/
+dist/
+dist-ssr/
+build/
+.vite/
+.parcel-cache/
+.eslintcache
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+coverage/
+.nyc_output/
+
+
+# ===============================================================
+# DOCKER / BASE DE DATOS
+# ===============================================================
+# Volumen de PostgreSQL si se monta como carpeta local
+pgdata/
+postgres-data/
+docker-compose.override.yml
+
+# Volcados de base de datos: pueden contener datos de pacientes
+*.dump
+*.sql.gz
+backups/
+
+# NOTA: los scripts de migración de Flyway SÍ se versionan.
+# No ignorar src/main/resources/db/migration/
+
+
+# ===============================================================
+# IDE Y EDITORES
+# ===============================================================
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Eclipse / STS
+.classpath
+.project
+.settings/
+.apt_generated/
+.factorypath
+.springBeans
+.sts4-cache/
+
+# NetBeans
+nbproject/private/
+nbbuild/
+nbdist/
+.nb-gradle/
+
+# VS Code — se versiona solo la configuración compartida del equipo
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# DBeaver
+.dbeaver/
+
+
+# ===============================================================
+# SISTEMA OPERATIVO
+# ===============================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*~
+.directory
+
+
+# ===============================================================
+# LOGS Y TEMPORALES
+# ===============================================================
+*.log
+logs/
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+
+
+# ===============================================================
+# HERRAMIENTAS DE IA
+# ===============================================================
+# CLAUDE.md y docs/ SÍ se versionan: son parte del proyecto.
+.claude/settings.local.json

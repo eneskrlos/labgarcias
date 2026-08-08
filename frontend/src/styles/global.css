@@ -1,0 +1,40 @@
+@import './variables.css';
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--fuente-base);
+  color: var(--color-texto);
+  background: var(--color-bg);
+}
+
+#root {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+h1, h2, h3 {
+  margin: 0 0 var(--espaciado-md);
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+.contenedor {
+  width: 100%;
+  max-width: var(--ancho-escritorio);
+  margin: 0 auto;
+  padding: var(--espaciado-md);
+}
+
+@media (min-width: 768px) {
+  .contenedor {
+    padding: var(--espaciado-lg);
+  }
+}
