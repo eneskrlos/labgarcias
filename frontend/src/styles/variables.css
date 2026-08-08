@@ -1,0 +1,23 @@
+:root {
+  --color-bg: #ffffff;
+  --color-texto: #1f2028;
+  --color-texto-tenue: #6b6375;
+  --color-borde: #e5e4e7;
+  --color-primario: #0f6d5c;
+  --color-primario-contraste: #ffffff;
+  --color-error: #b3261e;
+  --color-exito: #1e7a34;
+  --color-advertencia: #a15c00;
+
+  --espaciado-xs: 4px;
+  --espaciado-sm: 8px;
+  --espaciado-md: 16px;
+  --espaciado-lg: 24px;
+  --espaciado-xl: 32px;
+
+  --radio-borde: 6px;
+  --fuente-base: system-ui, 'Segoe UI', Roboto, sans-serif;
+
+  --ancho-tablet: 768px;
+  --ancho-escritorio: 1024px;
+}

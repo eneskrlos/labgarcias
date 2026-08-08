@@ -1,0 +1,46 @@
+import { obtenerToken } from './token';
+
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api/v1';
+
+export class ApiError extends Error {
+  constructor(status, codigo, mensaje, campo = null) {
+    super(mensaje);
+    this.status = status;
+    this.codigo = codigo;
+    this.campo = campo;
+  }
+}
+
+export async function apiFetch(path, opciones = {}) {
+  const headers = new Headers(opciones.headers);
+  headers.set('Content-Type', 'application/json');
+
+  const token = obtenerToken();
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  const respuesta = await fetch(`${BASE_URL}${path}`, { ...opciones, headers });
+
+  // RN-20: licencia vencida bloquea el sistema; el interceptor redirige a /bloqueado.
+  if (respuesta.status === 423) {
+    window.location.assign('/bloqueado');
+    throw new ApiError(423, 'LICENCIA_VENCIDA', 'Licencia vencida.');
+  }
+
+  if (!respuesta.ok) {
+    const cuerpo = await respuesta.json().catch(() => null);
+    throw new ApiError(
+      respuesta.status,
+      cuerpo?.codigo ?? 'ERROR_DESCONOCIDO',
+      cuerpo?.mensaje ?? 'Ocurrió un error inesperado.',
+      cuerpo?.campo ?? null,
+    );
+  }
+
+  if (respuesta.status === 204) {
+    return null;
+  }
+
+  return respuesta.json();
+}
