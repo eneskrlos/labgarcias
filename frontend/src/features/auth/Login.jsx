@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { login, loginGoogle } from './api';
 import { useSesion } from '../../shared/hooks/useSesion';
-import { mostrarBotonGoogle } from '../../shared/api/googleIdentity';
+import { iniciarGoogle, renderizarBotonGoogle } from '../../shared/api/googleIdentity';
 import estilos from './Auth.module.css';
 
 export default function Login() {
@@ -23,14 +23,36 @@ export default function Login() {
 
   useEffect(() => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!clientId) {
-      return;
+    const contenedor = contenedorGoogleRef.current;
+    if (!clientId || !contenedor) {
+      return undefined;
     }
-    mostrarBotonGoogle({
+
+    let activo = true;
+
+    iniciarGoogle({
       clientId,
-      contenedor: contenedorGoogleRef.current,
       alObtenerCredencial: (credencial) => mutacionGoogle.mutate(credencial),
+    }).then(() => {
+      if (activo) {
+        renderizarBotonGoogle(contenedor, contenedor.offsetWidth);
+      }
     });
+
+    // Google no soporta un ancho responsive nativo: redibuja el botón cada
+    // vez que cambia el ancho disponible para que acompañe al resto del form.
+    const observador = new ResizeObserver((entradas) => {
+      const ancho = entradas[0]?.contentRect.width;
+      if (ancho) {
+        renderizarBotonGoogle(contenedor, ancho);
+      }
+    });
+    observador.observe(contenedor);
+
+    return () => {
+      activo = false;
+      observador.disconnect();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -75,7 +97,7 @@ export default function Login() {
         </form>
 
         <div className={estilos.separador}>o</div>
-        <div ref={contenedorGoogleRef} />
+        <div className={estilos.contenedorBotonGoogle} ref={contenedorGoogleRef} />
 
         <p className={estilos.enlaces}>
           ¿No tenés cuenta? <Link to="/registro">Registrate</Link>

@@ -25,18 +25,34 @@ function cargarScript() {
   return promesaCarga;
 }
 
+const ANCHO_MINIMO = 200;
+const ANCHO_MAXIMO = 400; // tope documentado por Google para renderButton
+
 /**
  * Carga el SDK de Google Identity Services una sola vez por página (el
  * <script> no se duplica aunque el componente se monte más de una vez, ej.:
- * React StrictMode en desarrollo) e inicializa/renderiza el botón.
+ * React StrictMode en desarrollo) e inicializa el cliente. Se llama una sola
+ * vez; para dibujar o redibujar el botón usar renderizarBotonGoogle.
  */
-export async function mostrarBotonGoogle({ clientId, contenedor, alObtenerCredencial }) {
+export async function iniciarGoogle({ clientId, alObtenerCredencial }) {
   await cargarScript();
   window.google.accounts.id.initialize({
     client_id: clientId,
     callback: (respuesta) => alObtenerCredencial(respuesta.credential),
   });
-  if (contenedor) {
-    window.google.accounts.id.renderButton(contenedor, { theme: 'outline', size: 'large', width: 320 });
+}
+
+/**
+ * (Re)dibuja el botón con el ancho disponible. Google no soporta un ancho
+ * porcentual/responsive nativo (renderButton exige un valor fijo en
+ * píxeles), así que quien la use debe volver a llamarla cuando cambie el
+ * tamaño del contenedor (ej.: con ResizeObserver) para que el botón
+ * acompañe el resto del layout en pantallas angostas.
+ */
+export function renderizarBotonGoogle(contenedor, anchoDisponible) {
+  if (!contenedor || !window.google) {
+    return;
   }
+  const ancho = Math.round(Math.min(ANCHO_MAXIMO, Math.max(ANCHO_MINIMO, anchoDisponible)));
+  window.google.accounts.id.renderButton(contenedor, { theme: 'outline', size: 'large', width: ancho });
 }
