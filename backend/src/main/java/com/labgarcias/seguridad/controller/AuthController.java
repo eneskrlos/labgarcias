@@ -10,11 +10,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.labgarcias.seguridad.dto.GoogleAuthRequest;
 import com.labgarcias.seguridad.dto.LoginRequest;
 import com.labgarcias.seguridad.dto.LoginResponse;
 import com.labgarcias.seguridad.dto.MensajeResponse;
 import com.labgarcias.seguridad.dto.ReenviarVerificacionRequest;
 import com.labgarcias.seguridad.dto.RegistroOdontologoRequest;
+import com.labgarcias.seguridad.service.GoogleAuthService;
 import com.labgarcias.seguridad.service.LoginService;
 import com.labgarcias.seguridad.service.RegistroService;
 import com.labgarcias.seguridad.service.VerificacionService;
@@ -34,11 +36,14 @@ public class AuthController {
     private final RegistroService registroService;
     private final VerificacionService verificacionService;
     private final LoginService loginService;
+    private final GoogleAuthService googleAuthService;
 
-    public AuthController(RegistroService registroService, VerificacionService verificacionService, LoginService loginService) {
+    public AuthController(RegistroService registroService, VerificacionService verificacionService,
+                           LoginService loginService, GoogleAuthService googleAuthService) {
         this.registroService = registroService;
         this.verificacionService = verificacionService;
         this.loginService = loginService;
+        this.googleAuthService = googleAuthService;
     }
 
     @PostMapping("/registro")
@@ -106,6 +111,23 @@ public class AuthController {
     })
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(loginService.login(request));
+    }
+
+    @PostMapping("/google")
+    @PreAuthorize("permitAll()")
+    @SecurityRequirements
+    @Operation(
+            summary = "Iniciar sesión o registrarse con Google (RN-16)",
+            description = "Valida el idToken con Google. Si el google_subject_id ya existe, es un login; si no, "
+                    + "crea la cuenta como ACTIVA y con el correo verificado (CU-19 A2: Google ya lo verificó)."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Login o registro exitoso"),
+            @ApiResponse(responseCode = "401", description = "GOOGLE_TOKEN_INVALIDO"),
+            @ApiResponse(responseCode = "409", description = "CORREO_YA_REGISTRADO")
+    })
+    public ResponseEntity<LoginResponse> google(@Valid @RequestBody GoogleAuthRequest request) {
+        return ResponseEntity.ok(googleAuthService.autenticar(request.idToken()));
     }
 
     @PostMapping("/logout")
