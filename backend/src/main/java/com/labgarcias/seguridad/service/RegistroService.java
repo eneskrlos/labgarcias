@@ -1,7 +1,5 @@
 package com.labgarcias.seguridad.service;
 
-import java.time.OffsetDateTime;
-import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -12,11 +10,9 @@ import com.labgarcias.seguridad.domain.EstadoCuenta;
 import com.labgarcias.seguridad.domain.ProveedorAuth;
 import com.labgarcias.seguridad.domain.Rol;
 import com.labgarcias.seguridad.domain.RolCodigo;
-import com.labgarcias.seguridad.domain.TokenVerificacion;
 import com.labgarcias.seguridad.domain.Usuario;
 import com.labgarcias.seguridad.dto.RegistroOdontologoRequest;
 import com.labgarcias.seguridad.repository.RolRepository;
-import com.labgarcias.seguridad.repository.TokenVerificacionRepository;
 import com.labgarcias.seguridad.repository.UsuarioRepository;
 import com.labgarcias.shared.excepcion.ConflictoException;
 import com.labgarcias.shared.excepcion.ValidacionException;
@@ -32,16 +28,16 @@ public class RegistroService {
 
     private final UsuarioRepository usuarioRepository;
     private final RolRepository rolRepository;
-    private final TokenVerificacionRepository tokenVerificacionRepository;
+    private final VerificacionService verificacionService;
     private final PasswordEncoder passwordEncoder;
 
     public RegistroService(UsuarioRepository usuarioRepository,
                             RolRepository rolRepository,
-                            TokenVerificacionRepository tokenVerificacionRepository,
+                            VerificacionService verificacionService,
                             PasswordEncoder passwordEncoder) {
         this.usuarioRepository = usuarioRepository;
         this.rolRepository = rolRepository;
-        this.tokenVerificacionRepository = tokenVerificacionRepository;
+        this.verificacionService = verificacionService;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -53,7 +49,7 @@ public class RegistroService {
 
         Usuario usuario = crearUsuario(request);
         usuarioRepository.save(usuario);
-        crearTokenVerificacion(usuario);
+        verificacionService.generarToken(usuario);
     }
 
     private Usuario crearUsuario(RegistroOdontologoRequest request) {
@@ -71,17 +67,6 @@ public class RegistroService {
         usuario.setEstadoCuenta(EstadoCuenta.PENDIENTE_VERIFICACION);
         usuario.setCorreoVerificado(false);
         return usuario;
-    }
-
-    /** CU-19/D-02: token de un solo uso, vigente por ConstantesDominio.HORAS_VIGENCIA_TOKEN. El envío del correo llega en T-07. */
-    private void crearTokenVerificacion(Usuario usuario) {
-        OffsetDateTime ahora = OffsetDateTime.now();
-        TokenVerificacion token = new TokenVerificacion();
-        token.setUsuario(usuario);
-        token.setToken(UUID.randomUUID().toString());
-        token.setFechaEmision(ahora);
-        token.setFechaExpiracion(ahora.plusHours(ConstantesDominio.HORAS_VIGENCIA_TOKEN));
-        tokenVerificacionRepository.save(token);
     }
 
     private void validarPasswordSegura(String password) {
