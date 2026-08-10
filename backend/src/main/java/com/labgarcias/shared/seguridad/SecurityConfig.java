@@ -22,7 +22,7 @@ public class SecurityConfig {
 
     private static final String[] RUTAS_PUBLICAS = {
             "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
-            "/api/v1/auth/registro"
+            "/api/v1/auth/registro", "/api/v1/auth/verificar", "/api/v1/auth/reenviar-verificacion"
     };
 
     /** RN-15: las contraseñas se almacenan únicamente como hash BCrypt. */
