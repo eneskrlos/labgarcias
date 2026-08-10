@@ -61,7 +61,7 @@ public class Usuario {
     @Column(name = "fecha_actualizacion", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime fechaActualizacion;
 
-    protected Usuario() {
+    public Usuario() {
     }
 
     public Long getId() {

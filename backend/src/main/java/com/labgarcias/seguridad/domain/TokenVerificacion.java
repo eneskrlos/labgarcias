@@ -36,7 +36,7 @@ public class TokenVerificacion {
     @Column(name = "fecha_uso")
     private OffsetDateTime fechaUso;
 
-    protected TokenVerificacion() {
+    public TokenVerificacion() {
     }
 
     public Long getId() {
