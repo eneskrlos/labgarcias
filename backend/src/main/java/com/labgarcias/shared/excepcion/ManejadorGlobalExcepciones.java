@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -36,6 +37,12 @@ public class ManejadorGlobalExcepciones {
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ErrorRespuesta> manejarViolacionRestriccion(ConstraintViolationException ex) {
         return ResponseEntity.badRequest().body(new ErrorRespuesta(CODIGO_VALIDACION, ex.getMessage(), null));
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorRespuesta> manejarParametroFaltante(MissingServletRequestParameterException ex) {
+        return ResponseEntity.badRequest()
+                .body(new ErrorRespuesta(CODIGO_VALIDACION, ex.getMessage(), ex.getParameterName()));
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
