@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -18,6 +19,7 @@ public class ManejadorGlobalExcepciones {
     private static final Logger log = LoggerFactory.getLogger(ManejadorGlobalExcepciones.class);
     private static final String CODIGO_VALIDACION = "VALIDACION";
     private static final String CODIGO_NO_ENCONTRADO = "NO_ENCONTRADO";
+    private static final String CODIGO_SIN_PERMISO = "SIN_PERMISO";
     private static final String CODIGO_ERROR_INTERNO = "ERROR_INTERNO";
 
     @ExceptionHandler(DominioException.class)
@@ -43,6 +45,12 @@ public class ManejadorGlobalExcepciones {
     public ResponseEntity<ErrorRespuesta> manejarParametroFaltante(MissingServletRequestParameterException ex) {
         return ResponseEntity.badRequest()
                 .body(new ErrorRespuesta(CODIGO_VALIDACION, ex.getMessage(), ex.getParameterName()));
+    }
+
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<ErrorRespuesta> manejarAutorizacionDenegada(AuthorizationDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorRespuesta(CODIGO_SIN_PERMISO, "No tenés permiso para esta operación.", null));
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

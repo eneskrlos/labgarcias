@@ -26,10 +26,10 @@ import jakarta.servlet.http.HttpServletResponse;
 /**
  * spec.md §1.1/§3.1/§3.3: permite sin autenticación Swagger y los endpoints
  * públicos de auth. API stateless (JWT, sin cookies de sesión): CSRF no
- * aplica. El filtro JWT concreto vive en el módulo `seguridad` (Agente.md
- * §5.3); se inyecta acá por su supertipo `OncePerRequestFilter` para no
+ * aplica. Los filtros concretos (JWT en `seguridad`, bloqueo por licencia en
+ * `licencia`) se inyectan acá por su supertipo `OncePerRequestFilter` para no
  * incumplir la regla de que `shared` no depende de un módulo de negocio
- * (Agente.md §5.4.3).
+ * (Agente.md §5.4.3); Spring resuelve cada parámetro por nombre de bean.
  */
 @Configuration
 @EnableMethodSecurity
@@ -56,7 +56,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
                                             CorsConfigurationSource corsConfigurationSource,
-                                            OncePerRequestFilter jwtAuthenticationFilter) throws Exception {
+                                            OncePerRequestFilter jwtAuthenticationFilter,
+                                            OncePerRequestFilter licenciaBloqueoFilter) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(csrf -> csrf.disable())
@@ -65,6 +66,7 @@ public class SecurityConfig {
                         .requestMatchers(RUTAS_PUBLICAS).permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(licenciaBloqueoFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(this::noAutenticado)
                         .accessDeniedHandler(this::sinPermiso));
