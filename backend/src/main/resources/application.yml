@@ -14,3 +14,9 @@ spring:
 app:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
+  jwt:
+    secret: ${JWT_SECRET}
+    # CU-01: 8 horas de sesión (confirmado con el desarrollador; no está en spec.md).
+    expiracion-minutos: ${JWT_EXPIRACION_MINUTOS:480}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID}
