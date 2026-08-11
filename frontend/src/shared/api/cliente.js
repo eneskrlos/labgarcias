@@ -7,7 +7,6 @@ export class ApiError extends Error {
     super(mensaje);
     this.status = status;
     this.codigo = codigo;
-    this.mensaje = mensaje;
     this.campo = campo;
   }
 }
