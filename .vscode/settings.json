@@ -1,3 +1,4 @@
 {
-    "java.compile.nullAnalysis.mode": "automatic" // Enables automatic null analysis for Java code, helping to identify potential null pointer exceptions during compilation.
+    "java.compile.nullAnalysis.mode": "automatic",
+    "java.configuration.updateBuildConfiguration": "interactive" // Enables automatic null analysis for Java code, helping to identify potential null pointer exceptions during compilation.
 }
