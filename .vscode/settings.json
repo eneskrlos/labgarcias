@@ -1,4 +1,4 @@
 {
-    "java.compile.nullAnalysis.mode": "automatic",
-    "java.configuration.updateBuildConfiguration": "interactive" // Enables automatic null analysis for Java code, helping to identify potential null pointer exceptions during compilation.
+    "java.compile.nullAnalysis.mode": "automatic", // Enables automatic null analysis for Java code, helping to identify potential null pointer exceptions during compilation.
+    "java.configuration.updateBuildConfiguration": "interactive" // Prompts the user to update the build configuration when changes are detected, ensuring that the project settings remain up-to-date.
 }
