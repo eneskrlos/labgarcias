@@ -1,12 +1,37 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { SesionProvider, useSesion } from './shared/hooks/useSesion';
+import { RutaProtegida } from './shared/components/RutaProtegida';
+import { logout } from './features/auth/api';
+import Login from './features/auth/Login';
+import Registro from './features/auth/Registro';
+import Verificar from './features/auth/Verificar';
+import Bloqueado from './features/auth/Bloqueado';
 
 const queryClient = new QueryClient();
 
 function Inicio() {
+  const { usuario, cerrarSesion } = useSesion();
+  const navigate = useNavigate();
+
+  const salir = async () => {
+    try {
+      await logout();
+    } catch {
+      // CU-14: el cierre de sesión es stateless; si la llamada falla, igual se limpia localmente.
+    }
+    cerrarSesion();
+    navigate('/login');
+  };
+
   return (
     <div className="contenedor">
       <h1>Lab. Garcia's Connect</h1>
+      <p>
+        Hola, {usuario.nombreCompleto} ({usuario.rol})
+      </p>
+      <button type="button" onClick={salir}>Cerrar sesión</button>
     </div>
   );
 }
@@ -14,11 +39,24 @@ function Inicio() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Inicio />} />
-        </Routes>
-      </BrowserRouter>
+      <SesionProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/registro" element={<Registro />} />
+            <Route path="/verificar" element={<Verificar />} />
+            <Route path="/bloqueado" element={<Bloqueado />} />
+            <Route
+              path="/"
+              element={
+                <RutaProtegida>
+                  <Inicio />
+                </RutaProtegida>
+              }
+            />
+          </Routes>
+        </BrowserRouter>
+      </SesionProvider>
     </QueryClientProvider>
   );
 }
