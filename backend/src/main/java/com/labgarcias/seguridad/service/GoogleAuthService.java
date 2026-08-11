@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,13 +34,23 @@ public class GoogleAuthService {
     private final RolRepository rolRepository;
     private final JwtService jwtService;
 
+    @Autowired
     public GoogleAuthService(@Value("${app.google.client-id}") String googleClientId,
                               UsuarioRepository usuarioRepository,
                               RolRepository rolRepository,
                               JwtService jwtService) {
-        this.verificador = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), GsonFactory.getDefaultInstance())
-                .setAudience(Collections.singletonList(googleClientId))
-                .build();
+        this(new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), GsonFactory.getDefaultInstance())
+                        .setAudience(Collections.singletonList(googleClientId))
+                        .build(),
+                usuarioRepository, rolRepository, jwtService);
+    }
+
+    /** Visible para tests: permite inyectar un GoogleIdTokenVerifier simulado. */
+    GoogleAuthService(GoogleIdTokenVerifier verificador,
+                       UsuarioRepository usuarioRepository,
+                       RolRepository rolRepository,
+                       JwtService jwtService) {
+        this.verificador = verificador;
         this.usuarioRepository = usuarioRepository;
         this.rolRepository = rolRepository;
         this.jwtService = jwtService;
