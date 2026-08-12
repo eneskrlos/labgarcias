@@ -1,0 +1,90 @@
+.formulario {
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-borde);
+  padding: var(--espaciado-lg);
+  margin-bottom: var(--espaciado-lg);
+  max-width: 420px;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaciado-xs);
+  margin-bottom: var(--espaciado-md);
+}
+
+.campo label {
+  font-size: 0.9rem;
+  color: var(--color-texto-tenue);
+}
+
+.campo input {
+  padding: var(--espaciado-sm);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-borde);
+}
+
+.ayuda {
+  font-size: 0.85rem;
+  color: var(--color-texto-tenue);
+  margin: calc(-1 * var(--espaciado-sm)) 0 var(--espaciado-md);
+}
+
+.error {
+  color: var(--color-error);
+  font-size: 0.9rem;
+  margin: 0 0 var(--espaciado-md);
+}
+
+.acciones {
+  display: flex;
+  gap: var(--espaciado-sm);
+}
+
+.boton {
+  padding: var(--espaciado-sm) var(--espaciado-md);
+  background: var(--color-primario);
+  color: var(--color-primario-contraste);
+  border: none;
+  border-radius: var(--radio-borde);
+  cursor: pointer;
+}
+
+.boton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.botonSecundario {
+  padding: var(--espaciado-sm) var(--espaciado-md);
+  background: transparent;
+  color: var(--color-texto);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-borde);
+  cursor: pointer;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  overflow-x: auto;
+  display: block;
+}
+
+.tabla th,
+.tabla td {
+  text-align: left;
+  padding: var(--espaciado-sm);
+  border-bottom: 1px solid var(--color-borde);
+  white-space: nowrap;
+}
+
+.inactivo {
+  color: var(--color-texto-tenue);
+}
+
+.tabla button {
+  margin-right: var(--espaciado-xs);
+  padding: 4px 8px;
+  cursor: pointer;
+}
