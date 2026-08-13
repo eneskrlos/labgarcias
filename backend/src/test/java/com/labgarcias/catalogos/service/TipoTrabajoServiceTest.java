@@ -131,6 +131,40 @@ class TipoTrabajoServiceTest {
     }
 
     @Test
+    void obtenerActivoParaOrdenDevuelveLaEntidadCuandoElTipoEstaActivo() {
+        TipoTrabajo activo = new TipoTrabajo();
+        activo.setNombre("PLACA ACTIVA");
+        activo.setDiasEstimados((short) 7);
+        activo.setPrecio(new BigDecimal("250.00"));
+        activo.setActivo(true);
+        when(tipoTrabajoRepository.findById(16)).thenReturn(Optional.of(activo));
+
+        assertThat(tipoTrabajoService.obtenerActivoParaOrden(16)).isSameAs(activo);
+    }
+
+    @Test
+    void obtenerActivoParaOrdenRechazaUnTipoInactivo() {
+        TipoTrabajo inactivo = new TipoTrabajo();
+        inactivo.setNombre("VIEJO");
+        inactivo.setActivo(false);
+        when(tipoTrabajoRepository.findById(16)).thenReturn(Optional.of(inactivo));
+
+        assertThatThrownBy(() -> tipoTrabajoService.obtenerActivoParaOrden(16))
+                .isInstanceOf(ReglaNegocioException.class)
+                .satisfies(ex -> assertThat(((ReglaNegocioException) ex).getCodigo()).isEqualTo("TIPO_TRABAJO_INACTIVO"));
+    }
+
+    @Test
+    void obtenerActivoParaOrdenRechazaUnTipoInexistenteConElMismoCodigo() {
+        // No se distingue "no existe" de "inactivo": desde CU-09 el resultado es el mismo.
+        when(tipoTrabajoRepository.findById(99)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> tipoTrabajoService.obtenerActivoParaOrden(99))
+                .isInstanceOf(ReglaNegocioException.class)
+                .satisfies(ex -> assertThat(((ReglaNegocioException) ex).getCodigo()).isEqualTo("TIPO_TRABAJO_INACTIVO"));
+    }
+
+    @Test
     void crearConMenosDe7DiasEsRechazado() {
         TipoTrabajoRequest request = new TipoTrabajoRequest("NUEVO", 6, new BigDecimal("250.00"));
 
