@@ -1,0 +1,40 @@
+.formulario {
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-borde);
+  padding: var(--espaciado-lg);
+  max-width: 420px;
+}
+
+.error {
+  color: var(--color-error);
+  font-size: 0.9rem;
+  margin: 0 0 var(--espaciado-md);
+}
+
+.acciones {
+  display: flex;
+  gap: var(--espaciado-sm);
+}
+
+.boton {
+  padding: var(--espaciado-sm) var(--espaciado-md);
+  background: var(--color-primario);
+  color: var(--color-primario-contraste);
+  border: none;
+  border-radius: var(--radio-borde);
+  cursor: pointer;
+}
+
+.boton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.botonSecundario {
+  padding: var(--espaciado-sm) var(--espaciado-md);
+  background: transparent;
+  color: var(--color-texto);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-borde);
+  cursor: pointer;
+}

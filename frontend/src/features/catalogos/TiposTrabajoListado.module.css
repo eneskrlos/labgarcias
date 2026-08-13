@@ -1,0 +1,24 @@
+.encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaciado-md);
+  margin-bottom: var(--espaciado-md);
+}
+
+.encabezado h1 {
+  margin: 0;
+}
+
+.botonNuevo {
+  padding: var(--espaciado-sm) var(--espaciado-md);
+  background: var(--color-primario);
+  color: var(--color-primario-contraste);
+  border-radius: var(--radio-borde);
+  text-decoration: none;
+}
+
+.confirmacion {
+  color: var(--color-exito);
+  margin: 0 0 var(--espaciado-md);
+}

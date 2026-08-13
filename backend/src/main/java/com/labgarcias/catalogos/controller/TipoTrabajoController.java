@@ -2,6 +2,8 @@ package com.labgarcias.catalogos.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -12,14 +14,17 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.labgarcias.catalogos.dto.CambiarEstadoTipoTrabajoRequest;
 import com.labgarcias.catalogos.dto.TipoTrabajoRequest;
 import com.labgarcias.catalogos.dto.TipoTrabajoResponse;
 import com.labgarcias.catalogos.service.TipoTrabajoService;
+import com.labgarcias.shared.dto.PaginaResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -36,26 +41,49 @@ public class TipoTrabajoController {
         this.tipoTrabajoService = tipoTrabajoService;
     }
 
-    @GetMapping
+    @GetMapping("/activos")
     @PreAuthorize("isAuthenticated()")
     @Operation(
             summary = "Listar tipos de trabajo activos (CU-16, CU-09)",
-            description = "Catálogo que puede elegir el odontólogo al crear una orden. Los tipos desactivados no aparecen."
+            description = "Catálogo completo sin paginar: alimenta el selector de tipo de trabajo al crear una orden "
+                    + "(el odontólogo necesita verlo entero). Los tipos desactivados no aparecen. "
+                    + "Excepción deliberada a la paginación general (spec.md §4.1)."
     )
-    @ApiResponses({ @ApiResponse(responseCode = "200", description = "Listado de tipos activos") })
+    @ApiResponses({ @ApiResponse(responseCode = "200", description = "Listado completo de tipos activos") })
     public ResponseEntity<List<TipoTrabajoResponse>> listarActivos() {
         return ResponseEntity.ok(tipoTrabajoService.listarActivos());
     }
 
-    @GetMapping("/todos")
+    @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','SUPERADMIN')")
     @Operation(
-            summary = "Listar todos los tipos de trabajo, activos e inactivos (CU-16)",
-            description = "Vista de administración: incluye los desactivados para poder reactivarlos."
+            summary = "Listar tipos de trabajo, paginado (CU-16)",
+            description = "Vista de administración: incluye activos e inactivos. size solo admite 10, 20 o 30."
     )
-    @ApiResponses({ @ApiResponse(responseCode = "200", description = "Listado completo") })
-    public ResponseEntity<List<TipoTrabajoResponse>> listarTodos() {
-        return ResponseEntity.ok(tipoTrabajoService.listarTodos());
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Página de tipos de trabajo"),
+            @ApiResponse(responseCode = "400", description = "TAMANO_PAGINA_INVALIDO")
+    })
+    public ResponseEntity<PaginaResponse<TipoTrabajoResponse>> listarPaginado(
+            @PageableDefault(size = 10, sort = "nombre") Pageable pageable,
+            @Parameter(description = "Filtra por activo/inactivo") @RequestParam(required = false) Boolean activo,
+            @Parameter(description = "Coincidencia parcial del nombre, sin distinguir mayúsculas ni acentos")
+            @RequestParam(required = false) String busqueda) {
+        return ResponseEntity.ok(tipoTrabajoService.listarPaginado(pageable, activo, busqueda));
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPERADMIN')")
+    @Operation(
+            summary = "Obtener un tipo de trabajo por id (CU-16)",
+            description = "Alimenta la precarga del formulario de edición (spec.md §8.1: rutas de alta/edición separadas del listado)."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Tipo de trabajo encontrado"),
+            @ApiResponse(responseCode = "404", description = "TIPO_TRABAJO_NO_ENCONTRADO")
+    })
+    public ResponseEntity<TipoTrabajoResponse> obtenerPorId(@PathVariable Integer id) {
+        return ResponseEntity.ok(tipoTrabajoService.obtenerPorId(id));
     }
 
     @PostMapping

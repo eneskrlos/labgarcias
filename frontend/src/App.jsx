@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { SesionProvider, useSesion } from './shared/hooks/useSesion';
 import { RutaProtegida } from './shared/components/RutaProtegida';
 import { logout } from './features/auth/api';
@@ -8,8 +8,11 @@ import Login from './features/auth/Login';
 import Registro from './features/auth/Registro';
 import Verificar from './features/auth/Verificar';
 import Bloqueado from './features/auth/Bloqueado';
+import TiposTrabajoListado from './features/catalogos/TiposTrabajoListado';
+import TipoTrabajoFormulario from './features/catalogos/TipoTrabajoFormulario';
 
 const queryClient = new QueryClient();
+const ROLES_ADMIN = ['ADMIN', 'SUPERADMIN'];
 
 function Inicio() {
   const { usuario, cerrarSesion } = useSesion();
@@ -31,6 +34,11 @@ function Inicio() {
       <p>
         Hola, {usuario.nombreCompleto} ({usuario.rol})
       </p>
+      {ROLES_ADMIN.includes(usuario.rol) && (
+        <p>
+          <Link to="/admin/tipos-trabajo">Tipos de trabajo</Link>
+        </p>
+      )}
       <button type="button" onClick={salir}>Cerrar sesión</button>
     </div>
   );
@@ -51,6 +59,30 @@ function App() {
               element={
                 <RutaProtegida>
                   <Inicio />
+                </RutaProtegida>
+              }
+            />
+            <Route
+              path="/admin/tipos-trabajo"
+              element={
+                <RutaProtegida rolesPermitidos={ROLES_ADMIN}>
+                  <TiposTrabajoListado />
+                </RutaProtegida>
+              }
+            />
+            <Route
+              path="/admin/tipos-trabajo/nuevo"
+              element={
+                <RutaProtegida rolesPermitidos={ROLES_ADMIN}>
+                  <TipoTrabajoFormulario />
+                </RutaProtegida>
+              }
+            />
+            <Route
+              path="/admin/tipos-trabajo/:id/editar"
+              element={
+                <RutaProtegida rolesPermitidos={ROLES_ADMIN}>
+                  <TipoTrabajoFormulario />
                 </RutaProtegida>
               }
             />
