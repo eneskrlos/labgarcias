@@ -1,0 +1,61 @@
+.contenedor {
+  width: 100%;
+}
+
+.envoltorioTabla {
+  overflow-x: auto;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 480px;
+}
+
+.tabla th,
+.tabla td {
+  text-align: left;
+  padding: var(--espaciado-sm);
+  border-bottom: 1px solid var(--color-borde);
+  white-space: nowrap;
+}
+
+.inactivo {
+  color: var(--color-texto-tenue);
+}
+
+.tabla button {
+  margin-right: var(--espaciado-xs);
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.estadoCelda {
+  text-align: center;
+  padding: var(--espaciado-xl) var(--espaciado-md);
+  white-space: normal;
+}
+
+.error {
+  color: var(--color-error);
+  margin: 0 0 var(--espaciado-sm);
+}
+
+.esqueleto {
+  display: block;
+  height: 1em;
+  border-radius: var(--radio-borde);
+  background: var(--color-borde);
+  animation: pulso 1.2s ease-in-out infinite;
+}
+
+@keyframes pulso {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.actualizando {
+  font-size: 0.85rem;
+  color: var(--color-texto-tenue);
+  margin: 0;
+}

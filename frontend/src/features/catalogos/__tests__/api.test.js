@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiFetch } from '../../../shared/api/cliente';
-import { actualizar, cambiarEstado, crear, listarTodos } from '../api';
+import { actualizar, cambiarEstado, crear, listarActivos, listarPaginado, obtenerPorId } from '../api';
 
 vi.mock('../../../shared/api/cliente', () => ({
   apiFetch: vi.fn(),
@@ -11,9 +11,24 @@ describe('features/catalogos/api', () => {
     apiFetch.mockReset();
   });
 
-  it('listarTodos llama a GET /tipos-trabajo/todos', () => {
-    listarTodos();
-    expect(apiFetch).toHaveBeenCalledWith('/tipos-trabajo/todos');
+  it('listarActivos llama a GET /tipos-trabajo/activos', () => {
+    listarActivos();
+    expect(apiFetch).toHaveBeenCalledWith('/tipos-trabajo/activos');
+  });
+
+  it('listarPaginado envía page y size', () => {
+    listarPaginado({ pagina: 2, tamano: 20 });
+    expect(apiFetch).toHaveBeenCalledWith('/tipos-trabajo?page=2&size=20');
+  });
+
+  it('listarPaginado agrega activo y busqueda solo cuando están definidos', () => {
+    listarPaginado({ pagina: 0, tamano: 10, activo: true, busqueda: 'plac' });
+    expect(apiFetch).toHaveBeenCalledWith('/tipos-trabajo?page=0&size=10&activo=true&busqueda=plac');
+  });
+
+  it('obtenerPorId llama a GET /tipos-trabajo/{id}', () => {
+    obtenerPorId(16);
+    expect(apiFetch).toHaveBeenCalledWith('/tipos-trabajo/16');
   });
 
   it('crear llama a POST /tipos-trabajo con el cuerpo serializado', () => {

@@ -8,7 +8,8 @@ import Login from './features/auth/Login';
 import Registro from './features/auth/Registro';
 import Verificar from './features/auth/Verificar';
 import Bloqueado from './features/auth/Bloqueado';
-import TiposTrabajo from './features/catalogos/TiposTrabajo';
+import TiposTrabajoListado from './features/catalogos/TiposTrabajoListado';
+import TipoTrabajoFormulario from './features/catalogos/TipoTrabajoFormulario';
 
 const queryClient = new QueryClient();
 const ROLES_ADMIN = ['ADMIN', 'SUPERADMIN'];
@@ -65,7 +66,23 @@ function App() {
               path="/admin/tipos-trabajo"
               element={
                 <RutaProtegida rolesPermitidos={ROLES_ADMIN}>
-                  <TiposTrabajo />
+                  <TiposTrabajoListado />
+                </RutaProtegida>
+              }
+            />
+            <Route
+              path="/admin/tipos-trabajo/nuevo"
+              element={
+                <RutaProtegida rolesPermitidos={ROLES_ADMIN}>
+                  <TipoTrabajoFormulario />
+                </RutaProtegida>
+              }
+            />
+            <Route
+              path="/admin/tipos-trabajo/:id/editar"
+              element={
+                <RutaProtegida rolesPermitidos={ROLES_ADMIN}>
+                  <TipoTrabajoFormulario />
                 </RutaProtegida>
               }
             />

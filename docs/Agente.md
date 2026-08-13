@@ -228,6 +228,7 @@ src/
 - **Estado del servidor:** TanStack Query. **No usar Redux.**
 - **Estado local:** `useState` / `useContext`. Nada más.
 - **Rutas:** React Router.
+- **Vistas CRUD:** toda pantalla de administración sigue obligatoriamente la convención de `spec.md` §8.1 — listado paginado y formulario en rutas separadas, paginación resuelta en el backend (10/20/30) y componentes compartidos de `shared/`. **Prohibido el formulario embebido sobre la tabla.**
 
 ### 5.8 Migraciones
 
@@ -263,6 +264,8 @@ src/
 - Exponer entidades JPA en los esquemas de Swagger, o usar datos reales de pacientes en los ejemplos.
 - Dejar Swagger habilitado en el perfil de producción.
 - Abstracciones sin uso actual: interfaces con una sola implementación (fuera de 5.5), clases genéricas "para el futuro", capas de mapeo automático innecesarias.
+- Resolver en una pantalla algo que ya cubre un componente compartido de `shared/`. Si falta capacidad, se extiende el compartido.
+- Paginar en el cliente sobre una colección completa traída del backend.
 
 ---
 
@@ -331,6 +334,7 @@ Antes de dar una tarea por terminada:
 - [ ] No hay credenciales, `println` ni código comentado.
 - [ ] Los endpoints nuevos tienen autorización por rol.
 - [ ] Los endpoints nuevos están documentados en Swagger y **los probé desde `/swagger-ui.html`**.
+- [ ] Si es una vista CRUD: cumple los 5 criterios de `spec.md` §8.1.
 - [ ] Si toca órdenes: RN-01 verificado y nombre del paciente no expuesto.
 
 ---

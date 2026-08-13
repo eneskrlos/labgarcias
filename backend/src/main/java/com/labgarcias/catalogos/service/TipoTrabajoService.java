@@ -3,6 +3,8 @@ package com.labgarcias.catalogos.service;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -10,10 +12,12 @@ import com.labgarcias.catalogos.domain.TipoTrabajo;
 import com.labgarcias.catalogos.dto.TipoTrabajoRequest;
 import com.labgarcias.catalogos.dto.TipoTrabajoResponse;
 import com.labgarcias.catalogos.repository.TipoTrabajoRepository;
+import com.labgarcias.shared.dto.PaginaResponse;
 import com.labgarcias.shared.excepcion.ConflictoException;
 import com.labgarcias.shared.excepcion.RecursoNoEncontradoException;
 import com.labgarcias.shared.excepcion.ReglaNegocioException;
 import com.labgarcias.shared.util.ConstantesDominio;
+import com.labgarcias.shared.util.ValidadorPaginacion;
 
 @Service
 public class TipoTrabajoService {
@@ -24,7 +28,7 @@ public class TipoTrabajoService {
         this.tipoTrabajoRepository = tipoTrabajoRepository;
     }
 
-    /** CU-16: el odontólogo solo ve tipos activos. */
+    /** CU-16/CU-09: catálogo completo sin paginar, para el selector de nueva orden. */
     @Transactional(readOnly = true)
     public List<TipoTrabajoResponse> listarActivos() {
         return tipoTrabajoRepository.findAllByActivoTrueOrderByNombreAsc().stream()
@@ -32,12 +36,19 @@ public class TipoTrabajoService {
                 .toList();
     }
 
-    /** CU-16: el ADMIN ve también los desactivados, para poder gestionarlos. */
+    /** CU-16: listado paginado de administración, con filtros opcionales activo/busqueda. */
     @Transactional(readOnly = true)
-    public List<TipoTrabajoResponse> listarTodos() {
-        return tipoTrabajoRepository.findAllByOrderByNombreAsc().stream()
-                .map(this::aRespuesta)
-                .toList();
+    public PaginaResponse<TipoTrabajoResponse> listarPaginado(Pageable pageable, Boolean activo, String busqueda) {
+        ValidadorPaginacion.validarTamano(pageable.getPageSize());
+        Page<TipoTrabajoResponse> pagina = tipoTrabajoRepository.buscar(activo, busqueda, pageable)
+                .map(this::aRespuesta);
+        return PaginaResponse.de(pagina);
+    }
+
+    /** Alimenta la precarga del formulario de edición (spec.md §8.1). */
+    @Transactional(readOnly = true)
+    public TipoTrabajoResponse obtenerPorId(Integer id) {
+        return aRespuesta(buscarPorId(id));
     }
 
     @Transactional

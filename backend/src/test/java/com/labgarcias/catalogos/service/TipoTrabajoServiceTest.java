@@ -17,14 +17,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import com.labgarcias.catalogos.domain.TipoTrabajo;
 import com.labgarcias.catalogos.dto.TipoTrabajoRequest;
 import com.labgarcias.catalogos.dto.TipoTrabajoResponse;
 import com.labgarcias.catalogos.repository.TipoTrabajoRepository;
+import com.labgarcias.shared.dto.PaginaResponse;
 import com.labgarcias.shared.excepcion.ConflictoException;
 import com.labgarcias.shared.excepcion.RecursoNoEncontradoException;
 import com.labgarcias.shared.excepcion.ReglaNegocioException;
+import com.labgarcias.shared.excepcion.ValidacionException;
 
 @ExtendWith(MockitoExtension.class)
 class TipoTrabajoServiceTest {
@@ -62,18 +67,67 @@ class TipoTrabajoServiceTest {
     }
 
     @Test
-    void listarTodosIncluyeInactivos() {
-        TipoTrabajo inactivo = new TipoTrabajo();
-        inactivo.setNombre("VIEJO");
-        inactivo.setDiasEstimados((short) 7);
-        inactivo.setPrecio(new BigDecimal("250.00"));
-        inactivo.setActivo(false);
-        when(tipoTrabajoRepository.findAllByOrderByNombreAsc()).thenReturn(List.of(inactivo));
+    void listarPaginadoConTamanoInvalidoEsRechazado() {
+        Pageable pageable = PageRequest.of(0, 15);
 
-        List<TipoTrabajoResponse> resultado = tipoTrabajoService.listarTodos();
+        assertThatThrownBy(() -> tipoTrabajoService.listarPaginado(pageable, null, null))
+                .isInstanceOf(ValidacionException.class)
+                .satisfies(ex -> assertThat(((ValidacionException) ex).getCodigo()).isEqualTo("TAMANO_PAGINA_INVALIDO"));
+    }
 
-        assertThat(resultado).hasSize(1);
-        assertThat(resultado.get(0).activo()).isFalse();
+    @Test
+    void listarPaginadoConTamanoValidoDelegaEnElRepositorioYMapeaLaPagina() {
+        TipoTrabajo tipoTrabajo = new TipoTrabajo();
+        tipoTrabajo.setNombre("VIEJO");
+        tipoTrabajo.setDiasEstimados((short) 7);
+        tipoTrabajo.setPrecio(new BigDecimal("250.00"));
+        tipoTrabajo.setActivo(false);
+        Pageable pageable = PageRequest.of(0, 10);
+        when(tipoTrabajoRepository.buscar(null, null, pageable))
+                .thenReturn(new PageImpl<>(List.of(tipoTrabajo), pageable, 45));
+
+        PaginaResponse<TipoTrabajoResponse> respuesta = tipoTrabajoService.listarPaginado(pageable, null, null);
+
+        assertThat(respuesta.contenido()).hasSize(1);
+        assertThat(respuesta.contenido().get(0).activo()).isFalse();
+        assertThat(respuesta.total()).isEqualTo(45);
+        assertThat(respuesta.pagina()).isEqualTo(0);
+        assertThat(respuesta.tamano()).isEqualTo(10);
+        assertThat(respuesta.totalPaginas()).isEqualTo(5);
+    }
+
+    @Test
+    void listarPaginadoPropagaLosFiltrosAlRepositorio() {
+        Pageable pageable = PageRequest.of(0, 10);
+        when(tipoTrabajoRepository.buscar(true, "placa", pageable))
+                .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+
+        tipoTrabajoService.listarPaginado(pageable, true, "placa");
+
+        verify(tipoTrabajoRepository).buscar(true, "placa", pageable);
+    }
+
+    @Test
+    void obtenerPorIdConIdInexistenteLanza404() {
+        when(tipoTrabajoRepository.findById(99)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> tipoTrabajoService.obtenerPorId(99))
+                .isInstanceOf(RecursoNoEncontradoException.class)
+                .satisfies(ex -> assertThat(((RecursoNoEncontradoException) ex).getCodigo()).isEqualTo("TIPO_TRABAJO_NO_ENCONTRADO"));
+    }
+
+    @Test
+    void obtenerPorIdDevuelveElTipoMapeado() {
+        TipoTrabajo tipoTrabajo = new TipoTrabajo();
+        tipoTrabajo.setNombre("PLACA ACTIVA");
+        tipoTrabajo.setDiasEstimados((short) 7);
+        tipoTrabajo.setPrecio(new BigDecimal("250.00"));
+        tipoTrabajo.setActivo(true);
+        when(tipoTrabajoRepository.findById(16)).thenReturn(Optional.of(tipoTrabajo));
+
+        TipoTrabajoResponse respuesta = tipoTrabajoService.obtenerPorId(16);
+
+        assertThat(respuesta.nombre()).isEqualTo("PLACA ACTIVA");
     }
 
     @Test

@@ -1,7 +1,27 @@
 import { apiFetch } from '../../shared/api/cliente';
 
-export function listarTodos() {
-  return apiFetch('/tipos-trabajo/todos');
+/** CU-16/CU-09: catálogo completo sin paginar, para el selector de nueva orden. */
+export function listarActivos() {
+  return apiFetch('/tipos-trabajo/activos');
+}
+
+/** CU-16: listado paginado de administración, con filtros opcionales. */
+export function listarPaginado({ pagina, tamano, activo, busqueda }) {
+  const parametros = new URLSearchParams();
+  parametros.set('page', String(pagina));
+  parametros.set('size', String(tamano));
+  if (activo !== undefined && activo !== null) {
+    parametros.set('activo', String(activo));
+  }
+  if (busqueda) {
+    parametros.set('busqueda', busqueda);
+  }
+  return apiFetch(`/tipos-trabajo?${parametros.toString()}`);
+}
+
+/** Alimenta la precarga del formulario de edición (spec.md §8.1). */
+export function obtenerPorId(id) {
+  return apiFetch(`/tipos-trabajo/${id}`);
 }
 
 export function crear(datos) {

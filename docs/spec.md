@@ -32,7 +32,12 @@ Este documento define **qué** construir. Las reglas de cómo trabajar están en
   { "codigo": "TIPO_TRABAJO_INACTIVO", "mensaje": "...", "campo": "tipoTrabajoId" }
   ```
 - Fechas en ISO-8601. `TIMESTAMPTZ` se serializa en UTC.
-- Paginación: `?page=0&size=20`, respuesta `{ "contenido": [], "total": n, "pagina": 0 }`
+- Paginación: `?page=0&size=10&sort=campo,asc`. Respuesta:
+  ```json
+  { "contenido": [], "total": 45, "pagina": 0, "tamano": 10, "totalPaginas": 5 }
+  ```
+  `page` es **base 0**. `size` solo admite **10, 20 o 30**; otro valor → `400 TAMANO_PAGINA_INVALIDO`. Por defecto `page=0`, `size=10`.
+  **Toda paginación se resuelve en el backend** con `Pageable` de Spring Data. Prohibido devolver la colección completa y paginar en el cliente.
 
 ### 1.1 Documentación de la API — Swagger
 
@@ -259,11 +264,17 @@ Filtro que se ejecuta antes de cualquier endpoint de negocio y consulta `v_licen
 
 | Método | Ruta | Rol |
 |---|---|---|
-| GET | `/api/v1/tipos-trabajo` | autenticado (solo activos) |
-| GET | `/api/v1/tipos-trabajo/todos` | ADMIN, SUPERADMIN |
+| GET | `/api/v1/tipos-trabajo/activos` | autenticado — **sin paginar** |
+| GET | `/api/v1/tipos-trabajo` | ADMIN, SUPERADMIN — **paginado** |
 | POST | `/api/v1/tipos-trabajo` | ADMIN, SUPERADMIN |
 | PUT | `/api/v1/tipos-trabajo/{id}` | ADMIN, SUPERADMIN |
 | PATCH | `/api/v1/tipos-trabajo/{id}/estado` | ADMIN, SUPERADMIN |
+
+`GET /api/v1/tipos-trabajo?page=0&size=10&sort=nombre,asc&activo=&busqueda=`
+
+Filtros opcionales: `activo` (true/false) y `busqueda` (coincidencia parcial del nombre, sin distinguir mayúsculas ni acentos).
+
+> **Excepción deliberada:** `/tipos-trabajo/activos` **no se pagina**. Alimenta el selector de tipo de trabajo al crear una orden (§5.1), donde el odontólogo necesita el catálogo completo. Es el único endpoint de listado exento.
 
 **Request (POST/PUT)**
 ```json
@@ -280,7 +291,9 @@ Filtro que se ejecuta antes de cualquier endpoint de negocio y consulta `v_licen
 **Criterios de aceptación**
 1. Un tipo con 6 días o precio 249 es rechazado.
 2. Al desactivar un tipo usado, las órdenes existentes siguen mostrándolo correctamente.
-3. Un odontólogo solo ve tipos activos.
+3. Un odontólogo solo ve tipos activos, y los recibe completos desde `/activos`.
+4. `GET /tipos-trabajo?size=15` es rechazado con `400`.
+5. Con 45 tipos y `size=10`, la respuesta trae `totalPaginas: 5` y 10 elementos.
 
 ---
 
@@ -288,7 +301,7 @@ Filtro que se ejecuta antes de cualquier endpoint de negocio y consulta `v_licen
 
 | Método | Ruta | Rol |
 |---|---|---|
-| GET | `/api/v1/estados` | autenticado |
+| GET | `/api/v1/estados` | autenticado (sin paginar: catálogo cerrado de 7) |
 | PUT | `/api/v1/estados/{id}` | ADMIN, SUPERADMIN |
 
 Solo se permite editar `nombre` y `descripcion`. **Prohibido** modificar `codigo`, `orden_secuencia`, `es_terminal` o `es_productivo`, ni crear o eliminar estados: el flujo lineal de RN-04 depende de ellos.
@@ -583,6 +596,64 @@ En `/perfil` el usuario edita `nombreCompleto` y `direccion`. **No** puede cambi
 - Ninguna pantalla muestra el nombre completo del paciente al odontólogo (RN-22).
 - Ningún cálculo de negocio en el cliente: precios, fechas y transiciones vienen del backend.
 - La línea de tiempo del seguimiento se arma con el historial que devuelve la API.
+
+### 8.1 Convención obligatoria para toda vista CRUD
+
+**Aplica a TODAS las pantallas de administración con alta, edición y listado**, sin excepción: tipos de trabajo, estados, odontólogos, usuarios, licencias y cualquier CRUD futuro. El objetivo es que todas se vean y se operen igual.
+
+#### Regla 1 — Listado y formulario en vistas separadas
+
+**Prohibido el formulario embebido sobre la tabla.** Cada recurso tiene tres rutas:
+
+| Ruta | Propósito |
+|---|---|
+| `/admin/{recurso}` | Listado paginado. **Sin formulario.** |
+| `/admin/{recurso}/nuevo` | Formulario de alta |
+| `/admin/{recurso}/{id}/editar` | Formulario de edición |
+
+- En el listado, un botón **"Nuevo"** arriba a la derecha navega a `/nuevo`.
+- La acción **"Editar"** de cada fila navega a `/{id}/editar`.
+- Alta y edición usan **el mismo componente de formulario**, parametrizado por modo. No duplicar.
+- Al guardar con éxito: volver al listado y mostrar confirmación. Al cancelar: volver sin guardar.
+- El formulario muestra las reglas aplicables como texto de ayuda bajo cada campo (ej.: "RN-12: mínimo 7 días hábiles").
+
+#### Regla 2 — Paginación controlada por el backend
+
+- Controles **debajo de la tabla**: página actual y total, anterior/siguiente, y selector de cantidad con **10, 20 y 30**.
+- El estado de paginación vive en la **URL** (`?page=0&size=10`), para que la vista sea compartible y sobreviva a un refresco.
+- Cambiar el tamaño de página vuelve a `page=0`.
+- **Prohibido** traer toda la colección y paginar con `slice` en el cliente.
+- Se consume con TanStack Query, manteniendo los datos previos visibles mientras carga la página siguiente (sin parpadeo).
+
+#### Regla 3 — Estados de la tabla
+
+Toda tabla contempla explícitamente: **cargando** (esqueleto o indicador, sin salto de layout), **vacío** (mensaje claro y acceso a "Nuevo"), y **error** (mensaje con opción de reintentar). Un listado que solo contempla el caso feliz está incompleto.
+
+#### Regla 4 — Componentes compartidos
+
+Para que la uniformidad no dependa de la disciplina, estos componentes viven en `shared/` y se reutilizan:
+
+| Componente | Responsabilidad |
+|---|---|
+| `TablaPaginada` | Tabla + controles de paginación + estados de carga, vacío y error |
+| `ControlesPaginacion` | Navegación y selector de tamaño (10/20/30) |
+| `LayoutFormulario` | Encabezado, cuerpo, botones Guardar y Cancelar |
+| `CampoFormulario` | Etiqueta, control, texto de ayuda y mensaje de error |
+| `usePaginacion` | Hook que sincroniza `page` y `size` con la URL |
+
+Una pantalla CRUD nueva se arma componiendo estos elementos. **Si una vista necesita algo que estos componentes no cubren, se extiende el componente compartido — no se resuelve con una solución propia de esa pantalla.**
+
+#### Regla 5 — Uniformidad visual
+
+Misma disposición en todas: título, botón "Nuevo" a la derecha, filtros si corresponde, tabla, paginación. Columna de acciones siempre al final. Mismos textos: "Nuevo", "Editar", "Desactivar", "Guardar", "Cancelar".
+
+#### Criterios de aceptación
+
+1. Ninguna vista de listado contiene un formulario de alta o edición.
+2. El listado muestra 10 registros por defecto y permite cambiar a 20 o 30.
+3. Recargar el navegador en `?page=2&size=20` mantiene la misma página.
+4. La cantidad de registros que llega por la red coincide con el tamaño de página (verificable en la pestaña Red).
+5. Las tablas de dos recursos distintos son visualmente indistinguibles en estructura.
 
 ---
 
