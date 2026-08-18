@@ -51,6 +51,22 @@ public class TipoTrabajoService {
         return aRespuesta(buscarPorId(id));
     }
 
+    /**
+     * CU-09: el módulo de órdenes necesita la entidad para tomar la foto de precio y días.
+     * Devuelve dominio (no DTO) porque Agente.md 5.4 prohíbe importar el dto de otro módulo.
+     */
+    @Transactional(readOnly = true)
+    public TipoTrabajo obtenerActivoParaOrden(Integer id) {
+        TipoTrabajo tipoTrabajo = tipoTrabajoRepository.findById(id)
+                .orElseThrow(() -> new ReglaNegocioException("TIPO_TRABAJO_INACTIVO",
+                        "El tipo de trabajo no existe o no está disponible.", "tipoTrabajoId"));
+        if (!tipoTrabajo.isActivo()) {
+            throw new ReglaNegocioException("TIPO_TRABAJO_INACTIVO",
+                    "El tipo de trabajo no existe o no está disponible.", "tipoTrabajoId");
+        }
+        return tipoTrabajo;
+    }
+
     @Transactional
     public TipoTrabajoResponse crear(TipoTrabajoRequest request) {
         validarDiasYPrecio(request);
