@@ -10,8 +10,18 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+  servlet:
+    multipart:
+      # RN-13: el tope real (5 MB imagen / 8 MB documento) lo aplica el backend por categoría.
+      # Acá se deja margen sobre el mayor de los dos para que el archivo llegue al validador
+      # y el rechazo salga con ARCHIVO_NO_PERMITIDO y no como un error del contenedor.
+      max-file-size: 10MB
+      max-request-size: 12MB
 
 app:
+  almacenamiento:
+    # RN-13: el binario vive fuera de la base; orden_archivo solo guarda ruta y metadatos.
+    directorio: ${ALMACENAMIENTO_DIRECTORIO:./archivos}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
   jwt:
