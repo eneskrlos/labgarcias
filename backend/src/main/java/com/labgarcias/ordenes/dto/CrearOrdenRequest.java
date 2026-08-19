@@ -10,6 +10,11 @@ import jakarta.validation.constraints.Pattern;
 /** CU-09: alta de una orden. El backend deriva iniciales, precios, estado inicial y fecha (RN-11, RN-18, RN-21, RN-22). */
 public record CrearOrdenRequest(
 
+        @Schema(description = "D-19: dueño de la orden. Lo elige el laboratorio, que es quien registra.",
+                example = "3")
+        @NotNull(message = "El odontólogo es obligatorio.")
+        Long odontologoId,
+
         @Schema(description = "RN-22: uso interno, no se devuelve en ninguna respuesta", example = "Martín Pérez")
         @NotBlank(message = "El nombre del paciente es obligatorio.")
         String pacienteNombre,

@@ -62,7 +62,7 @@ class FabricaOrdenTest {
     }
 
     private CrearOrdenRequest request(String pacienteNombre, String tipoOrdenCodigo) {
-        return new CrearOrdenRequest(pacienteNombre, LocalDate.of(2026, 8, 6), 16, tipoOrdenCodigo, "Descripción");
+        return new CrearOrdenRequest(7L, pacienteNombre, LocalDate.of(2026, 8, 6), 16, tipoOrdenCodigo, "Descripción");
     }
 
     @Test

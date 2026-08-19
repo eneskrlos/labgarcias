@@ -24,11 +24,10 @@ import com.labgarcias.ordenes.dto.OrdenResponse;
 import com.labgarcias.ordenes.repository.OrdenHistorialEstadoRepository;
 import com.labgarcias.ordenes.repository.OrdenRepository;
 import com.labgarcias.seguridad.domain.Usuario;
+import com.labgarcias.seguridad.service.UsuarioService;
 import com.labgarcias.shared.dto.PaginaResponse;
 import com.labgarcias.shared.excepcion.RecursoNoEncontradoException;
 import com.labgarcias.shared.util.ValidadorPaginacion;
-
-import jakarta.persistence.EntityManager;
 
 /**
  * CU-09: creación de órdenes. Los valores derivados los calcula el backend, nunca el cliente.
@@ -43,8 +42,8 @@ public class OrdenService {
     private final TipoOrdenService tipoOrdenService;
     private final FabricaOrden fabricaOrden;
     private final OrdenArchivoService ordenArchivoService;
+    private final UsuarioService usuarioService;
     private final ApplicationEventPublisher eventos;
-    private final EntityManager entityManager;
 
     public OrdenService(OrdenRepository ordenRepository,
                         OrdenHistorialEstadoRepository historialRepository,
@@ -52,23 +51,24 @@ public class OrdenService {
                         TipoOrdenService tipoOrdenService,
                         FabricaOrden fabricaOrden,
                         OrdenArchivoService ordenArchivoService,
-                        ApplicationEventPublisher eventos,
-                        EntityManager entityManager) {
+                        UsuarioService usuarioService,
+                        ApplicationEventPublisher eventos) {
         this.ordenRepository = ordenRepository;
         this.historialRepository = historialRepository;
         this.tipoTrabajoService = tipoTrabajoService;
         this.tipoOrdenService = tipoOrdenService;
         this.fabricaOrden = fabricaOrden;
         this.ordenArchivoService = ordenArchivoService;
+        this.usuarioService = usuarioService;
         this.eventos = eventos;
-        this.entityManager = entityManager;
     }
 
     @Transactional
-    public OrdenResponse crear(CrearOrdenRequest request, Long odontologoId) {
+    public OrdenResponse crear(CrearOrdenRequest request) {
         TipoTrabajo tipoTrabajo = tipoTrabajoService.obtenerActivoParaOrden(request.tipoTrabajoId());
         TipoOrden tipoOrden = tipoOrdenService.obtenerPorCodigo(CodigoTipoOrden.valueOf(request.tipoOrdenCodigo()));
-        Usuario odontologo = entityManager.getReference(Usuario.class, odontologoId);
+        // D-19: la orden se registra a nombre del odontólogo indicado, no de quien está autenticado.
+        Usuario odontologo = usuarioService.obtenerOdontologoActivoParaOrden(request.odontologoId());
 
         Orden orden = fabricaOrden.crear(request, odontologo, tipoTrabajo, tipoOrden);
         // saveAndFlush: codigo, paciente_codigo y precio_total los genera la base al insertar.

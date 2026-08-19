@@ -14,10 +14,12 @@ Orden de implementación. Cada tarea se ejecuta **de forma individual**, se repo
 Las tareas **no** se ejecutan en orden numérico. El bloque CR-01 no puede correr completo de inmediato: T-30, T-31, T-32 y T-32b dependen del núcleo de notificaciones (T-21/T-22), que todavía no existe. El orden obligatorio es:
 
 ```
-T-29 → T-18 → T-19 → T-20 → T-21 → T-22 → T-23
-     → T-30 → T-31 → T-32 → T-32b → T-33
+T-29 → T-18 → T-19 → T-20 → [T-33a] → T-21 → T-22 → T-23
+     → T-30 → T-31 → T-32 → T-32b → T-33b
      → T-25 → T-26 → T-27 → T-28
 ```
+
+> **T-33a adelantada (19/08/2026).** T-33 quedó partida: su etapa de backend solo dependía de T-29 y T-20, ya terminadas, y hasta hacerla `POST /ordenes` seguía aceptando al odontólogo, en contra de D-19. La etapa de pantalla (T-33b) conserva su lugar después de T-32b, porque el selector necesita las cuentas de T-31.
 
 **Por qué este orden:** T-29 primero, para que el código muerto de Google y verificación no se arrastre por todo el bloque 3. Después se completa el ciclo de órdenes (T-18 a T-20) y el núcleo de notificaciones (T-21 a T-23), que es la base sobre la que se apoyan las tareas de CR-01. Recién entonces entran solicitud de acceso, alta de credenciales, Telegram y órdenes por el admin. Las pantallas restantes cierran al final.
 
@@ -258,11 +260,11 @@ T-29 → T-18 → T-19 → T-20 → T-21 → T-22 → T-23
 
 ### ~~T-24 · Nueva orden (frontend)~~ — ELIMINADA por CR-01 (D-19)
 
-Sus criterios eran el front de CU-09 para el **odontólogo**, que D-19 retira de la navegación. La pantalla de alta de orden pasa a ser `/admin/ordenes/nueva` y la cubre **T-33** completa (backend + pantalla). Si P-19 reabre la creación por el odontólogo, esta tarea vuelve al plan.
+Sus criterios eran el front de CU-09 para el **odontólogo**, que D-19 retira de la navegación. La pantalla de alta de orden pasa a ser `/admin/ordenes/nueva` y la cubre **T-33b**; el endpoint ya lo cubrió **T-33a**. Si P-19 reabre la creación por el odontólogo, esta tarea vuelve al plan.
 
 ### T-25 · Mis órdenes y seguimiento (frontend)
 **Objetivo:** front de CU-03, CU-04 y CU-20.
-**Depende de:** T-19, T-33
+**Depende de:** T-19, T-33b *(el menú del odontólogo pierde "Nueva orden" en T-33b)*
 **Spec:** §5.3, §5.4, §5.6, §8
 **Terminado cuando:**
 - Listado con identificación por iniciales + código, **nunca** el nombre completo.
@@ -270,10 +272,14 @@ Sus criterios eran el front de CU-09 para el **odontólogo**, que D-19 retira de
 - **Sin sección de mensajes** (D-11).
 
 ### T-26 · Gestión de órdenes (admin)
-**Objetivo:** front de CU-06 y CU-10.
+**Objetivo:** CU-10 completo (backend + pantalla) y front de CU-06.
 **Depende de:** T-20, T-25
 **Spec:** §5.5, §5.7, §8
-**Terminado cuando:** el admin lista y filtra órdenes, ve el detalle y avanza el estado con un botón que solo ofrece la transición siguiente válida.
+**Terminado cuando:**
+- `GET /api/v1/admin/ordenes` con los filtros de §5.7 (`estado`, `tipoOrden`, `odontologoId`) y paginación de backend.
+- El admin lista y filtra órdenes, ve el detalle y avanza el estado con un botón que solo ofrece la transición siguiente válida.
+
+> **Precisión (19/08/2026):** el objetivo decía "front de CU-10" pero el criterio exigía que el admin listara y filtrara órdenes, cosa imposible sin el endpoint. **El backend de §5.7 —salvo el dashboard— es de esta tarea**, no de otra. Es el único endpoint de §5.7 que no tenía tarea asignada.
 
 ---
 
@@ -285,6 +291,7 @@ Sus criterios eran el front de CU-09 para el **odontólogo**, que D-19 retira de
 **Spec:** §5.7, §8
 **Reglas:** CU-02, CU-10, CU-12
 **Terminado cuando:**
+- `GET /api/v1/admin/dashboard` con lo que enumera §5.7: contadores, distribución por estado (`v_ordenes_por_estado`), próximas a entregar y órdenes recientes. **El backend del dashboard es de esta tarea.**
 - Panel del odontólogo con sus contadores y órdenes recientes.
 - Dashboard admin con contadores, distribución por estado, próximas a entregar y urgentes.
 - Historial del odontólogo.
@@ -313,7 +320,7 @@ Sus criterios eran el front de CU-09 para el **odontólogo**, que D-19 retira de
 | 4 · Notificaciones | T-21 a T-23 | Outbox, correo, campana | Pendiente |
 | 5 · Pantallas de órdenes | T-25, T-26 | Front de odontólogo y administración *(T-24 eliminada por D-19)* | Pendiente |
 | 6 · Paneles y cierre | T-27 a T-28 | Dashboards y verificación integral | Pendiente |
-| CR-01 · Cambio de alcance | T-29 a T-33 | Solicitud de acceso, alta por admin, Telegram, órdenes por admin | Pendiente |
+| CR-01 · Cambio de alcance | T-29 a T-33b | Solicitud de acceso, alta por admin, Telegram, órdenes por admin | T-29 y T-33a terminadas |
 
 > El orden de ejecución **no** sigue esta tabla: rige la secuencia del principio del documento.
 
@@ -381,18 +388,27 @@ Estas tareas aplican las decisiones D-17 a D-21 de `spec.md`. **No se ejecutan d
 
 ### T-33 · Órdenes registradas por el admin
 **Objetivo:** D-19 aplicado.
-**Depende de:** T-29, T-20, T-31 *(el selector de odontólogo necesita las cuentas creadas por el admin)*
 **Spec:** §5.1
+
+> **Partida en dos etapas (19/08/2026).** La dependencia con T-31 era solo del selector de odontólogo de la pantalla; el endpoint no la necesita. Se adelantó la etapa de backend para que `POST /ordenes` dejara de contradecir a D-19 mientras tanto.
+
+#### T-33a · Endpoint de alta por el laboratorio — ✅ TERMINADA (19/08/2026)
+**Depende de:** T-29, T-20
 **Terminado cuando:**
-- `POST /ordenes` exige rol ADMIN y `odontologoId` válido.
+- `POST /ordenes` exige rol ADMIN o SUPERADMIN y `odontologoId` válido (`422 ODONTOLOGO_INVALIDO`).
+
+#### T-33b · Pantalla y notificación
+**Depende de:** T-33a, T-31 *(el selector de odontólogo necesita las cuentas creadas por el admin)*, T-21 *(la notificación necesita el outbox)*
+**Terminado cuando:**
 - Pantalla `/admin/ordenes/nueva` con selector de odontólogo.
 - "Nueva orden" retirada del menú y rutas del odontólogo (el flujo queda documentado por P-19).
 - La notificación de orden registrada llega al odontólogo dueño.
+- Se aplica §5.1 paso 10: la notificación al admin por orden nueva **no** se emite cuando el creador es el propio destinatario. Hoy `OrdenCreadaEvent` viaja con el `notificaAdmin` crudo de `tipo_orden`; quien decide destinatarios es el módulo de notificaciones.
 
 ### Pendientes que agrega CR-01
 
 | Pendiente | Qué falta | Tarea afectada |
 |---|---|---|
 | P-18 | WhatsApp: se activará a futuro con proveedor pago (Meta Cloud API o Twilio) — reemplazado hoy por Telegram (D-21) | T-32 (solo estructura) |
-| P-19 | ¿Se reabre la creación de órdenes por el odontólogo? | T-33 |
+| P-19 | ¿Se reabre la creación de órdenes por el odontólogo? | T-33a, T-33b |
 | P-20 | Crear el bot con @BotFather y configurar `telegram.bot.token` en cada instalación (tarea del desarrollador, no del agente) | T-32, T-32b |

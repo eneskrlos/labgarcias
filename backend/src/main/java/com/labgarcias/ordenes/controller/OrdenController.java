@@ -51,23 +51,23 @@ public class OrdenController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ODONTOLOGO')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPERADMIN')")
     @Operation(
-            summary = "Crear una nueva orden (CU-09)",
-            description = "El odontólogo crea una orden. El estado inicial, el recargo, los precios y la "
-                    + "fecha estimada los calcula el backend (RN-11, RN-18, RN-21). "
-                    + "RN-01: la orden se asocia siempre al odontólogo autenticado, nunca a un id recibido. "
-                    + "RN-22: la respuesta no incluye el nombre del paciente."
+            summary = "Registrar una nueva orden (CU-09, D-19)",
+            description = "D-19: la orden la registra el laboratorio, que indica a qué odontólogo pertenece "
+                    + "mediante odontologoId; el odontólogo la envía en papel o por teléfono. "
+                    + "El id debe ser de una cuenta ODONTOLOGO activa, si no responde 422 ODONTOLOGO_INVALIDO. "
+                    + "El estado inicial, el recargo, los precios y la fecha estimada los calcula el backend "
+                    + "(RN-11, RN-18, RN-21). RN-22: la respuesta no incluye el nombre del paciente. "
+                    + "P-19: si se reabre la creación por el odontólogo, vuelve el flujo original de CU-09."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Orden creada"),
             @ApiResponse(responseCode = "400", description = "VALIDACION"),
-            @ApiResponse(responseCode = "422", description = "TIPO_TRABAJO_INACTIVO")
+            @ApiResponse(responseCode = "422", description = "ODONTOLOGO_INVALIDO / TIPO_TRABAJO_INACTIVO")
     })
-    public ResponseEntity<OrdenResponse> crear(@Valid @RequestBody CrearOrdenRequest request,
-                                               Authentication authentication) {
-        Long odontologoId = (Long) authentication.getPrincipal();
-        return ResponseEntity.status(HttpStatus.CREATED).body(ordenService.crear(request, odontologoId));
+    public ResponseEntity<OrdenResponse> crear(@Valid @RequestBody CrearOrdenRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ordenService.crear(request));
     }
 
     @GetMapping

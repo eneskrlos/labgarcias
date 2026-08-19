@@ -45,12 +45,11 @@ import com.labgarcias.ordenes.dto.OrdenResponse;
 import com.labgarcias.ordenes.repository.OrdenHistorialEstadoRepository;
 import com.labgarcias.ordenes.repository.OrdenRepository;
 import com.labgarcias.seguridad.domain.Usuario;
+import com.labgarcias.seguridad.service.UsuarioService;
 import com.labgarcias.shared.dto.PaginaResponse;
 import com.labgarcias.shared.excepcion.RecursoNoEncontradoException;
 import com.labgarcias.shared.excepcion.ReglaNegocioException;
 import com.labgarcias.shared.excepcion.ValidacionException;
-
-import jakarta.persistence.EntityManager;
 
 @ExtendWith(MockitoExtension.class)
 class OrdenServiceTest {
@@ -68,9 +67,9 @@ class OrdenServiceTest {
     @Mock
     private OrdenArchivoService ordenArchivoService;
     @Mock
-    private ApplicationEventPublisher eventos;
+    private UsuarioService usuarioService;
     @Mock
-    private EntityManager entityManager;
+    private ApplicationEventPublisher eventos;
 
     @InjectMocks
     private OrdenService ordenService;
@@ -78,8 +77,12 @@ class OrdenServiceTest {
     private TipoTrabajo tipoTrabajo;
     private TipoOrden tipoOrdenNormal;
 
+    private static final long ID_ORDEN = 1L;
+    private static final long ID_DUENO = 7L;
+    private static final long ID_INTRUSO = 99L;
+
     private static final CrearOrdenRequest REQUEST =
-            new CrearOrdenRequest("Martín Pérez", LocalDate.of(2026, 8, 6), 16, "NORMAL", "Disyuntor superior");
+            new CrearOrdenRequest(ID_DUENO, "Martín Pérez", LocalDate.of(2026, 8, 6), 16, "NORMAL", "Disyuntor superior");
 
     @BeforeEach
     void prepararCatalogo() {
@@ -124,10 +127,10 @@ class OrdenServiceTest {
     private OrdenResponse crearOrdenNormal() {
         when(tipoTrabajoService.obtenerActivoParaOrden(16)).thenReturn(tipoTrabajo);
         when(tipoOrdenService.obtenerPorCodigo(CodigoTipoOrden.NORMAL)).thenReturn(tipoOrdenNormal);
-        when(entityManager.getReference(Usuario.class, 7L)).thenReturn(new Usuario());
+        when(usuarioService.obtenerOdontologoActivoParaOrden(ID_DUENO)).thenReturn(new Usuario());
         when(ordenRepository.saveAndFlush(any(Orden.class)))
                 .thenAnswer(invocacion -> ordenPersistida(invocacion.getArgument(0)));
-        return ordenService.crear(REQUEST, 7L);
+        return ordenService.crear(REQUEST);
     }
 
     @Test
@@ -159,11 +162,12 @@ class OrdenServiceTest {
         assertThat(respuesta.fechaEstimadaEntrega()).isEqualTo(LocalDate.of(2026, 8, 17));
     }
 
+    /** D-19: la orden queda a nombre del odontologoId del request, validado como cuenta activa. */
     @Test
-    void rn01LaOrdenSeAsociaAlOdontologoAutenticado() {
+    void d19LaOrdenSeAsociaAlOdontologoIndicadoEnElRequest() {
         crearOrdenNormal();
 
-        verify(entityManager).getReference(Usuario.class, 7L);
+        verify(usuarioService).obtenerOdontologoActivoParaOrden(ID_DUENO);
     }
 
     @Test
@@ -202,13 +206,13 @@ class OrdenServiceTest {
 
         when(tipoTrabajoService.obtenerActivoParaOrden(16)).thenReturn(tipoTrabajo);
         when(tipoOrdenService.obtenerPorCodigo(CodigoTipoOrden.URGENTE)).thenReturn(urgente);
-        when(entityManager.getReference(Usuario.class, 7L)).thenReturn(new Usuario());
+        when(usuarioService.obtenerOdontologoActivoParaOrden(ID_DUENO)).thenReturn(new Usuario());
         when(ordenRepository.saveAndFlush(any(Orden.class)))
                 .thenAnswer(invocacion -> ordenPersistida(invocacion.getArgument(0)));
 
         CrearOrdenRequest urgenteRequest =
-                new CrearOrdenRequest("Martín Pérez", LocalDate.of(2026, 8, 6), 16, "URGENTE", null);
-        ordenService.crear(urgenteRequest, 7L);
+                new CrearOrdenRequest(ID_DUENO, "Martín Pérez", LocalDate.of(2026, 8, 6), 16, "URGENTE", null);
+        ordenService.crear(urgenteRequest);
 
         ArgumentCaptor<OrdenCreadaEvent> captor = ArgumentCaptor.forClass(OrdenCreadaEvent.class);
         verify(eventos).publishEvent(captor.capture());
@@ -221,7 +225,7 @@ class OrdenServiceTest {
                 .thenThrow(new ReglaNegocioException("TIPO_TRABAJO_INACTIVO",
                         "El tipo de trabajo no existe o no está disponible.", "tipoTrabajoId"));
 
-        assertThatThrownBy(() -> ordenService.crear(REQUEST, 7L))
+        assertThatThrownBy(() -> ordenService.crear(REQUEST))
                 .isInstanceOf(ReglaNegocioException.class)
                 .satisfies(ex -> assertThat(((ReglaNegocioException) ex).getCodigo()).isEqualTo("TIPO_TRABAJO_INACTIVO"));
 
@@ -231,10 +235,6 @@ class OrdenServiceTest {
     }
 
     // --- CU-03 / CU-04: listado, detalle y seguimiento (T-19) ---
-
-    private static final long ID_ORDEN = 1L;
-    private static final long ID_DUENO = 7L;
-    private static final long ID_INTRUSO = 99L;
 
     /**
      * Fixture del detalle. Las stubs van lenient porque no todos los tests llegan a leer
