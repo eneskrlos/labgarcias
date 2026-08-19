@@ -10,6 +10,7 @@ import com.labgarcias.catalogos.dto.EstadoActualizarRequest;
 import com.labgarcias.catalogos.dto.EstadoResponse;
 import com.labgarcias.catalogos.repository.EstadoRepository;
 import com.labgarcias.shared.excepcion.RecursoNoEncontradoException;
+import com.labgarcias.shared.excepcion.ReglaNegocioException;
 
 @Service
 public class EstadoService {
@@ -25,6 +26,18 @@ public class EstadoService {
         return estadoRepository.findAllByOrderByOrdenSecuenciaAsc().stream()
                 .map(this::aRespuesta)
                 .toList();
+    }
+
+    /**
+     * CU-06/CU-20: el módulo de órdenes necesita la entidad para leer orden_secuencia y
+     * es_terminal, que son los que deciden si una transición es válida (RN-04).
+     * Devuelve dominio (no DTO) porque Agente.md 5.4 prohíbe importar el dto de otro módulo.
+     */
+    @Transactional(readOnly = true)
+    public Estado obtenerPorCodigoParaOrden(String codigo) {
+        return estadoRepository.findByCodigo(codigo)
+                .orElseThrow(() -> new ReglaNegocioException("ESTADO_NO_ENCONTRADO",
+                        "No existe un estado con ese código.", "estadoCodigo"));
     }
 
     /** CU-22/RN-04: solo nombre y descripcion son editables; codigo/orden_secuencia/es_terminal/es_productivo quedan fijos. */

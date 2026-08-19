@@ -10,6 +10,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -60,6 +61,18 @@ public class ManejadorGlobalExcepciones {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
                 .body(new ErrorRespuesta("ARCHIVO_NO_PERMITIDO",
                         "El archivo supera el tamaño máximo permitido.", "archivo"));
+    }
+
+    /**
+     * RN-17: pedir PUT o DELETE sobre una orden no es un error del servidor, es un método
+     * que la API no ofrece. Sin este manejador caía en el 500 genérico y además dejaba un
+     * "Error no controlado" en el log por cada request equivocada.
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorRespuesta> manejarMetodoNoPermitido(HttpRequestMethodNotSupportedException ex) {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .body(new ErrorRespuesta("METODO_NO_PERMITIDO",
+                        "El método " + ex.getMethod() + " no está disponible para este recurso.", null));
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

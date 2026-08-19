@@ -11,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,10 +19,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.labgarcias.ordenes.dto.CambiarEstadoOrdenRequest;
 import com.labgarcias.ordenes.dto.CrearOrdenRequest;
 import com.labgarcias.ordenes.dto.OrdenDetalleResponse;
 import com.labgarcias.ordenes.dto.OrdenListadoResponse;
 import com.labgarcias.ordenes.dto.OrdenResponse;
+import com.labgarcias.ordenes.service.OrdenEstadoService;
 import com.labgarcias.ordenes.service.OrdenService;
 import com.labgarcias.shared.dto.PaginaResponse;
 
@@ -40,9 +43,11 @@ public class OrdenController {
     private static final Set<String> ROLES_ADMINISTRACION = Set.of("ROLE_ADMIN", "ROLE_SUPERADMIN");
 
     private final OrdenService ordenService;
+    private final OrdenEstadoService ordenEstadoService;
 
-    public OrdenController(OrdenService ordenService) {
+    public OrdenController(OrdenService ordenService, OrdenEstadoService ordenEstadoService) {
         this.ordenService = ordenService;
+        this.ordenEstadoService = ordenEstadoService;
     }
 
     @PostMapping
@@ -106,6 +111,49 @@ public class OrdenController {
                                                                Authentication authentication) {
         return ResponseEntity.ok(ordenService.obtenerDetalle(
                 id, usuarioId(authentication), esAdministrador(authentication)));
+    }
+
+    @PatchMapping("/{id}/estado")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPERADMIN')")
+    @Operation(
+            summary = "Avanzar el estado de una orden (CU-06)",
+            description = "RN-04: flujo lineal. Solo se admite el estado con la secuencia inmediatamente "
+                    + "superior a la actual; saltear etapas y retroceder devuelven 409 (P-02 sin resolver). "
+                    + "Desde un estado terminal (ENTREGADO, CANCELADO) no hay transición. "
+                    + "RN-17/CU-20: el laboratorio no puede cancelar; pedir CANCELADO por acá da 409. "
+                    + "En la misma transacción se actualiza el estado, se registra el historial con el "
+                    + "autor y se publica el evento de cambio de estado."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Orden actualizada, con su línea de tiempo"),
+            @ApiResponse(responseCode = "404", description = "ORDEN_NO_ENCONTRADA"),
+            @ApiResponse(responseCode = "409", description = "TRANSICION_NO_PERMITIDA"),
+            @ApiResponse(responseCode = "422", description = "ESTADO_NO_ENCONTRADO")
+    })
+    public ResponseEntity<OrdenDetalleResponse> avanzarEstado(@PathVariable Long id,
+                                                              @Valid @RequestBody CambiarEstadoOrdenRequest request,
+                                                              Authentication authentication) {
+        return ResponseEntity.ok(ordenEstadoService.avanzarEstado(
+                id, request.estadoCodigo(), usuarioId(authentication)));
+    }
+
+    @PatchMapping("/{id}/cancelar")
+    @PreAuthorize("hasRole('ODONTOLOGO')")
+    @Operation(
+            summary = "Cancelar una orden (CU-20)",
+            description = "RN-17: la orden es inmutable; cancelarla es lo único que el odontólogo puede "
+                    + "hacer sobre una orden ya creada, y no existe endpoint de edición. "
+                    + "RN-01: una orden ajena responde 404, no 403. "
+                    + "Una orden en estado terminal (ENTREGADO o CANCELADO) devuelve 409. "
+                    + "P-14 sin resolver: no se calcula ningún cargo por cancelación."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Orden cancelada, con su línea de tiempo"),
+            @ApiResponse(responseCode = "404", description = "ORDEN_NO_ENCONTRADA"),
+            @ApiResponse(responseCode = "409", description = "ORDEN_NO_CANCELABLE")
+    })
+    public ResponseEntity<OrdenDetalleResponse> cancelar(@PathVariable Long id, Authentication authentication) {
+        return ResponseEntity.ok(ordenEstadoService.cancelar(id, usuarioId(authentication)));
     }
 
     private Long usuarioId(Authentication authentication) {

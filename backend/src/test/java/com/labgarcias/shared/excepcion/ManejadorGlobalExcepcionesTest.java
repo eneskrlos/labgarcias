@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -118,6 +119,18 @@ class ManejadorGlobalExcepcionesTest {
 
         assertThat(respuesta.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(cuerpoDe(respuesta).codigo()).isEqualTo("NO_ENCONTRADO");
+    }
+
+    /** RN-17: un PUT sobre una orden es un método inexistente, no una falla del servidor. */
+    @Test
+    void manejarMetodoNoPermitidoDevuelve405NoQuinientos() {
+        HttpRequestMethodNotSupportedException excepcion = new HttpRequestMethodNotSupportedException("PUT");
+
+        ResponseEntity<ErrorRespuesta> respuesta = manejador.manejarMetodoNoPermitido(excepcion);
+
+        assertThat(respuesta.getStatusCode()).isEqualTo(HttpStatus.METHOD_NOT_ALLOWED);
+        assertThat(cuerpoDe(respuesta).codigo()).isEqualTo("METODO_NO_PERMITIDO");
+        assertThat(cuerpoDe(respuesta).mensaje()).contains("PUT");
     }
 
     @Test
