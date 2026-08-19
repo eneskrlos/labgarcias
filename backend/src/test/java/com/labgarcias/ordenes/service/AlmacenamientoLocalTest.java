@@ -79,6 +79,28 @@ class AlmacenamientoLocalTest {
     }
 
     @Test
+    void eliminarBorraElBinarioDelDisco() {
+        String ruta = almacenamiento.guardar(archivo(new byte[] { 1 }), 42L);
+        assertThat(directorioTemporal.resolve(ruta)).exists();
+
+        almacenamiento.eliminar(ruta);
+
+        assertThat(directorioTemporal.resolve(ruta)).doesNotExist();
+    }
+
+    /** El registro pudo quedar apuntando a un archivo ya inexistente: borrarlo igual debe funcionar. */
+    @Test
+    void eliminarUnArchivoQueYaNoEstaNoFalla() {
+        almacenamiento.eliminar("42/no-existe");
+    }
+
+    @Test
+    void eliminarUnaRutaQueEscapaDelDirectorioBaseEsRechazado() {
+        assertThatThrownBy(() -> almacenamiento.eliminar("../../etc/passwd"))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void elDirectorioDeLaOrdenSeCreaSiNoExiste() {
         assertThat(Files.exists(directorioTemporal.resolve("77"))).isFalse();
 

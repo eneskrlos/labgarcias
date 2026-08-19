@@ -19,4 +19,7 @@ public interface AlmacenamientoArchivos {
 
     /** Recupera el binario a partir de la ruta relativa almacenada. */
     Resource cargar(String rutaAlmacenamiento);
+
+    /** §5.2: borra el binario al eliminar el adjunto. Tolera que el archivo ya no esté. */
+    void eliminar(String rutaAlmacenamiento);
 }

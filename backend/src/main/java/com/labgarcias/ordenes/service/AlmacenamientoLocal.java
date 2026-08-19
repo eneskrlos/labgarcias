@@ -47,14 +47,33 @@ public class AlmacenamientoLocal implements AlmacenamientoArchivos {
 
     @Override
     public Resource cargar(String rutaAlmacenamiento) {
-        Path archivo = directorioBase.resolve(rutaAlmacenamiento).normalize();
-        if (!archivo.startsWith(directorioBase)) {
-            throw new IllegalArgumentException("La ruta del adjunto queda fuera del directorio de almacenamiento.");
-        }
+        Path archivo = rutaSegura(rutaAlmacenamiento);
         Resource recurso = new FileSystemResource(archivo);
         if (!recurso.exists()) {
             throw new IllegalStateException("El adjunto ya no está en el almacenamiento: " + rutaAlmacenamiento);
         }
         return recurso;
+    }
+
+    /**
+     * Si el borrado falla, la excepción tumba la transacción y el registro no se
+     * elimina: base y disco quedan consistentes. `deleteIfExists` no falla cuando
+     * el archivo ya no está, que es el caso benigno.
+     */
+    @Override
+    public void eliminar(String rutaAlmacenamiento) {
+        try {
+            Files.deleteIfExists(rutaSegura(rutaAlmacenamiento));
+        } catch (IOException excepcion) {
+            throw new IllegalStateException("No se pudo borrar el adjunto: " + rutaAlmacenamiento, excepcion);
+        }
+    }
+
+    private Path rutaSegura(String rutaAlmacenamiento) {
+        Path archivo = directorioBase.resolve(rutaAlmacenamiento).normalize();
+        if (!archivo.startsWith(directorioBase)) {
+            throw new IllegalArgumentException("La ruta del adjunto queda fuera del directorio de almacenamiento.");
+        }
+        return archivo;
     }
 }

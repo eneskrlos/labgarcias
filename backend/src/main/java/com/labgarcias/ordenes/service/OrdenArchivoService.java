@@ -78,6 +78,21 @@ public class OrdenArchivoService {
                 archivo.getTipoMime());
     }
 
+    /**
+     * §5.2: borrado definitivo de un adjunto cargado por error. Solo ADMIN y SUPERADMIN
+     * (lo impone la autorización del endpoint), así que no hay verificación de propiedad:
+     * el laboratorio opera sobre las órdenes de todos los odontólogos.
+     * Se borra primero el registro y después el binario: si el borrado en disco falla,
+     * la transacción se deshace y ni la fila ni el archivo desaparecen.
+     */
+    @Transactional
+    public void eliminar(Long archivoId) {
+        OrdenArchivo archivo = archivoRepository.findById(archivoId)
+                .orElseThrow(this::archivoNoEncontrado);
+        archivoRepository.delete(archivo);
+        almacenamiento.eliminar(archivo.getRutaAlmacenamiento());
+    }
+
     /** RN-01: una orden ajena se responde 404, no 403, para no revelar que existe. */
     private Orden buscarOrdenAccesible(Long ordenId, Long usuarioId, boolean esAdministrador) {
         Orden orden = ordenRepository.findById(ordenId).orElseThrow(this::ordenNoEncontrada);

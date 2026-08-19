@@ -464,10 +464,23 @@ Devuelve `codigo`, `nombre` y `recargoMonto`. No hay endpoints de escritura: el 
 
 `GET /api/v1/ordenes/{id}/archivos` — listado. `GET /api/v1/archivos/{id}` — descarga con verificación de propiedad.
 
+**Eliminación de un adjunto — decisión del desarrollador (19/08/2026)**
+
+`DELETE /api/v1/archivos/{id}` · rol `ADMIN`, `SUPERADMIN`
+
+Resuelve el caso operativo de un archivo cargado por error. **El odontólogo no puede borrar adjuntos**, ni siquiera de sus propias órdenes: recibe `403`. No es un caso de RN-01 —no se le niega por ser ajena, sino por su rol— así que acá **no aplica** la regla de responder `404`.
+
+- Borrado **definitivo**: se elimina el registro de `orden_archivo` y el binario del almacenamiento. No hay baja lógica; la tabla no tiene columna para eso y no se agrega.
+- Archivo inexistente → `404 ARCHIVO_NO_ENCONTRADO`.
+- Respuesta `204` sin cuerpo.
+
+> **Fuera de alcance:** no se registra traza de quién borró ni cuándo. El modelo no tiene dónde guardarla y auditoría de borrados no está documentada.
+
 **Criterios de aceptación**
 1. Un JPG de 6 MB es rechazado por el backend aunque el frontend lo permita.
 2. Un GIF es rechazado.
 3. Un odontólogo no puede descargar el archivo de una orden ajena.
+4. El admin borra un adjunto y desaparecen tanto el registro como el binario; un odontólogo que intenta borrar recibe `403`, incluso sobre una orden propia.
 
 ---
 

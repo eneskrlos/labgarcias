@@ -215,6 +215,31 @@ class OrdenArchivoServiceTest {
         assertThat(respuesta.categoria()).isEqualTo("DOCUMENTO");
     }
 
+    /** §5.2 criterio 4: se van el registro y el binario. */
+    @Test
+    void criterio4EliminarBorraElRegistroYElBinario() {
+        OrdenArchivo archivo = new OrdenArchivo();
+        archivo.setOrden(orden);
+        archivo.setRutaAlmacenamiento("1/uuid-del-archivo");
+        when(archivoRepository.findById(5L)).thenReturn(Optional.of(archivo));
+
+        ordenArchivoService.eliminar(5L);
+
+        verify(archivoRepository).delete(archivo);
+        verify(almacenamiento).eliminar("1/uuid-del-archivo");
+    }
+
+    @Test
+    void eliminarUnArchivoInexistenteDevuelve404() {
+        when(archivoRepository.findById(404L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> ordenArchivoService.eliminar(404L))
+                .isInstanceOf(RecursoNoEncontradoException.class)
+                .satisfies(ex -> assertThat(((RecursoNoEncontradoException) ex).getHttpStatus().value()).isEqualTo(404));
+
+        verify(almacenamiento, never()).eliminar(any());
+    }
+
     @Test
     void unaOrdenInexistenteDevuelve404() {
         when(ordenRepository.findById(404L)).thenReturn(Optional.empty());

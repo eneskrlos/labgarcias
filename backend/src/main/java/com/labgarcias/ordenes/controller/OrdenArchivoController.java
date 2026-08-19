@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -97,6 +98,24 @@ public class OrdenArchivoController {
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"" + descarga.nombreOriginal() + "\"")
                 .body(descarga.contenido());
+    }
+
+    @DeleteMapping("/archivos/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPERADMIN')")
+    @Operation(
+            summary = "Eliminar un adjunto (§5.2)",
+            description = "Borrado definitivo del registro y del binario, para resolver un archivo cargado por "
+                    + "error. Solo el laboratorio: el odontólogo no puede borrar adjuntos ni siquiera de sus "
+                    + "propias órdenes, así que recibe 403 (no es un caso de RN-01: se le niega por rol)."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Archivo eliminado"),
+            @ApiResponse(responseCode = "403", description = "SIN_PERMISO"),
+            @ApiResponse(responseCode = "404", description = "ARCHIVO_NO_ENCONTRADO")
+    })
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        ordenArchivoService.eliminar(id);
+        return ResponseEntity.noContent().build();
     }
 
     private Long usuarioId(Authentication authentication) {
