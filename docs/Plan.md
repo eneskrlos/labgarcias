@@ -1,11 +1,27 @@
 # Plan.md — Plan de ejecución
 
 **Proyecto:** Lab. Garcia's Connect
-**Versión:** 1.0 — 08/08/2026
+**Versión:** 2.0 — 19/08/2026 (incorpora CR-01 y el orden de ejecución definitivo)
 
 Orden de implementación. Cada tarea se ejecuta **de forma individual**, se reporta según `Agente.md` 4.1 y **espera confirmación** antes de continuar.
 
-**28 tareas en 7 bloques.**
+**33 tareas.** T-01 a T-17 están terminadas y confirmadas. T-24 fue eliminada por D-19 (ver abajo).
+
+---
+
+## Orden de ejecución definitivo (19/08/2026)
+
+Las tareas **no** se ejecutan en orden numérico. El bloque CR-01 no puede correr completo de inmediato: T-30, T-31, T-32 y T-32b dependen del núcleo de notificaciones (T-21/T-22), que todavía no existe. El orden obligatorio es:
+
+```
+T-29 → T-18 → T-19 → T-20 → T-21 → T-22 → T-23
+     → T-30 → T-31 → T-32 → T-32b → T-33
+     → T-25 → T-26 → T-27 → T-28
+```
+
+**Por qué este orden:** T-29 primero, para que el código muerto de Google y verificación no se arrastre por todo el bloque 3. Después se completa el ciclo de órdenes (T-18 a T-20) y el núcleo de notificaciones (T-21 a T-23), que es la base sobre la que se apoyan las tareas de CR-01. Recién entonces entran solicitud de acceso, alta de credenciales, Telegram y órdenes por el admin. Las pantallas restantes cierran al final.
+
+> Este orden reemplaza tanto la numeración de los bloques 0-6 como la nota "se ejecutan después de la tarea en curso" del bloque CR-01.
 
 ---
 
@@ -219,6 +235,7 @@ Orden de implementación. Cada tarea se ejecuta **de forma individual**, se repo
 **Patrones esperados:** Observer, Strategy, Adapter, Transactional Outbox.
 **Terminado cuando:** se cumplen los criterios 1 y 2 de §6.
 > `CanalTelegram`: **solo la estructura**, marca `FALLIDO` con "canal no configurado". No integrar.
+> **La integración real de Telegram llega en T-32 (D-21).** Esto no es una contradicción: es implementación en dos etapas — T-21 crea el puerto, el outbox y el adaptador vacío; T-32 lo convierte en canal real vía Bot API.
 > No inventar eventos: la cancelación **no** notifica (S-08).
 
 ### T-22 · Endpoints de notificaciones y configuración de canales
@@ -239,18 +256,13 @@ Orden de implementación. Cada tarea se ejecuta **de forma individual**, se repo
 
 ## Bloque 5 — Pantallas de órdenes
 
-### T-24 · Nueva orden (frontend)
-**Objetivo:** front de CU-09.
-**Depende de:** T-15, T-18
-**Spec:** §5.1, §5.2, §8
-**Terminado cuando:**
-- Formulario con paciente, fecha de ingreso, selector de tipo de trabajo, tipo de orden y descripción.
-- Carga de imágenes con validación de formato y tamaño (la del backend es la que manda).
-- Muestra precio y fecha estimada **devueltos por el backend**, sin recalcular.
+### ~~T-24 · Nueva orden (frontend)~~ — ELIMINADA por CR-01 (D-19)
+
+Sus criterios eran el front de CU-09 para el **odontólogo**, que D-19 retira de la navegación. La pantalla de alta de orden pasa a ser `/admin/ordenes/nueva` y la cubre **T-33** completa (backend + pantalla). Si P-19 reabre la creación por el odontólogo, esta tarea vuelve al plan.
 
 ### T-25 · Mis órdenes y seguimiento (frontend)
 **Objetivo:** front de CU-03, CU-04 y CU-20.
-**Depende de:** T-19, T-24
+**Depende de:** T-19, T-33
 **Spec:** §5.3, §5.4, §5.6, §8
 **Terminado cuando:**
 - Listado con identificación por iniciales + código, **nunca** el nombre completo.
@@ -292,15 +304,18 @@ Orden de implementación. Cada tarea se ejecuta **de forma individual**, se repo
 
 ## Resumen
 
-| Bloque | Tareas | Entrega |
-|---|---|---|
-| 0 · Cimientos | T-01 a T-04 | Proyectos arrancando con base de datos migrada |
-| 1 · Seguridad | T-05 a T-11 | Registro, verificación, login, Google, licencia |
-| 2 · Catálogos | T-12 a T-15 | Tipos de trabajo y estados administrables |
-| 3 · Órdenes | T-16 a T-20 | Ciclo completo: creación, adjuntos, seguimiento, estados |
-| 4 · Notificaciones | T-21 a T-23 | Outbox, correo, campana |
-| 5 · Pantallas de órdenes | T-24 a T-26 | Front de odontólogo y administración |
-| 6 · Paneles y cierre | T-27 a T-28 | Dashboards y verificación integral |
+| Bloque | Tareas | Entrega | Estado |
+|---|---|---|---|
+| 0 · Cimientos | T-01 a T-04 | Proyectos arrancando con base de datos migrada | Terminado |
+| 1 · Seguridad | T-05 a T-11 | Login, licencia. *(Registro, verificación y Google se revierten en T-29 por CR-01.)* | Terminado |
+| 2 · Catálogos | T-12 a T-15 | Tipos de trabajo y estados administrables | Terminado |
+| 3 · Órdenes | T-16 a T-20 | Ciclo completo: creación, adjuntos, seguimiento, estados | T-16/T-17 terminadas |
+| 4 · Notificaciones | T-21 a T-23 | Outbox, correo, campana | Pendiente |
+| 5 · Pantallas de órdenes | T-25, T-26 | Front de odontólogo y administración *(T-24 eliminada por D-19)* | Pendiente |
+| 6 · Paneles y cierre | T-27 a T-28 | Dashboards y verificación integral | Pendiente |
+| CR-01 · Cambio de alcance | T-29 a T-33 | Solicitud de acceso, alta por admin, Telegram, órdenes por admin | Pendiente |
+
+> El orden de ejecución **no** sigue esta tabla: rige la secuencia del principio del documento.
 
 ---
 
@@ -319,3 +334,65 @@ Estas tareas **cambiarán** cuando la clienta confirme los pendientes. No adelan
 | S-03 · Entidad paciente | T-17, T-19 |
 | S-05 · Feriados en días hábiles | T-17 |
 | S-08 · Notificar cancelación | T-21 |
+
+
+---
+
+## Bloque CR-01 — Cambio de alcance (reunión 17/08/2026)
+
+Estas tareas aplican las decisiones D-17 a D-21 de `spec.md`. **No se ejecutan de corrido:** T-29 va primero de todo, y el resto espera a que exista el núcleo de notificaciones — ver el orden definitivo al principio del documento. Mismo protocolo de siempre: una a la vez, reporte y confirmación.
+
+### T-29 · Migración V2 y retiro de Google y verificación
+**Objetivo:** base de datos actualizada y código muerto eliminado.
+**Spec:** §1.0, §3.2, §3.4
+**Terminado cuando:**
+- `V2__cr01_solicitud_acceso_whatsapp.sql` aplica limpio sobre una base con V1 (exactamente el SQL de §1.0).
+- Eliminados endpoint, servicio y botón de Google si existían (D-17).
+- Eliminados los endpoints de verificación y reenvío si existían (D-18).
+- **V1 intacta.**
+
+### T-30 · Solicitud de acceso
+**Objetivo:** flujo público de solicitud + gestión del admin.
+**Depende de:** T-29, T-22 *(la solicitud notifica al admin: necesita el outbox y la campana)*
+**Spec:** §3.1
+**Terminado cuando:** se cumplen los 3 criterios de §3.1; el listado de solicitudes cumple la convención §8.1; el botón del login lleva al formulario.
+
+### T-31 · Alta de odontólogo con credenciales autogeneradas
+**Objetivo:** D-18 completo, incluido el cambio obligatorio de contraseña.
+**Depende de:** T-30, T-21 *(el correo de credenciales se envía desde el listener; ver §3.1.b)*
+**Spec:** §3.1.b
+**Terminado cuando:** se cumplen los 4 criterios de §3.1.b; el frontend intercepta `debeCambiarPassword` y fuerza el paso por `/cambiar-password`.
+
+### T-32 · Canal Telegram implementado + estructura WhatsApp (D-21)
+**Objetivo:** Telegram como canal real del outbox; WhatsApp solo estructura.
+**Depende de:** T-21 *(convierte en canal real el adaptador que T-21 dejó como estructura)*
+**Spec:** §6.3, §6.5
+**Terminado cuando:**
+- `CanalTelegram` envía de verdad vía Bot API (`sendMessage`) usando `usuario.telegram_chat_id`; token en properties, nunca en código.
+- Un cambio de estado genera envíos APP + CORREO + TELEGRAM; sin vinculación, Telegram queda `FALLIDO` con "Telegram no vinculado".
+- `CanalWhatsApp` existe como estructura (P-18): `FALLIDO` con "canal no configurado".
+- Sin `telegram.bot.token` configurado, el canal se deshabilita con mensaje claro (no rompe el arranque).
+
+### T-32b · Vinculación de Telegram desde el perfil
+**Objetivo:** flujo de §6.5 completo.
+**Depende de:** T-32
+**Spec:** §6.5
+**Terminado cuando:** se cumplen los 4 criterios de §6.5; el perfil muestra el estado y los botones de conectar/desvincular; el consumo de `getUpdates` corre por `@Scheduled` (sin webhook).
+
+### T-33 · Órdenes registradas por el admin
+**Objetivo:** D-19 aplicado.
+**Depende de:** T-29, T-20, T-31 *(el selector de odontólogo necesita las cuentas creadas por el admin)*
+**Spec:** §5.1
+**Terminado cuando:**
+- `POST /ordenes` exige rol ADMIN y `odontologoId` válido.
+- Pantalla `/admin/ordenes/nueva` con selector de odontólogo.
+- "Nueva orden" retirada del menú y rutas del odontólogo (el flujo queda documentado por P-19).
+- La notificación de orden registrada llega al odontólogo dueño.
+
+### Pendientes que agrega CR-01
+
+| Pendiente | Qué falta | Tarea afectada |
+|---|---|---|
+| P-18 | WhatsApp: se activará a futuro con proveedor pago (Meta Cloud API o Twilio) — reemplazado hoy por Telegram (D-21) | T-32 (solo estructura) |
+| P-19 | ¿Se reabre la creación de órdenes por el odontólogo? | T-33 |
+| P-20 | Crear el bot con @BotFather y configurar `telegram.bot.token` en cada instalación (tarea del desarrollador, no del agente) | T-32, T-32b |
