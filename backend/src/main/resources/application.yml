@@ -18,5 +18,3 @@ app:
     secret: ${JWT_SECRET}
     # CU-01: 8 horas de sesión (confirmado con el desarrollador; no está en spec.md).
     expiracion-minutos: ${JWT_EXPIRACION_MINUTOS:480}
-  google:
-    client-id: ${GOOGLE_CLIENT_ID}

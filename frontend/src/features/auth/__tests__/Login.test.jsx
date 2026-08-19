@@ -5,24 +5,12 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Login from '../Login';
 import { SesionProvider } from '../../../shared/hooks/useSesion';
-import { login, loginGoogle } from '../api';
-import { iniciarGoogle, renderizarBotonGoogle } from '../../../shared/api/googleIdentity';
+import { login } from '../api';
 import { ApiError } from '../../../shared/api/cliente';
 
 vi.mock('../api', () => ({
   login: vi.fn(),
-  loginGoogle: vi.fn(),
 }));
-
-vi.mock('../../../shared/api/googleIdentity', () => ({
-  iniciarGoogle: vi.fn().mockResolvedValue(undefined),
-  renderizarBotonGoogle: vi.fn(),
-}));
-
-class ResizeObserverSimulado {
-  observe() {}
-  disconnect() {}
-}
 
 function renderizarLogin() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -43,12 +31,7 @@ function renderizarLogin() {
 describe('Login', () => {
   beforeEach(() => {
     localStorage.clear();
-    vi.stubGlobal('ResizeObserver', ResizeObserverSimulado);
-    vi.stubEnv('VITE_GOOGLE_CLIENT_ID', 'client-id-de-prueba');
     login.mockReset();
-    loginGoogle.mockReset();
-    iniciarGoogle.mockClear();
-    renderizarBotonGoogle.mockClear();
   });
 
   it('renderiza el formulario de login', () => {
@@ -59,25 +42,12 @@ describe('Login', () => {
     expect(screen.getByRole('button', { name: 'Ingresar' })).toBeInTheDocument();
   });
 
-  it('inicializa el botón de Google con el clientId configurado', async () => {
+  // CR-01 (D-17): Google se retiró; el botón "Solicitar acceso" llega en T-30.
+  it('no ofrece acceso con Google ni enlace de auto-registro', () => {
     renderizarLogin();
 
-    await waitFor(() => expect(iniciarGoogle).toHaveBeenCalledTimes(1));
-    expect(iniciarGoogle.mock.calls[0][0].clientId).toBe('client-id-de-prueba');
-  });
-
-  it('la credencial que devuelve Google dispara loginGoogle y autentica', async () => {
-    const usuario = { id: 5, nombreCompleto: 'Ana', rol: 'ADMIN' };
-    loginGoogle.mockResolvedValue({ token: 'jwt-google', usuario });
-
-    renderizarLogin();
-    await waitFor(() => expect(iniciarGoogle).toHaveBeenCalledTimes(1));
-    const { alObtenerCredencial } = iniciarGoogle.mock.calls[0][0];
-    alObtenerCredencial('credencial-de-google');
-
-    await waitFor(() => expect(loginGoogle).toHaveBeenCalledTimes(1));
-    expect(loginGoogle.mock.calls[0][0]).toBe('credencial-de-google');
-    await waitFor(() => expect(screen.getByText('Pantalla de inicio autenticada')).toBeInTheDocument());
+    expect(screen.queryByText(/google/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /registrate/i })).not.toBeInTheDocument();
   });
 
   it('login exitoso guarda la sesión y navega a "/"', async () => {
@@ -106,8 +76,8 @@ describe('Login', () => {
     expect(await screen.findByText('Correo o contraseña incorrectos.')).toBeInTheDocument();
   });
 
-  it('cuenta no verificada muestra el mensaje correspondiente', async () => {
-    login.mockRejectedValue(new ApiError(403, 'CUENTA_NO_VERIFICADA', 'Todavía no verificaste tu cuenta por correo.'));
+  it('cuenta inactiva muestra el mensaje correspondiente', async () => {
+    login.mockRejectedValue(new ApiError(403, 'CUENTA_INACTIVA', 'Tu cuenta está inactiva. Contactá al laboratorio.'));
     const usuarioEvento = userEvent.setup();
 
     renderizarLogin();
@@ -115,6 +85,6 @@ describe('Login', () => {
     await usuarioEvento.type(screen.getByLabelText('Contraseña'), 'x');
     await usuarioEvento.click(screen.getByRole('button', { name: 'Ingresar' }));
 
-    expect(await screen.findByText('Todavía no verificaste tu cuenta por correo.')).toBeInTheDocument();
+    expect(await screen.findByText('Tu cuenta está inactiva. Contactá al laboratorio.')).toBeInTheDocument();
   });
 });

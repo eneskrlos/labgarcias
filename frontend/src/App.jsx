@@ -5,8 +5,6 @@ import { SesionProvider, useSesion } from './shared/hooks/useSesion';
 import { RutaProtegida } from './shared/components/RutaProtegida';
 import { logout } from './features/auth/api';
 import Login from './features/auth/Login';
-import Registro from './features/auth/Registro';
-import Verificar from './features/auth/Verificar';
 import Bloqueado from './features/auth/Bloqueado';
 import TiposTrabajoListado from './features/catalogos/TiposTrabajoListado';
 import TipoTrabajoFormulario from './features/catalogos/TipoTrabajoFormulario';
@@ -50,9 +48,8 @@ function App() {
       <SesionProvider>
         <BrowserRouter>
           <Routes>
+            {/* CR-01: /registro y /verificar retiradas (D-17/D-18). /solicitar-acceso llega en T-30. */}
             <Route path="/login" element={<Login />} />
-            <Route path="/registro" element={<Registro />} />
-            <Route path="/verificar" element={<Verificar />} />
             <Route path="/bloqueado" element={<Bloqueado />} />
             <Route
               path="/"

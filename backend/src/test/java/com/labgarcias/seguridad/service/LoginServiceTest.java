@@ -83,7 +83,7 @@ class LoginServiceTest {
 
         assertThatThrownBy(() -> loginService.login(new LoginRequest(CORREO, PASSWORD)))
                 .isInstanceOf(AccesoDenegadoException.class)
-                .satisfies(ex -> assertThat(((AccesoDenegadoException) ex).getCodigo()).isEqualTo("CUENTA_NO_VERIFICADA"));
+                .satisfies(ex -> assertThat(((AccesoDenegadoException) ex).getCodigo()).isEqualTo("CUENTA_INACTIVA"));
     }
 
     @Test

@@ -34,7 +34,8 @@ public class LoginService {
             throw new NoAutenticadoException("CREDENCIALES_INVALIDAS", "Correo o contraseña incorrectos.");
         }
         if (usuario.getEstadoCuenta() != EstadoCuenta.ACTIVA) {
-            throw new AccesoDenegadoException("CUENTA_NO_VERIFICADA", "Todavía no verificaste tu cuenta por correo.");
+            // D-18: las cuentas nacen ACTIVA (las crea el admin); el único caso real es una cuenta dada de baja.
+            throw new AccesoDenegadoException("CUENTA_INACTIVA", "Tu cuenta está inactiva. Contactá al laboratorio.");
         }
 
         String token = jwtService.generar(usuario);
