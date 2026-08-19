@@ -11,6 +11,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
@@ -51,6 +52,14 @@ public class ManejadorGlobalExcepciones {
     public ResponseEntity<ErrorRespuesta> manejarAutorizacionDenegada(AuthorizationDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(new ErrorRespuesta(CODIGO_SIN_PERMISO, "No tenés permiso para esta operación.", null));
+    }
+
+    /** RN-13: un archivo mayor al tope del contenedor se responde con el mismo código que el resto. */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorRespuesta> manejarArchivoDemasiadoGrande(MaxUploadSizeExceededException ex) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(new ErrorRespuesta("ARCHIVO_NO_PERMITIDO",
+                        "El archivo supera el tamaño máximo permitido.", "archivo"));
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

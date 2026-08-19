@@ -35,10 +35,10 @@ import jakarta.servlet.http.HttpServletResponse;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    /** CR-01: sin auto-registro (D-17), sin verificación por correo (D-18) ni Google (D-17). */
     private static final String[] RUTAS_PUBLICAS = {
             "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
-            "/api/v1/auth/registro", "/api/v1/auth/verificar", "/api/v1/auth/reenviar-verificacion",
-            "/api/v1/auth/login", "/api/v1/auth/google"
+            "/api/v1/auth/login"
     };
 
     private final ObjectMapper objectMapper;

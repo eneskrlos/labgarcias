@@ -15,7 +15,9 @@ export default function TiposTrabajoListado() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [mensajeConfirmacion, setMensajeConfirmacion] = useState(location.state?.mensaje ?? null);
+  // Solo se lee el valor inicial: el efecto de abajo limpia location.state, así que hay que
+  // quedarse con una foto del mensaje. Nunca se actualiza, por eso no se toma el setter.
+  const [mensajeConfirmacion] = useState(location.state?.mensaje ?? null);
 
   useEffect(() => {
     if (location.state?.mensaje) {

@@ -1,23 +1,13 @@
 import { apiFetch } from '../../shared/api/cliente';
 
-export function registrar(datos) {
-  return apiFetch('/auth/registro', { method: 'POST', body: JSON.stringify(datos) });
-}
+/**
+ * CR-01: se retiraron `registrar` (D-17: el alta la hace el admin), `verificar` y
+ * `reenviarVerificacion` (D-18: las cuentas nacen activas) y `loginGoogle` (D-17).
+ * La solicitud de acceso pública llega en T-30.
+ */
 
 export function login(datos) {
   return apiFetch('/auth/login', { method: 'POST', body: JSON.stringify(datos) });
-}
-
-export function loginGoogle(idToken) {
-  return apiFetch('/auth/google', { method: 'POST', body: JSON.stringify({ idToken }) });
-}
-
-export function verificar(token) {
-  return apiFetch(`/auth/verificar?token=${encodeURIComponent(token)}`);
-}
-
-export function reenviarVerificacion(correo) {
-  return apiFetch('/auth/reenviar-verificacion', { method: 'POST', body: JSON.stringify({ correo }) });
 }
 
 export function logout() {

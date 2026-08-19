@@ -1,5 +1,6 @@
 package com.labgarcias.shared.excepcion;
 
+import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
@@ -33,6 +34,15 @@ class ManejadorGlobalExcepcionesTest {
     @Mock
     private BindingResult bindingResult;
 
+    /**
+     * ResponseEntity.getBody() es @Nullable, así que encadenar sobre él daría un NPE opaco si el
+     * manejador dejara de poblar el cuerpo. Se materializa una sola vez y se falla con un mensaje
+     * que dice qué se rompió.
+     */
+    private static ErrorRespuesta cuerpoDe(ResponseEntity<ErrorRespuesta> respuesta) {
+        return requireNonNull(respuesta.getBody(), "el manejador debe devolver siempre un cuerpo de error");
+    }
+
     @Test
     void manejarDominioUsaElHttpStatusDeLaExcepcion() {
         DominioException excepcion = new ReglaNegocioException("PRECIO_INSUFICIENTE", "El precio es menor al mínimo.", "precio");
@@ -40,9 +50,9 @@ class ManejadorGlobalExcepcionesTest {
         ResponseEntity<ErrorRespuesta> respuesta = manejador.manejarDominio(excepcion);
 
         assertThat(respuesta.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
-        assertThat(respuesta.getBody().codigo()).isEqualTo("PRECIO_INSUFICIENTE");
-        assertThat(respuesta.getBody().mensaje()).isEqualTo("El precio es menor al mínimo.");
-        assertThat(respuesta.getBody().campo()).isEqualTo("precio");
+        assertThat(cuerpoDe(respuesta).codigo()).isEqualTo("PRECIO_INSUFICIENTE");
+        assertThat(cuerpoDe(respuesta).mensaje()).isEqualTo("El precio es menor al mínimo.");
+        assertThat(cuerpoDe(respuesta).campo()).isEqualTo("precio");
     }
 
     @Test
@@ -54,9 +64,9 @@ class ManejadorGlobalExcepcionesTest {
         ResponseEntity<ErrorRespuesta> respuesta = manejador.manejarValidacion(excepcion);
 
         assertThat(respuesta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(respuesta.getBody().codigo()).isEqualTo("VALIDACION");
-        assertThat(respuesta.getBody().campo()).isEqualTo("correo");
-        assertThat(respuesta.getBody().mensaje()).isEqualTo("El correo es obligatorio.");
+        assertThat(cuerpoDe(respuesta).codigo()).isEqualTo("VALIDACION");
+        assertThat(cuerpoDe(respuesta).campo()).isEqualTo("correo");
+        assertThat(cuerpoDe(respuesta).mensaje()).isEqualTo("El correo es obligatorio.");
     }
 
     @Test
@@ -66,8 +76,8 @@ class ManejadorGlobalExcepcionesTest {
 
         ResponseEntity<ErrorRespuesta> respuesta = manejador.manejarValidacion(excepcion);
 
-        assertThat(respuesta.getBody().campo()).isNull();
-        assertThat(respuesta.getBody().mensaje()).isEqualTo("Datos inválidos.");
+        assertThat(cuerpoDe(respuesta).campo()).isNull();
+        assertThat(cuerpoDe(respuesta).mensaje()).isEqualTo("Datos inválidos.");
     }
 
     @Test
@@ -77,7 +87,7 @@ class ManejadorGlobalExcepcionesTest {
         ResponseEntity<ErrorRespuesta> respuesta = manejador.manejarViolacionRestriccion(excepcion);
 
         assertThat(respuesta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(respuesta.getBody().codigo()).isEqualTo("VALIDACION");
+        assertThat(cuerpoDe(respuesta).codigo()).isEqualTo("VALIDACION");
     }
 
     @Test
@@ -87,7 +97,7 @@ class ManejadorGlobalExcepcionesTest {
         ResponseEntity<ErrorRespuesta> respuesta = manejador.manejarParametroFaltante(excepcion);
 
         assertThat(respuesta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(respuesta.getBody().campo()).isEqualTo("token");
+        assertThat(cuerpoDe(respuesta).campo()).isEqualTo("token");
     }
 
     @Test
@@ -97,7 +107,7 @@ class ManejadorGlobalExcepcionesTest {
         ResponseEntity<ErrorRespuesta> respuesta = manejador.manejarAutorizacionDenegada(excepcion);
 
         assertThat(respuesta.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        assertThat(respuesta.getBody().codigo()).isEqualTo("SIN_PERMISO");
+        assertThat(cuerpoDe(respuesta).codigo()).isEqualTo("SIN_PERMISO");
     }
 
     @Test
@@ -107,7 +117,7 @@ class ManejadorGlobalExcepcionesTest {
         ResponseEntity<ErrorRespuesta> respuesta = manejador.manejarRecursoNoEncontrado(excepcion);
 
         assertThat(respuesta.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(respuesta.getBody().codigo()).isEqualTo("NO_ENCONTRADO");
+        assertThat(cuerpoDe(respuesta).codigo()).isEqualTo("NO_ENCONTRADO");
     }
 
     @Test
@@ -115,7 +125,7 @@ class ManejadorGlobalExcepcionesTest {
         ResponseEntity<ErrorRespuesta> respuesta = manejador.manejarError(new IllegalStateException("detalle interno sensible"));
 
         assertThat(respuesta.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-        assertThat(respuesta.getBody().codigo()).isEqualTo("ERROR_INTERNO");
-        assertThat(respuesta.getBody().mensaje()).doesNotContain("detalle interno sensible");
+        assertThat(cuerpoDe(respuesta).codigo()).isEqualTo("ERROR_INTERNO");
+        assertThat(cuerpoDe(respuesta).mensaje()).doesNotContain("detalle interno sensible");
     }
 }

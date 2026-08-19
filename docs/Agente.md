@@ -23,8 +23,8 @@ Solo estos documentos definen el sistema:
 
 | Documento | Contenido |
 |---|---|
-| `Fase1_Analisis_LabGarciasConnect_v2.2.docx` | Reglas de negocio (RN), casos de uso (CU), decisiones (D), pendientes (P) |
-| `Fase2_Modelo_Datos_PostgreSQL_v1.2.docx` | Modelo de datos, diccionario, sugerencias (S) |
+| `Fase1_Analisis_LabGarciasConnect_v2.3.docx` | Reglas de negocio (RN), casos de uso (CU), decisiones (D), pendientes (P). **Incluye la Adenda CR-01 (D-17 a D-21), que prevalece sobre el cuerpo del documento.** |
+| `Fase2_Modelo_Datos_PostgreSQL_v1.3.docx` | Modelo de datos, diccionario, sugerencias (S). **Incluye la Adenda CR-01 (migración V2).** |
 | `01_labgarcias_schema.sql` | Esquema PostgreSQL validado |
 | `spec.md` | Especificación técnica de cada tarea |
 | `Plan.md` | Orden de ejecución |
@@ -77,7 +77,7 @@ Estos puntos están pendientes de definición o pospuestos. **No los implementes
 | P-17 | Moneda | No mostrar símbolo de moneda hasta confirmación. |
 | D-11 | Módulo de mensajería | La tabla existe. **Sin entidad, servicio, endpoint ni pantalla.** |
 
-El módulo de Telegram (RN-19) **sí** está en alcance para el laboratorio, pero solo como configuración y adaptador; el envío efectivo a Telegram queda como adaptador vacío documentado hasta que se provean credenciales.
+**Telegram (D-21) está COMPLETAMENTE en alcance:** canal implementado con la Bot API oficial y flujo de vinculación (`spec.md` §6.3 y §6.5). Lo único que no hace el agente es crear el bot ni inventar el token (P-20: lo configura el desarrollador en properties). **WhatsApp queda solo como estructura** (P-18): puerto implementado, envío `FALLIDO` con "canal no configurado", sin integración con ningún proveedor.
 
 ### 3.4 Herramientas autorizadas por el desarrollador
 
@@ -196,7 +196,7 @@ Los únicos tres autorizados:
 
 | Puerto | Adaptadores | Justificación |
 |---|---|---|
-| `CanalNotificacion` | `CanalApp`, `CanalCorreo`, `CanalTelegram` | RN-19: canales configurables |
+| `CanalNotificacion` | `CanalApp`, `CanalCorreo`, `CanalTelegram`, `CanalWhatsApp` *(estructura, P-18)* | RN-19: canales configurables |
 | `AlmacenamientoArchivos` | `AlmacenamientoLocal` | RN-13: migrable a S3 sin tocar órdenes |
 | `PasarelaPago` | *(ninguno todavía)* | P-12: no implementar |
 
