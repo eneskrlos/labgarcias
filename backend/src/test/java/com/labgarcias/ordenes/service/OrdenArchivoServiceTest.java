@@ -140,6 +140,30 @@ class OrdenArchivoServiceTest {
         assertThat(respuesta.categoria()).isEqualTo("IMAGEN");
     }
 
+    /** Sin Content-Type no hay formato que validar: 422, no el NPE que daba List.of.contains(null). */
+    @Test
+    void unArchivoSinTipoDeContenidoEsRechazadoConCodigoDeNegocio() {
+        MockMultipartFile sinTipo = new MockMultipartFile("archivo", "misterio.bin", null, new byte[16]);
+
+        assertThatThrownBy(() -> ordenArchivoService.adjuntar(ID_ORDEN, sinTipo, ID_DUENO, false))
+                .isInstanceOf(ReglaNegocioException.class)
+                .satisfies(ex -> assertThat(((ReglaNegocioException) ex).getCodigo()).isEqualTo("ARCHIVO_NO_PERMITIDO"));
+
+        verify(almacenamiento, never()).guardar(any(), anyLong());
+    }
+
+    /** nombre_original es NOT NULL: se rechaza antes de guardar el binario, no en el insert. */
+    @Test
+    void unArchivoSinNombreEsRechazadoAntesDeGuardarElBinario() {
+        MockMultipartFile sinNombre = new MockMultipartFile("archivo", null, "image/jpeg", new byte[16]);
+
+        assertThatThrownBy(() -> ordenArchivoService.adjuntar(ID_ORDEN, sinNombre, ID_DUENO, false))
+                .isInstanceOf(ReglaNegocioException.class);
+
+        verify(almacenamiento, never()).guardar(any(), anyLong());
+        verify(archivoRepository, never()).saveAndFlush(any());
+    }
+
     @Test
     void unArchivoVacioEsRechazado() {
         assertThatThrownBy(() -> ordenArchivoService.adjuntar(

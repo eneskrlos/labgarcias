@@ -49,8 +49,8 @@ public class OrdenArchivoService {
         OrdenArchivo registro = new OrdenArchivo();
         registro.setOrden(orden);
         registro.setCategoria(categoria);
-        registro.setNombreOriginal(archivo.getOriginalFilename());
-        registro.setTipoMime(archivo.getContentType());
+        registro.setNombreOriginal(nombreOriginalValido(archivo));
+        registro.setTipoMime(tipoMimeValido(archivo));
         registro.setTamanoBytes(archivo.getSize());
         registro.setSubidoPor(entityManager.getReference(Usuario.class, usuarioId));
         registro.setRutaAlmacenamiento(almacenamiento.guardar(archivo, ordenId));
@@ -107,7 +107,7 @@ public class OrdenArchivoService {
         if (archivo == null || archivo.isEmpty()) {
             throw new ReglaNegocioException(CODIGO_ARCHIVO_NO_PERMITIDO, "El archivo está vacío.", "archivo");
         }
-        String tipoMime = archivo.getContentType();
+        String tipoMime = tipoMimeValido(archivo);
         if (ConstantesDominio.FORMATOS_IMAGEN.contains(tipoMime)) {
             validarTamano(archivo.getSize(), ConstantesDominio.TAMANO_MAXIMO_IMAGEN, "5 MB");
             return CategoriaArchivo.IMAGEN;
@@ -118,6 +118,30 @@ public class OrdenArchivoService {
         }
         throw new ReglaNegocioException(CODIGO_ARCHIVO_NO_PERMITIDO,
                 "Formato no permitido. Se aceptan imágenes JPG o PNG y documentos PDF o DOCX.", "archivo");
+    }
+
+    /**
+     * Una parte multipart puede llegar sin Content-Type: {@code getContentType()} devuelve null y
+     * {@code FORMATOS_IMAGEN.contains(null)} lanza NPE, porque las listas de List.of rechazan null.
+     * Eso daría un 500 en lugar del 422 de RN-13. Sin tipo declarado no hay formato que validar.
+     */
+    private String tipoMimeValido(MultipartFile archivo) {
+        String tipoMime = archivo.getContentType();
+        if (tipoMime == null) {
+            throw new ReglaNegocioException(CODIGO_ARCHIVO_NO_PERMITIDO,
+                    "El archivo no declara su tipo de contenido.", "archivo");
+        }
+        return tipoMime;
+    }
+
+    /** orden_archivo.nombre_original es NOT NULL: sin nombre el insert reventaría con un 500. */
+    private String nombreOriginalValido(MultipartFile archivo) {
+        String nombre = archivo.getOriginalFilename();
+        if (nombre == null || nombre.isBlank()) {
+            throw new ReglaNegocioException(CODIGO_ARCHIVO_NO_PERMITIDO,
+                    "El archivo no tiene nombre.", "archivo");
+        }
+        return nombre;
     }
 
     private void validarTamano(long tamanoBytes, long maximo, String maximoLegible) {

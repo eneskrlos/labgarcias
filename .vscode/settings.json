@@ -1,4 +1,26 @@
 {
-    "java.compile.nullAnalysis.mode": "automatic", // Enables automatic null analysis for Java code, helping to identify potential null pointer exceptions during compilation.
-    "java.configuration.updateBuildConfiguration": "interactive" // Prompts the user to update the build configuration when changes are detected, ensuring that the project settings remain up-to-date.
+    // Análisis de nulos de Eclipse JDT: DESACTIVADO a propósito (19/08/2026).
+    //
+    // En "automatic" el servidor de lenguaje toma las anotaciones de Spring
+    // (@NonNull / @Nullable / @NonNullApi) y exige que TODO el código esté anotado
+    // para poder probar que una expresión no es nula. Este proyecto no adoptó esa
+    // convención, así que el análisis reportaba 62 avisos, de los cuales 44 salían
+    // de dobles de prueba de Mockito: any() y mock() devuelven tipos sin anotar y
+    // no hay forma de anotarlos. Peor: anotar bien un método de producción movía el
+    // aviso a sus tests (poner @NonNull en doFilterInternal generaba 15 avisos nuevos
+    // en los tests de los filtros). Es un análisis que nunca puede llegar a cero acá.
+    //
+    // Un panel con decenas de falsos positivos permanentes esconde los problemas de
+    // verdad, que es justo lo que se quiere evitar. Los casos reales que este análisis
+    // sí destapó ya están corregidos en OrdenArchivoService (Content-Type y nombre
+    // ausentes en una parte multipart).
+    //
+    // Para reactivarlo hay que adoptar antes la convención completa: un package-info.java
+    // con @NonNullApi y @NonNullFields por cada paquete, y @Nullable donde corresponda.
+    // Los avisos de los tests seguirían igual.
+    "java.compile.nullAnalysis.mode": "disabled",
+
+    // Pide confirmación antes de resincronizar la configuración del proyecto cuando
+    // cambia el pom.xml, en vez de hacerlo solo.
+    "java.configuration.updateBuildConfiguration": "interactive"
 }

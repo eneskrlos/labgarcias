@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -44,8 +45,12 @@ public class LicenciaBloqueoFilter extends OncePerRequestFilter {
         this.objectMapper = objectMapper;
     }
 
+    // @NonNull repite el contrato que OncePerRequestFilter ya declara: el contenedor nunca
+    // pasa null acá, y dejarlo explícito evita que el análisis lo marque como sin verificar.
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+    protected void doFilterInternal(@NonNull HttpServletRequest request,
+                                    @NonNull HttpServletResponse response,
+                                    @NonNull FilterChain filterChain)
             throws ServletException, IOException {
         if (esRutaExenta(request.getRequestURI()) || licenciaRepository.existeLicenciaVigente()) {
             filterChain.doFilter(request, response);
