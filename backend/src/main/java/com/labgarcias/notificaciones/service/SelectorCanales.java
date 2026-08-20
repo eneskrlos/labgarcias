@@ -24,12 +24,6 @@ import com.labgarcias.notificaciones.repository.ConfiguracionNotificacionReposit
 @Service
 public class SelectorCanales {
 
-    /**
-     * §6.3/D-20/D-21: "Sin configuración: app + correo + Telegram para todos".
-     * WhatsApp queda afuera a propósito (P-18: es solo estructura).
-     */
-    private static final Set<Canal> POR_DEFECTO = Set.of(Canal.APP, Canal.CORREO, Canal.TELEGRAM);
-
     private final ConfiguracionNotificacionRepository configuracionRepository;
 
     public SelectorCanales(ConfiguracionNotificacionRepository configuracionRepository) {
@@ -47,6 +41,6 @@ public class SelectorCanales {
     private Set<Canal> activosDe(Long destinatarioId) {
         return configuracionRepository.findByUsuarioId(destinatarioId)
                 .map(ConfiguracionNotificacion::canalesActivos)
-                .orElse(POR_DEFECTO);
+                .orElse(ConfiguracionNotificacion.CANALES_POR_DEFECTO);
     }
 }

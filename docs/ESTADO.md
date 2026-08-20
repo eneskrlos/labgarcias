@@ -1,7 +1,7 @@
 # ESTADO.md — Punto de retomada
 
 **Proyecto:** Lab. Garcia's Connect
-**Actualizado:** 20/08/2026 · rama `feature/T-21_NucleoNotifications_EmailChanel`
+**Actualizado:** 20/08/2026 · rama `feature/T-22_NotificationsEndpoint_ChanelConfig`
 
 Este archivo existe para retomar el trabajo sin releer toda la conversación. No reemplaza a
 `spec.md`, `Plan.md` ni `Agente.md`: ante cualquier diferencia, **mandan esos tres**. Acá solo
@@ -23,38 +23,45 @@ va el estado de avance y lo que se acordó de palabra y no quedó escrito en ell
 | **T-19** | `GET /ordenes` (listado propio) y `GET /ordenes/{id}` (detalle + línea de tiempo) | `ea027e6` / `161eef2` |
 | **T-20** | `PATCH /ordenes/{id}/estado` y `PATCH /ordenes/{id}/cancelar` (RN-04, RN-17) | `d58ebb9` |
 | **T-33a** | `POST /ordenes` pasa a ADMIN/SUPERADMIN con `odontologoId` validado (D-19) | `cb2f38b` |
-| **T-21** | Módulo `notificaciones`: outbox, puerto `CanalNotificacion` con app y correo reales, Telegram y WhatsApp como estructura, despachador `@Scheduled` | rama `feature/T-21_NucleoNotifications_EmailChanel` |
+| **T-21** | Módulo `notificaciones`: outbox, puerto `CanalNotificacion` con app y correo reales, Telegram y WhatsApp como estructura, despachador `@Scheduled` | `c6a5274` / `c539da9` → `82302a5` (PR #29) |
+| **T-22** | Los seis endpoints de §6.4: campana (listado, contador, leer, leer-todas) y configuración de canales con CU-21 | rama `feature/T-22_NotificationsEndpoint_ChanelConfig` |
 
 > **Sobre la columna "Commit":** desde que rige el paso 7 de `Agente.md`, este archivo se actualiza
 > *dentro* del commit de la tarea, así que ese commit no puede citar su propio hash. La tarea en
 > curso se identifica por su rama; el hash o el merge se completan al integrarla a `develop`.
 
-**Verificación al día de hoy:** `mvn -o test` en `backend/` → **201 tests, 0 fallos**.
-`npm test` en `frontend/` → **85 tests, 0 fallos** (T-21 no tocó el frontend).
+**Verificación al día de hoy:** `mvn -o test` en `backend/` → **221 tests, 0 fallos**.
+`npm test` en `frontend/` → **85 tests, 0 fallos** (T-21 y T-22 no tocaron el frontend).
 
 ---
 
 ## (b) Próxima tarea
 
-### T-22 · Endpoints de notificaciones y configuración de canales
+### T-23 · Campana en el frontend
 
-**Spec:** §6.4 · **Reglas:** RN-19, CU-21
-**Depende de:** T-21 ✅
-**Terminado cuando:** se cumplen los criterios **3 y 4** de §6 (un usuario solo ve sus propias
-notificaciones; activar Telegram sin `chatId` es rechazado).
+**Spec:** §6.4, §8 · **Depende de:** T-11 ✅, T-22 ✅
+**Terminado cuando:** el contador se actualiza por *polling* cada 60 s y se pueden marcar como leídas.
 
-Los seis endpoints de §6.4: campana (`/notificaciones`, `/contador`, `/leer`, `/leer-todas`) y
-`GET`/`PUT` de `/configuracion-notificaciones`. Los paquetes `notificaciones/controller` y
-`notificaciones/dto` están vacíos esperando esta tarea.
+Primera tarea de frontend en varias: va en `frontend/src/features/notificaciones/`, que hoy solo
+tiene el `.gitkeep`.
 
-Cuatro cosas que ya están resueltas y no hay que rediscutir al empezarla:
+El backend ya está entero y verificado. Las respuestas exactas:
 
-1. **La campana lee `notificacion`, no `notificacion_envio`.** Una notificación cuyos envíos
-   fallaron todos se sigue viendo: es el criterio 2 de §6, ya verificado.
-2. **`ConfiguracionNotificacion` ya existe** con `canalesActivos()` y su repositorio. T-22 le
-   agrega los endpoints; la validación de CU-21 (`422 TELEGRAM_SIN_DESTINO`) es suya, no de T-21.
-3. **La campana es *polling* cada 60 s.** Prohibido WebSocket y SSE (§6.4).
-4. **Paginación del listado por backend**, `size` ∈ {10,20,30} vía `ValidadorPaginacion`.
+| Endpoint | Devuelve |
+|---|---|
+| `GET /api/v1/notificaciones?leidas=&page=&size=` | `PaginaResponse` de `{id, tipoEvento, mensaje, ordenId, leida, fechaCreacion, fechaLectura}` |
+| `GET /api/v1/notificaciones/contador` | `{ "noLeidas": 3 }` |
+| `PATCH /api/v1/notificaciones/{id}/leer` | La notificación actualizada |
+| `PATCH /api/v1/notificaciones/leer-todas` | `{ "noLeidas": 0 }` — el contador ya al día |
+
+Cinco cosas resueltas que no hay que rediscutir al empezarla:
+
+1. **Polling cada 60 s sobre `/contador`.** **Prohibido WebSocket y SSE** (§6.4).
+2. **`leer-todas` ya devuelve el contador actualizado**: no hace falta una segunda llamada.
+3. **`ordenId` puede venir nulo** (avisos que no son de una orden). Enlazar al detalle solo si viene.
+4. **Paginación en la URL**, `size` ∈ {10,20,30}; otro valor da `400 TAMANO_PAGINA_INVALIDO` (§8.1).
+5. **La pantalla de configuración de canales (CU-21, `/admin/configuracion`) NO es de esta tarea.**
+   §8 la lista aparte y `Plan.md` acota T-23 a contador y listado. Su backend ya existe.
 
 ---
 
@@ -135,6 +142,26 @@ inanotables por construcción. No afecta a `mvn test`, que nunca corrió ese an�
    automáticos" para Telegram. El `@Scheduled` toma **solo `PENDIENTE`**. Una política automática,
    si se quiere, es una tarea propia con su migración.
 
+### 8. Las seis decisiones de T-22 (20/08/2026)
+
+1. **`canalWhatsappActivo` se informa pero no se puede activar.** El request del PUT no lo incluye.
+   Encenderlo hoy solo generaría envíos `FALLIDO` garantizados, que además no se reintentan (ver
+   decisión 7). La columna se sigue leyendo: cuando haya proveedor (P-18), es una línea.
+2. **El PUT reemplaza la configuración entera.** Las tres banderas son obligatorias —un `null` sería
+   ambiguo entre "apagalo" y "no lo toques"— y el `telegramChatId` que no viene, no queda guardado.
+3. **`leer-todas` devuelve el contador ya actualizado**, no un mensaje: es lo que la campana necesita
+   para refrescarse. No se pudo reutilizar `MensajeResponse` porque vive en el dto de `seguridad` y
+   §5.4 prohíbe importarlo desde otro módulo.
+4. **`leer-todas` es un `UPDATE` masivo**, no un bucle de entidades: vaciar 200 avisos de un clic no
+   puede costar 200 consultas.
+5. **`BandejaNotificacionService` va aparte de `NotificacionService`.** Son dos cosas distintas sobre
+   la misma tabla: una escribe el outbox cuando ocurre un evento, la otra contesta lo que el
+   destinatario pregunta.
+6. **El aislamiento del criterio 3 es estructural, no una verificación posterior.** *Todas* las
+   consultas de `NotificacionRepository` filtran por destinatario, incluida
+   `findByIdAndDestinatarioId`: no hay ningún `findById` suelto que alguien pueda usar por descuido.
+   `NotificacionRutasTest` fija además que ningún endpoint acepte un id de usuario.
+
 ### Puntos abiertos (no son decisiones, son deudas)
 
 - **`application-prod.yml` no existe y está en `.gitignore`.** `spec.md` §1.1 exige Swagger
@@ -147,13 +174,23 @@ inanotables por construcción. No afecta a `mvn test`, que nunca corrió ese an�
   como solo-correo y `TextosNotificacion` documenta que ese texto se compone **fuera del outbox**.
 - **`CanalesDeEstructuraTest` va a fallar cuando T-32 integre Telegram.** Es deliberado: fija que
   hoy no hay integración, para que nadie la dé por hecha.
+- **El chat de Telegram está en dos lugares y T-32 tiene que decidir cuál manda.**
+  `configuracion_notificacion.telegram_chat_id` (V1) es contra el que §6.4 manda validar CU-21, y es
+  lo que implementó T-22. Pero V2 agregó `usuario.telegram_chat_id` + `telegram_vinculado`, que es
+  donde el flujo de §6.5 guarda el chat, y §6.3 dice que el envío "solo se intenta si el usuario
+  está vinculado". Lectura probable: cuando exista la vinculación real, el chat lo pone el bot en
+  `usuario` y el de la configuración sobra; ahí CU-21 pasaría a validar "estás vinculado" en vez de
+  "cargaste un chat a mano". **No resolver por las nuestras: es decisión de T-32.**
+- **Un odontólogo no puede apagar ningún canal.** §6.4 reserva `/configuracion-notificaciones` a
+  ADMIN y SUPERADMIN, pero D-20 le manda notificaciones por tres canales. Se implementó como dice la
+  spec. Si la clienta quiere que el odontólogo elija, es un cambio de spec, no un error.
 
 ---
 
 ## (d) Orden de ejecución vigente
 
 ```
-T-29 ✅ → T-18 ✅ → T-19 ✅ → T-20 ✅ → T-33a ✅ → T-21 ✅ → [T-22] → T-23
+T-29 ✅ → T-18 ✅ → T-19 ✅ → T-20 ✅ → T-33a ✅ → T-21 ✅ → T-22 ✅ → [T-23]
      → T-30 → T-31 → T-32 → T-32b → T-33b
      → T-25 → T-26 → T-27 → T-28
 ```
