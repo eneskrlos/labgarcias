@@ -229,7 +229,7 @@ T-29 → T-18 → T-19 → T-20 → [T-33a] → T-21 → T-22 → T-23
 
 ## Bloque 4 — Notificaciones
 
-### T-21 · Núcleo de notificaciones y canal de correo
+### T-21 · Núcleo de notificaciones y canal de correo — ✅ TERMINADA (20/08/2026)
 **Objetivo:** eventos, outbox y envío por correo.
 **Depende de:** T-20
 **Spec:** §6.1, §6.2, §6.3
@@ -316,8 +316,8 @@ Sus criterios eran el front de CU-09 para el **odontólogo**, que D-19 retira de
 | 0 · Cimientos | T-01 a T-04 | Proyectos arrancando con base de datos migrada | Terminado |
 | 1 · Seguridad | T-05 a T-11 | Login, licencia. *(Registro, verificación y Google se revierten en T-29 por CR-01.)* | Terminado |
 | 2 · Catálogos | T-12 a T-15 | Tipos de trabajo y estados administrables | Terminado |
-| 3 · Órdenes | T-16 a T-20 | Ciclo completo: creación, adjuntos, seguimiento, estados | T-16/T-17 terminadas |
-| 4 · Notificaciones | T-21 a T-23 | Outbox, correo, campana | Pendiente |
+| 3 · Órdenes | T-16 a T-20 | Ciclo completo: creación, adjuntos, seguimiento, estados | Terminado |
+| 4 · Notificaciones | T-21 a T-23 | Outbox, correo, campana | T-21 terminada |
 | 5 · Pantallas de órdenes | T-25, T-26 | Front de odontólogo y administración *(T-24 eliminada por D-19)* | Pendiente |
 | 6 · Paneles y cierre | T-27 a T-28 | Dashboards y verificación integral | Pendiente |
 | CR-01 · Cambio de alcance | T-29 a T-33b | Solicitud de acceso, alta por admin, Telegram, órdenes por admin | T-29 y T-33a terminadas |
@@ -402,8 +402,8 @@ Estas tareas aplican las decisiones D-17 a D-21 de `spec.md`. **No se ejecutan d
 **Terminado cuando:**
 - Pantalla `/admin/ordenes/nueva` con selector de odontólogo.
 - "Nueva orden" retirada del menú y rutas del odontólogo (el flujo queda documentado por P-19).
-- La notificación de orden registrada llega al odontólogo dueño.
-- Se aplica §5.1 paso 10: la notificación al admin por orden nueva **no** se emite cuando el creador es el propio destinatario. Hoy `OrdenCreadaEvent` viaja con el `notificaAdmin` crudo de `tipo_orden`; quien decide destinatarios es el módulo de notificaciones.
+
+> **§5.1 paso 10 ya quedó cubierto en T-21 (20/08/2026).** `OrdenCreadaEvent` viaja con `odontologoId` y el aviso `NUEVA_ORDEN` llega al odontólogo dueño. La otra mitad del paso —no avisar al admin cuando el creador es el propio destinatario— **no requiere código**: §6.2 ya redirigió `NUEVA_ORDEN` al odontólogo y el paso deja el aviso al admin *previsto para cuando P-19 reabra la creación por el odontólogo*. Esta tarea es solo la pantalla.
 
 ### Pendientes que agrega CR-01
 
