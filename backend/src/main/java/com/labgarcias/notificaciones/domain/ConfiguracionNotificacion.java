@@ -18,14 +18,22 @@ import jakarta.persistence.Table;
 
 /**
  * RN-19/CU-21: por qué canales quiere recibir cada usuario. Es opcional: quien no tiene fila
- * usa el conjunto por defecto de §6.3 (ver SelectorCanales).
- *
- * `telegram_chat_id` y la validación de CU-21 (activar Telegram sin destino) pertenecen a los
- * endpoints de §6.4, que son T-22. Acá solo se lee.
+ * usa el conjunto por defecto de §6.3.
  */
 @Entity
 @Table(name = "configuracion_notificacion")
 public class ConfiguracionNotificacion {
+
+    /**
+     * §6.3/D-20/D-21: "Sin configuración: app + correo + Telegram para todos".
+     *
+     * Vive acá y no en el selector porque hay dos lugares que necesitan la misma respuesta: elegir
+     * canales al notificar, y contestar el GET de §6.4 de un usuario que nunca configuró nada.
+     * Duplicarla sería garantizar que algún día digan cosas distintas.
+     *
+     * WhatsApp queda afuera a propósito (P-18: es solo estructura).
+     */
+    public static final Set<Canal> CANALES_POR_DEFECTO = Set.of(Canal.APP, Canal.CORREO, Canal.TELEGRAM);
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -55,6 +63,20 @@ public class ConfiguracionNotificacion {
     private OffsetDateTime fechaActualizacion;
 
     public ConfiguracionNotificacion() {
+    }
+
+    /**
+     * §6.4: qué contestarle a quien todavía no guardó ninguna configuración. No se persiste —no
+     * tiene usuario ni id— y su `fechaActualizacion` queda nula, que es justamente lo que dice
+     * "esto es el valor por defecto, no algo que hayas elegido".
+     */
+    public static ConfiguracionNotificacion porDefecto() {
+        ConfiguracionNotificacion configuracion = new ConfiguracionNotificacion();
+        configuracion.canalAppActivo = CANALES_POR_DEFECTO.contains(Canal.APP);
+        configuracion.canalCorreoActivo = CANALES_POR_DEFECTO.contains(Canal.CORREO);
+        configuracion.canalTelegramActivo = CANALES_POR_DEFECTO.contains(Canal.TELEGRAM);
+        configuracion.canalWhatsappActivo = CANALES_POR_DEFECTO.contains(Canal.WHATSAPP);
+        return configuracion;
     }
 
     /** RN-19: traduce las cuatro banderas al conjunto que el selector sabe cruzar. */

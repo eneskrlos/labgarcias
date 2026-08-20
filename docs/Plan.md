@@ -240,7 +240,7 @@ T-29 → T-18 → T-19 → T-20 → [T-33a] → T-21 → T-22 → T-23
 > **La integración real de Telegram llega en T-32 (D-21).** Esto no es una contradicción: es implementación en dos etapas — T-21 crea el puerto, el outbox y el adaptador vacío; T-32 lo convierte en canal real vía Bot API.
 > No inventar eventos: la cancelación **no** notifica (S-08).
 
-### T-22 · Endpoints de notificaciones y configuración de canales
+### T-22 · Endpoints de notificaciones y configuración de canales — ✅ TERMINADA (20/08/2026)
 **Objetivo:** campana, contador y CU-21.
 **Depende de:** T-21
 **Spec:** §6.4
@@ -317,7 +317,7 @@ Sus criterios eran el front de CU-09 para el **odontólogo**, que D-19 retira de
 | 1 · Seguridad | T-05 a T-11 | Login, licencia. *(Registro, verificación y Google se revierten en T-29 por CR-01.)* | Terminado |
 | 2 · Catálogos | T-12 a T-15 | Tipos de trabajo y estados administrables | Terminado |
 | 3 · Órdenes | T-16 a T-20 | Ciclo completo: creación, adjuntos, seguimiento, estados | Terminado |
-| 4 · Notificaciones | T-21 a T-23 | Outbox, correo, campana | T-21 terminada |
+| 4 · Notificaciones | T-21 a T-23 | Outbox, correo, campana | T-21 y T-22 terminadas |
 | 5 · Pantallas de órdenes | T-25, T-26 | Front de odontólogo y administración *(T-24 eliminada por D-19)* | Pendiente |
 | 6 · Paneles y cierre | T-27 a T-28 | Dashboards y verificación integral | Pendiente |
 | CR-01 · Cambio de alcance | T-29 a T-33b | Solicitud de acceso, alta por admin, Telegram, órdenes por admin | T-29 y T-33a terminadas |
