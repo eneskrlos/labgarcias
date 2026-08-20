@@ -76,8 +76,8 @@ public class OrdenService {
         historialRepository.save(fabricaOrden.registroInicialDe(persistida));
 
         eventos.publishEvent(new OrdenCreadaEvent(
-                persistida.getId(), persistida.getCodigo(), persistida.getPacienteCodigo(),
-                tipoOrden.isNotificaAdmin()));
+                persistida.getId(), persistida.getCodigo(), odontologo.getId(),
+                persistida.getPacienteCodigo(), tipoOrden.isNotificaAdmin()));
 
         return aRespuesta(persistida);
     }

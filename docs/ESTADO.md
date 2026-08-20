@@ -1,7 +1,7 @@
 # ESTADO.md — Punto de retomada
 
 **Proyecto:** Lab. Garcia's Connect
-**Actualizado:** 20/08/2026 · rama `develop` · commit `cb2f38b`
+**Actualizado:** 20/08/2026 · rama `feature/T-21_NucleoNotifications_EmailChanel`
 
 Este archivo existe para retomar el trabajo sin releer toda la conversación. No reemplaza a
 `spec.md`, `Plan.md` ni `Agente.md`: ante cualquier diferencia, **mandan esos tres**. Acá solo
@@ -23,32 +23,38 @@ va el estado de avance y lo que se acordó de palabra y no quedó escrito en ell
 | **T-19** | `GET /ordenes` (listado propio) y `GET /ordenes/{id}` (detalle + línea de tiempo) | `ea027e6` / `161eef2` |
 | **T-20** | `PATCH /ordenes/{id}/estado` y `PATCH /ordenes/{id}/cancelar` (RN-04, RN-17) | `d58ebb9` |
 | **T-33a** | `POST /ordenes` pasa a ADMIN/SUPERADMIN con `odontologoId` validado (D-19) | `cb2f38b` |
+| **T-21** | Módulo `notificaciones`: outbox, puerto `CanalNotificacion` con app y correo reales, Telegram y WhatsApp como estructura, despachador `@Scheduled` | rama `feature/T-21_NucleoNotifications_EmailChanel` |
 
-**Verificación al día de hoy:** `mvn -o test` en `backend/` → **168 tests, 0 fallos**.
-`npm test` en `frontend/` → **85 tests, 0 fallos**.
+> **Sobre la columna "Commit":** desde que rige el paso 7 de `Agente.md`, este archivo se actualiza
+> *dentro* del commit de la tarea, así que ese commit no puede citar su propio hash. La tarea en
+> curso se identifica por su rama; el hash o el merge se completan al integrarla a `develop`.
+
+**Verificación al día de hoy:** `mvn -o test` en `backend/` → **201 tests, 0 fallos**.
+`npm test` en `frontend/` → **85 tests, 0 fallos** (T-21 no tocó el frontend).
 
 ---
 
 ## (b) Próxima tarea
 
-### T-21 · Núcleo de notificaciones y canal de correo
+### T-22 · Endpoints de notificaciones y configuración de canales
 
-**Spec:** §6.1, §6.2, §6.3 · **Reglas:** RN-05, RN-11, RN-19, CU-07
-**Depende de:** T-20 ✅
+**Spec:** §6.4 · **Reglas:** RN-19, CU-21
+**Depende de:** T-21 ✅
+**Terminado cuando:** se cumplen los criterios **3 y 4** de §6 (un usuario solo ve sus propias
+notificaciones; activar Telegram sin `chatId` es rechazado).
 
-Eventos, outbox (`notificacion` + `notificacion_envio`), puerto `CanalNotificacion` con
-`CanalApp` y `CanalCorreo` implementados. `CanalTelegram` y `CanalWhatsApp`, **solo estructura**.
+Los seis endpoints de §6.4: campana (`/notificaciones`, `/contador`, `/leer`, `/leer-todas`) y
+`GET`/`PUT` de `/configuracion-notificaciones`. Los paquetes `notificaciones/controller` y
+`notificaciones/dto` están vacíos esperando esta tarea.
 
-Tres cosas que ya están decididas y no hay que volver a discutir al empezarla:
+Cuatro cosas que ya están resueltas y no hay que rediscutir al empezarla:
 
-1. **La integración real de Telegram es T-32**, no esta. Acá el adaptador marca `FALLIDO`
-   con "canal no configurado". No es contradicción: es implementación en dos etapas.
-2. **La cancelación de una orden no notifica** (S-08 sin resolver). No inventar el evento.
-   `OrdenEstadoService.cancelar` no publica nada, y hay un test que lo fija.
-3. **`spec.md` §5.1 paso 10 sigue sin aplicarse.** `OrdenCreadaEvent` viaja con el
-   `notificaAdmin` crudo de `tipo_orden`. La regla "no notificar al admin cuando el creador
-   es el propio destinatario" es decisión de destinatarios y corresponde a este módulo.
-   Está anotada como criterio de T-33b.
+1. **La campana lee `notificacion`, no `notificacion_envio`.** Una notificación cuyos envíos
+   fallaron todos se sigue viendo: es el criterio 2 de §6, ya verificado.
+2. **`ConfiguracionNotificacion` ya existe** con `canalesActivos()` y su repositorio. T-22 le
+   agrega los endpoints; la validación de CU-21 (`422 TELEGRAM_SIN_DESTINO`) es suya, no de T-21.
+3. **La campana es *polling* cada 60 s.** Prohibido WebSocket y SSE (§6.4).
+4. **Paginación del listado por backend**, `size` ∈ {10,20,30} vía `ValidadorPaginacion`.
 
 ---
 
@@ -103,20 +109,51 @@ final**, no resolverlas de a una.
 completo en el propio archivo. Producía 62 avisos de los cuales 44 venían de dobles de Mockito,
 inanotables por construcción. No afecta a `mvn test`, que nunca corrió ese análisis.
 
+### 7. Las siete decisiones de T-21 (20/08/2026)
+
+`spec.md` §6 no cierra estos puntos. Se acordaron antes de implementar y quedaron aplicados así:
+
+1. **`OrdenCreadaEvent` lleva `odontologoId`.** §6.2 manda `NUEVA_ORDEN` al dueño y el evento no
+   decía quién era.
+2. **§5.1 paso 10 quedó cubierto en T-21, no en T-33b** (`Plan.md` corregido). La mitad "avisar al
+   dueño" la hace T-21; la mitad "no avisar al admin cuando el creador es el destinatario" **no
+   requiere código**: §6.2 ya redirigió `NUEVA_ORDEN` al odontólogo y el paso deja ese aviso
+   previsto para cuando P-19 reabra la creación por el odontólogo.
+3. **`ORDEN_URGENTE` se emite siempre que `tipo_orden.notifica_admin` sea true**, sin suprimirlo
+   cuando lo crea el admin. El paso 10 nombra a **RN-19**; `ORDEN_URGENTE` es otra fila de §6.2,
+   bajo **RN-11**. Efecto asumido: el admin recibe campana de una orden que acaba de cargar él.
+4. **"El Administrador" = cada cuenta ADMIN/SUPERADMIN activa**, una notificación por cada una:
+   la campana y los canales de RN-19 son por usuario, no del laboratorio como bloque.
+5. **Canales = matriz de §6.2 ∩ configuración del destinatario.** El evento decide qué canales son
+   pertinentes; la configuración solo recorta, nunca agrega. Consecuencia literal: `NUEVA_ORDEN`
+   **no genera envío de canal APP** — igual se ve en la campana, que lee `notificacion`.
+6. **Textos y asuntos.** Solo `CAMBIO_ESTADO` tiene texto documentado (CU-07) y se usa palabra por
+   palabra. `NUEVA_ORDEN` y `ORDEN_URGENTE` se calcaron de ese formato. Ningún asunto de correo
+   está documentado. Todo vive en `TextosNotificacion`; RN-03/RN-22: siempre código, nunca nombre.
+7. **Los `FALLIDO` no se reintentan solos.** §6.1 los llama "reintentables" pero no hay política
+   documentada —ni tope, ni espera, ni columna de intentos— y §6.3 dice "sin reintentos
+   automáticos" para Telegram. El `@Scheduled` toma **solo `PENDIENTE`**. Una política automática,
+   si se quiere, es una tarea propia con su migración.
+
 ### Puntos abiertos (no son decisiones, son deudas)
 
 - **`application-prod.yml` no existe y está en `.gitignore`.** `spec.md` §1.1 exige Swagger
   deshabilitado en producción; sin ese archivo, el perfil `prod` no tiene dónde apagarlo.
-  Reportado desde T-29, sin resolver.
+  Desde T-21 hace falta además para las credenciales SMTP reales (`MAIL_HOST`, `MAIL_USERNAME`,
+  `MAIL_PASSWORD`, `MAIL_REMITENTE`). Reportado desde T-29, sin resolver.
 - **El frontend todavía no refleja D-19.** Cuando llegue T-25, el menú del odontólogo no debe
   ofrecer "Nueva orden": eso lo retira T-33b.
+- **El correo de credenciales de §3.1.b todavía no existe.** Es de T-31. `TipoEvento` ya lo declara
+  como solo-correo y `TextosNotificacion` documenta que ese texto se compone **fuera del outbox**.
+- **`CanalesDeEstructuraTest` va a fallar cuando T-32 integre Telegram.** Es deliberado: fija que
+  hoy no hay integración, para que nadie la dé por hecha.
 
 ---
 
 ## (d) Orden de ejecución vigente
 
 ```
-T-29 ✅ → T-18 ✅ → T-19 ✅ → T-20 ✅ → T-33a ✅ → [T-21] → T-22 → T-23
+T-29 ✅ → T-18 ✅ → T-19 ✅ → T-20 ✅ → T-33a ✅ → T-21 ✅ → [T-22] → T-23
      → T-30 → T-31 → T-32 → T-32b → T-33b
      → T-25 → T-26 → T-27 → T-28
 ```
