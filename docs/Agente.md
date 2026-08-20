@@ -96,12 +96,14 @@ Cualquier otra herramienta, librería o dependencia que no esté en `spec.md` §
 
 **Una tarea a la vez. Sin excepciones.**
 
+0. Leé `ESTADO.md` para saber qué está terminado, cuál es la próxima tarea y qué se acordó fuera de estos documentos.
 1. Leé la tarea en `Plan.md` y su especificación en `spec.md`.
 2. Si hay algo que no está definido → aplicá 3.2 y detenete.
 3. Implementá **solo** esa tarea.
 4. Verificá que cumple sus criterios de aceptación.
 5. **Detenete y reportá** con el formato de abajo.
 6. **Esperá confirmación explícita.** No empieces la siguiente tarea aunque sea obvia, trivial o dependiente.
+7. Al confirmarse, actualizá `ESTADO.md` (tarea terminada, próxima tarea, decisiones nuevas) **en el mismo commit** que la tarea. *(Acordado el 20/08/2026.)*
 
 ### 4.1 Formato del reporte de fin de tarea
 
@@ -137,6 +139,8 @@ Modificados:
 
 ⏸️ Esperando confirmación para continuar con T-XX+1.
 ```
+
+> Tras la confirmación, el commit de la tarea incluye la actualización de `ESTADO.md` (paso 7).
 
 **Prohibido:** encadenar tareas, adelantar trabajo de la siguiente, o reportar dos tareas juntas.
 
