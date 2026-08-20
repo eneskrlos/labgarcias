@@ -1,9 +1,17 @@
 package com.labgarcias.ordenes.domain;
 
 /**
- * RN-19/RN-11: se publica al crear una orden para que el módulo de notificaciones avise
- * al laboratorio. `notificaAdmin` viene de tipo_orden (no se deduce del código del tipo).
- * El envío efectivo lo implementa el bloque 4 (T-21); acá solo se publica.
+ * §5.1 paso 10: se publica al registrar una orden.
+ *
+ * Trae dos destinatarios posibles, y por eso los dos datos:
+ * - `odontologoId`, el dueño, que recibe NUEVA_ORDEN (D-19: la orden la carga el laboratorio,
+ *   así que enterarse de que quedó registrada le importa a él).
+ * - `notificaAdmin`, que viene de la tabla `tipo_orden` y decide si además hay ORDEN_URGENTE
+ *   para el laboratorio. RN-11: sale de la tabla, nunca de comparar el código del tipo.
  */
-public record OrdenCreadaEvent(Long ordenId, String codigo, Integer pacienteCodigo, boolean notificaAdmin) {
+public record OrdenCreadaEvent(Long ordenId,
+                               String codigo,
+                               Long odontologoId,
+                               Integer pacienteCodigo,
+                               boolean notificaAdmin) {
 }

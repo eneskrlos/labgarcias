@@ -124,10 +124,21 @@ class OrdenServiceTest {
         return persistida;
     }
 
+    /**
+     * §5.1 paso 10: el evento viaja con el id del dueño, así que el doble necesita tenerlo.
+     * El mock se arma antes del when(): construirlo dentro de thenReturn() lo interrumpe.
+     */
+    private Usuario odontologoDueno() {
+        Usuario dueno = mock(Usuario.class);
+        when(dueno.getId()).thenReturn(ID_DUENO);
+        return dueno;
+    }
+
     private OrdenResponse crearOrdenNormal() {
+        Usuario dueno = odontologoDueno();
         when(tipoTrabajoService.obtenerActivoParaOrden(16)).thenReturn(tipoTrabajo);
         when(tipoOrdenService.obtenerPorCodigo(CodigoTipoOrden.NORMAL)).thenReturn(tipoOrdenNormal);
-        when(usuarioService.obtenerOdontologoActivoParaOrden(ID_DUENO)).thenReturn(new Usuario());
+        when(usuarioService.obtenerOdontologoActivoParaOrden(ID_DUENO)).thenReturn(dueno);
         when(ordenRepository.saveAndFlush(any(Orden.class)))
                 .thenAnswer(invocacion -> ordenPersistida(invocacion.getArgument(0)));
         return ordenService.crear(REQUEST);
@@ -191,6 +202,8 @@ class OrdenServiceTest {
         assertThat(evento.codigo()).isEqualTo("LG-0001");
         assertThat(evento.pacienteCodigo()).isEqualTo(1000);
         assertThat(evento.notificaAdmin()).isFalse();
+        // §5.1 paso 10: NUEVA_ORDEN va al dueño, así que el evento tiene que decir quién es.
+        assertThat(evento.odontologoId()).isEqualTo(ID_DUENO);
     }
 
     @Test
@@ -204,9 +217,10 @@ class OrdenServiceTest {
         urgente.setRecargoMonto(new BigDecimal("200.00"));
         urgente.setNotificaAdmin(true);
 
+        Usuario dueno = odontologoDueno();
         when(tipoTrabajoService.obtenerActivoParaOrden(16)).thenReturn(tipoTrabajo);
         when(tipoOrdenService.obtenerPorCodigo(CodigoTipoOrden.URGENTE)).thenReturn(urgente);
-        when(usuarioService.obtenerOdontologoActivoParaOrden(ID_DUENO)).thenReturn(new Usuario());
+        when(usuarioService.obtenerOdontologoActivoParaOrden(ID_DUENO)).thenReturn(dueno);
         when(ordenRepository.saveAndFlush(any(Orden.class)))
                 .thenAnswer(invocacion -> ordenPersistida(invocacion.getArgument(0)));
 
