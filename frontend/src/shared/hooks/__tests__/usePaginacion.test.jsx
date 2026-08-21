@@ -55,4 +55,35 @@ describe('usePaginacion', () => {
     expect(result.current.pagina).toBe(0);
     expect(result.current.tamano).toBe(30);
   });
+
+  it('lee un filtro de la URL y devuelve cadena vacía si no está', () => {
+    const { result } = renderHook(() => usePaginacion(), {
+      wrapper: envoltorio('/admin/solicitudes?estado=RECHAZADA'),
+    });
+
+    expect(result.current.filtro('estado')).toBe('RECHAZADA');
+    expect(result.current.filtro('busqueda')).toBe('');
+  });
+
+  it('cambiarFiltro escribe el valor en la URL y vuelve a page=0', () => {
+    const { result } = renderHook(() => usePaginacion(), {
+      wrapper: envoltorio('/admin/solicitudes?page=3&size=20'),
+    });
+
+    act(() => result.current.cambiarFiltro('estado', 'APROBADA'));
+
+    expect(result.current.filtro('estado')).toBe('APROBADA');
+    expect(result.current.pagina).toBe(0);
+    expect(result.current.tamano).toBe(20);
+  });
+
+  it('cambiarFiltro con valor vacío quita el parámetro de la URL', () => {
+    const { result } = renderHook(() => usePaginacion(), {
+      wrapper: envoltorio('/admin/solicitudes?estado=APROBADA'),
+    });
+
+    act(() => result.current.cambiarFiltro('estado', ''));
+
+    expect(result.current.filtro('estado')).toBe('');
+  });
 });

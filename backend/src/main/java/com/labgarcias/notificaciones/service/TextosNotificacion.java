@@ -23,9 +23,13 @@ public final class TextosNotificacion {
     /** RN-11. Sin texto documentado: calcado del formato de CU-07. */
     private static final String ORDEN_URGENTE = "Se registró la orden urgente %s del paciente Código %d.";
 
+    /** D-17/§3.1. Sin texto documentado: calcado del formato de CU-07. */
+    private static final String SOLICITUD_ACCESO = "Nueva solicitud de acceso de %s.";
+
     private static final String ASUNTO_CAMBIO_ESTADO = "Lab. Garcia's Connect — Tu trabajo avanzó de etapa";
     private static final String ASUNTO_NUEVA_ORDEN = "Lab. Garcia's Connect — Orden registrada";
     private static final String ASUNTO_ORDEN_URGENTE = "Lab. Garcia's Connect — Nueva orden urgente";
+    private static final String ASUNTO_SOLICITUD_ACCESO = "Lab. Garcia's Connect — Nueva solicitud de acceso";
     private static final String ASUNTO_GENERICO = "Lab. Garcia's Connect — Aviso";
 
     private TextosNotificacion() {
@@ -43,16 +47,22 @@ public final class TextosNotificacion {
         return ORDEN_URGENTE.formatted(codigoOrden, pacienteCodigo);
     }
 
+    /** D-17/§3.1: al administrador, que alguien pidió acceso al laboratorio. */
+    public static String solicitudAcceso(String nombreCompleto) {
+        return SOLICITUD_ACCESO.formatted(nombreCompleto);
+    }
+
     /**
-     * §6.3: el asunto del correo no está documentado en ningún caso de uso. Los tres eventos
-     * que hoy se emiten tienen el suyo; SOLICITUD_ACCESO (T-30) y CREDENCIALES_CREADAS (T-31)
-     * definirán el propio cuando esas tareas los emitan.
+     * §6.3: el asunto del correo no está documentado en ningún caso de uso. Cada evento que se
+     * emite define el suyo; CREDENCIALES_CREADAS (T-31) definirá el propio cuando esa tarea lo
+     * emita.
      */
     public static String asuntoDe(TipoEvento tipoEvento) {
         return switch (tipoEvento) {
             case CAMBIO_ESTADO -> ASUNTO_CAMBIO_ESTADO;
             case NUEVA_ORDEN -> ASUNTO_NUEVA_ORDEN;
             case ORDEN_URGENTE -> ASUNTO_ORDEN_URGENTE;
+            case SOLICITUD_ACCESO -> ASUNTO_SOLICITUD_ACCESO;
             default -> ASUNTO_GENERICO;
         };
     }

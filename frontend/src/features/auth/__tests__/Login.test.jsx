@@ -20,6 +20,7 @@ function renderizarLogin() {
         <MemoryRouter initialEntries={['/login']}>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/solicitar-acceso" element={<div>Pantalla de solicitud de acceso</div>} />
             <Route path="/" element={<div>Pantalla de inicio autenticada</div>} />
           </Routes>
         </MemoryRouter>
@@ -86,5 +87,15 @@ describe('Login', () => {
     await usuarioEvento.click(screen.getByRole('button', { name: 'Ingresar' }));
 
     expect(await screen.findByText('Tu cuenta está inactiva. Contactá al laboratorio.')).toBeInTheDocument();
+  });
+
+  /** D-17: el botón "Solicitar acceso" del mockup reemplaza al registro y a Google. */
+  it('el botón "Solicitar acceso" lleva al formulario público', async () => {
+    const usuarioEvento = userEvent.setup();
+    renderizarLogin();
+
+    await usuarioEvento.click(screen.getByRole('link', { name: 'Solicitar acceso' }));
+
+    expect(await screen.findByText('Pantalla de solicitud de acceso')).toBeInTheDocument();
   });
 });

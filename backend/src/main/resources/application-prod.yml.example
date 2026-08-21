@@ -1,0 +1,59 @@
+# Copia de referencia de application-prod.yml, que está en .gitignore.
+# Copiar como application-prod.yml en el servidor y definir las variables de entorno que usa.
+# No lleva secretos: todo dato sensible llega por variable de entorno.
+# Las variables sin valor por defecto son deliberadas — si falta una, la aplicación no arranca,
+# que es mejor que arrancar apuntando a la configuración de desarrollo.
+
+# spec.md §1.1: la documentación de la API se expone solo en dev. Acá /swagger-ui.html y
+# /v3/api-docs devuelven 404: publicar la estructura completa de la API en la instalación de un
+# laboratorio no aporta valor y aumenta la superficie de ataque.
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+spring:
+  datasource:
+    # Sin defaults de localhost: en producción el destino se declara siempre.
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/labgarcias_db
+  jpa:
+    hibernate:
+      # Agente.md §5.8: el esquema lo gobierna Flyway. Repetido acá a propósito: es la línea
+      # que más caro sale equivocar en producción.
+      ddl-auto: validate
+  mail:
+    # §6.3 y §3.1.b: con SMTP real, el correo de credenciales y las notificaciones salen de verdad.
+    # Los timeouts de conexión se heredan de application.yml.
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_AUTH:true}
+          starttls:
+            enable: ${MAIL_STARTTLS:true}
+
+app:
+  almacenamiento:
+    # RN-13: ruta absoluta y fuera del directorio de la aplicación, para que un redespliegue
+    # no se lleve puestos los adjuntos.
+    directorio: ${ALMACENAMIENTO_DIRECTORIO}
+  cors:
+    # Solo el dominio del laboratorio. El default de desarrollo (localhost:5173) no rige acá.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+  notificaciones:
+    correo:
+      remitente: ${MAIL_REMITENTE}
+
+logging:
+  level:
+    # Agente.md §8.7: nunca loguear contraseñas, tokens ni el nombre del paciente. En DEBUG,
+    # Hibernate y Spring Security imprimen parámetros de consulta y datos de sesión, así que
+    # los niveles finos quedan fuera de producción.
+    root: INFO
+    com.labgarcias: INFO
+    org.hibernate.SQL: WARN
+    org.springframework.security: WARN

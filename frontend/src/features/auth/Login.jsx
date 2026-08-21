@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { login } from './api';
 import { useSesion } from '../../shared/hooks/useSesion';
@@ -7,7 +7,8 @@ import estilos from './Auth.module.css';
 
 /**
  * CR-01: se retiró el botón de Google (D-17) y el enlace al auto-registro (D-18).
- * El botón "Solicitar acceso" que los reemplaza llega en T-30 (spec.md §3.1).
+ * Los reemplaza "Solicitar acceso" (D-17, spec.md §3.1), que no crea cuenta: la crea el
+ * administrador.
  */
 export default function Login() {
   const navigate = useNavigate();
@@ -60,6 +61,10 @@ export default function Login() {
             {mutacionLogin.isPending ? 'Ingresando...' : 'Ingresar'}
           </button>
         </form>
+
+        <p className={estilos.enlaces}>
+          ¿No tenés cuenta? <Link to="/solicitar-acceso">Solicitar acceso</Link>
+        </p>
       </div>
     </div>
   );
