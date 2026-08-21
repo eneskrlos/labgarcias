@@ -36,6 +36,13 @@ spring:
           starttls:
             enable: ${MAIL_STARTTLS:true}
 
+# §6.3, §6.5 y P-20: token del bot creado con @BotFather, siempre por variable de entorno.
+# Sin valor por defecto en producción: si el laboratorio usa Telegram, la variable se declara.
+# Si de verdad no se quiere el canal, definirla vacía — el canal se deshabilita sin romper nada.
+telegram:
+  bot:
+    token: ${TELEGRAM_BOT_TOKEN}
+
 app:
   almacenamiento:
     # RN-13: ruta absoluta y fuera del directorio de la aplicación, para que un redespliegue
