@@ -1,0 +1,25 @@
+.campana {
+  position: relative;
+}
+
+.boton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espaciado-xs);
+  padding: var(--espaciado-xs) var(--espaciado-sm);
+  background: none;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-borde);
+  cursor: pointer;
+}
+
+.contador {
+  min-width: 20px;
+  padding: 0 var(--espaciado-xs);
+  background: var(--color-error);
+  color: var(--color-primario-contraste);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  line-height: 20px;
+  text-align: center;
+}

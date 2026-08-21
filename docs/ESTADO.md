@@ -1,7 +1,7 @@
 # ESTADO.md — Punto de retomada
 
 **Proyecto:** Lab. Garcia's Connect
-**Actualizado:** 20/08/2026 · rama `feature/T-22_NotificationsEndpoint_ChanelConfig`
+**Actualizado:** 20/08/2026 · rama `feature/T-23_Campara_frontend`
 
 Este archivo existe para retomar el trabajo sin releer toda la conversación. No reemplaza a
 `spec.md`, `Plan.md` ni `Agente.md`: ante cualquier diferencia, **mandan esos tres**. Acá solo
@@ -24,44 +24,38 @@ va el estado de avance y lo que se acordó de palabra y no quedó escrito en ell
 | **T-20** | `PATCH /ordenes/{id}/estado` y `PATCH /ordenes/{id}/cancelar` (RN-04, RN-17) | `d58ebb9` |
 | **T-33a** | `POST /ordenes` pasa a ADMIN/SUPERADMIN con `odontologoId` validado (D-19) | `cb2f38b` |
 | **T-21** | Módulo `notificaciones`: outbox, puerto `CanalNotificacion` con app y correo reales, Telegram y WhatsApp como estructura, despachador `@Scheduled` | `c6a5274` / `c539da9` → `82302a5` (PR #29) |
-| **T-22** | Los seis endpoints de §6.4: campana (listado, contador, leer, leer-todas) y configuración de canales con CU-21 | rama `feature/T-22_NotificationsEndpoint_ChanelConfig` |
+| **T-22** | Los seis endpoints de §6.4: campana (listado, contador, leer, leer-todas) y configuración de canales con CU-21 | `073b93e` → `f4de6b1` (PR #30) |
+| **T-23** | Campana en el frontend: contador por polling de 60 s, panel desplegable paginado por el backend, marcar una y todas como leídas, layout autenticado compartido | rama `feature/T-23_Campara_frontend` |
 
 > **Sobre la columna "Commit":** desde que rige el paso 7 de `Agente.md`, este archivo se actualiza
 > *dentro* del commit de la tarea, así que ese commit no puede citar su propio hash. La tarea en
 > curso se identifica por su rama; el hash o el merge se completan al integrarla a `develop`.
 
-**Verificación al día de hoy:** `mvn -o test` en `backend/` → **221 tests, 0 fallos**.
-`npm test` en `frontend/` → **85 tests, 0 fallos** (T-21 y T-22 no tocaron el frontend).
+**Verificación al día de hoy:** `mvn -o test` en `backend/` → **221 tests, 0 fallos** (T-23 no tocó el backend).
+`npm test` en `frontend/` → **108 tests, 0 fallos**. `npm run lint` y `npm run build` limpios.
 
 ---
 
 ## (b) Próxima tarea
 
-### T-23 · Campana en el frontend
+### T-30 · Solicitud de acceso
 
-**Spec:** §6.4, §8 · **Depende de:** T-11 ✅, T-22 ✅
-**Terminado cuando:** el contador se actualiza por *polling* cada 60 s y se pueden marcar como leídas.
+**Spec:** §3.1 · **Depende de:** T-29 ✅, T-22 ✅
+**Terminado cuando:** se cumplen los 3 criterios de §3.1; el listado de solicitudes cumple la
+convención §8.1; el botón del login lleva al formulario.
 
-Primera tarea de frontend en varias: va en `frontend/src/features/notificaciones/`, que hoy solo
-tiene el `.gitkeep`.
+Es backend + frontend en la misma tarea: flujo público de solicitud (`/solicitar-acceso`, hoy
+comentada en `App.jsx`) y gestión del admin en `/admin/solicitudes` (§8).
 
-El backend ya está entero y verificado. Las respuestas exactas:
+Lo que ya está hecho y no hay que rehacer:
 
-| Endpoint | Devuelve |
-|---|---|
-| `GET /api/v1/notificaciones?leidas=&page=&size=` | `PaginaResponse` de `{id, tipoEvento, mensaje, ordenId, leida, fechaCreacion, fechaLectura}` |
-| `GET /api/v1/notificaciones/contador` | `{ "noLeidas": 3 }` |
-| `PATCH /api/v1/notificaciones/{id}/leer` | La notificación actualizada |
-| `PATCH /api/v1/notificaciones/leer-todas` | `{ "noLeidas": 0 }` — el contador ya al día |
-
-Cinco cosas resueltas que no hay que rediscutir al empezarla:
-
-1. **Polling cada 60 s sobre `/contador`.** **Prohibido WebSocket y SSE** (§6.4).
-2. **`leer-todas` ya devuelve el contador actualizado**: no hace falta una segunda llamada.
-3. **`ordenId` puede venir nulo** (avisos que no son de una orden). Enlazar al detalle solo si viene.
-4. **Paginación en la URL**, `size` ∈ {10,20,30}; otro valor da `400 TAMANO_PAGINA_INVALIDO` (§8.1).
-5. **La pantalla de configuración de canales (CU-21, `/admin/configuracion`) NO es de esta tarea.**
-   §8 la lista aparte y `Plan.md` acota T-23 a contador y listado. Su backend ya existe.
+- **`SOLICITUD_ACCESO` ya existe en el outbox** (T-21): `TipoEvento`, textos y canales. T-30
+  publica el evento; el despacho ya funciona.
+- **La campana ya muestra el aviso al admin** (T-23): no hay trabajo de notificación en el front.
+- **Los componentes de §8.1 están disponibles** (`TablaPaginada`, `ControlesPaginacion`,
+  `LayoutFormulario`, `CampoFormulario`, `usePaginacion`), y las rutas autenticadas ya cuelgan
+  del `LayoutAutenticado` de T-23: una pantalla nueva se suma con `<PantallaAutenticada>`.
+- **La tabla `solicitud_acceso` la creó `V2`** (T-29). No hace falta migración nueva.
 
 ---
 
@@ -162,7 +156,30 @@ inanotables por construcción. No afecta a `mvn test`, que nunca corrió ese an�
    `findByIdAndDestinatarioId`: no hay ningún `findById` suelto que alguien pueda usar por descuido.
    `NotificacionRutasTest` fija además que ningún endpoint acepte un id de usuario.
 
+### 9. Las cuatro decisiones de T-23 (20/08/2026)
+
+Las tomó el desarrollador antes de implementar, sobre los cuatro puntos que §6.4 y §8 no cierran:
+
+1. **El listado va en un panel desplegable colgado de la campana, sin ruta nueva.** La tabla de
+   pantallas de §8 es cerrada y `/notificaciones` no está en ella. **§8.1 no aplica**: rige vistas
+   de administración con alta, edición y listado, y las notificaciones no tienen las dos primeras.
+   Lo que sí rige es `Agente.md` §6.2: **el panel consume el endpoint paginado del backend**
+   (`size=10`, anterior/siguiente dentro del panel). **Prohibido traer todo y cortar en el cliente.**
+2. **La campana vive en un layout compartido, sin menú de navegación.** `LayoutAutenticado` en
+   `shared/` envuelve todas las rutas con sesión: montarla solo en `Inicio` la dejaría invisible en
+   el resto y obligaría a mover código ya entregado. **El menú de §8 lo arma la tarea que cree sus
+   destinos** — hoy enlazaría a rutas inexistentes.
+3. **Sin control de filtro leídas / no leídas.** El endpoint acepta `?leidas=`, pero ninguna sección
+   pide el control en pantalla. Las no leídas se distinguen visualmente (negrita + etiqueta "Sin leer").
+4. **El `ordenId` se muestra como dato, sin enlace.** *Esto ajusta el punto 3 de la sección (b)
+   anterior, que decía enlazar al detalle.* Con el orden vigente, T-25 llega recién después de T-30,
+   T-31, T-32, T-32b y T-33: un enlace muerto viviría cinco tareas, y los criterios de T-23 no piden
+   navegar a la orden.
+
 ### Puntos abiertos (no son decisiones, son deudas)
+
+- **T-25 tiene que convertir el `ordenId` de la campana en un enlace a `/ordenes/:id`.** Queda
+  pendiente por la decisión 4 de arriba: el dato ya se muestra en `ItemNotificacion`; falta la ruta.
 
 - **`application-prod.yml` no existe y está en `.gitignore`.** `spec.md` §1.1 exige Swagger
   deshabilitado en producción; sin ese archivo, el perfil `prod` no tiene dónde apagarlo.
@@ -190,8 +207,8 @@ inanotables por construcción. No afecta a `mvn test`, que nunca corrió ese an�
 ## (d) Orden de ejecución vigente
 
 ```
-T-29 ✅ → T-18 ✅ → T-19 ✅ → T-20 ✅ → T-33a ✅ → T-21 ✅ → T-22 ✅ → [T-23]
-     → T-30 → T-31 → T-32 → T-32b → T-33b
+T-29 ✅ → T-18 ✅ → T-19 ✅ → T-20 ✅ → T-33a ✅ → T-21 ✅ → T-22 ✅ → T-23 ✅
+     → [T-30] → T-31 → T-32 → T-32b → T-33b
      → T-25 → T-26 → T-27 → T-28
 ```
 

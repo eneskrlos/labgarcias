@@ -82,4 +82,11 @@ describe('ControlesPaginacion', () => {
 
     expect(onCambiarTamano).toHaveBeenCalledWith(30);
   });
+
+  it('sin onCambiarTamano no muestra el selector, pero sí la navegación', () => {
+    render(<ControlesPaginacion pagina={0} totalPaginas={3} onCambiarPagina={vi.fn()} />);
+
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Siguiente' })).toBeEnabled();
+  });
 });
