@@ -181,10 +181,20 @@ Las tomó el desarrollador antes de implementar, sobre los cuatro puntos que §6
 - **T-25 tiene que convertir el `ordenId` de la campana en un enlace a `/ordenes/:id`.** Queda
   pendiente por la decisión 4 de arriba: el dato ya se muestra en `ItemNotificacion`; falta la ruta.
 
-- **`application-prod.yml` no existe y está en `.gitignore`.** `spec.md` §1.1 exige Swagger
-  deshabilitado en producción; sin ese archivo, el perfil `prod` no tiene dónde apagarlo.
-  Desde T-21 hace falta además para las credenciales SMTP reales (`MAIL_HOST`, `MAIL_USERNAME`,
-  `MAIL_PASSWORD`, `MAIL_REMITENTE`). Reportado desde T-29, sin resolver.
+- ~~**`application-prod.yml` no existe**~~ — **resuelto el 20/08/2026**, a pedido del desarrollador,
+  antes de empezar T-30. Apaga Swagger (§1.1), exige SMTP real sin defaults (§6.3, §3.1.b), acota
+  CORS y los niveles de log, y repite `ddl-auto: validate`. **No lleva ningún secreto:** todo dato
+  sensible llega por variable de entorno y las que no tienen default hacen fallar el arranque a
+  propósito. Sigue en `.gitignore` (línea 18), así que la copia de referencia versionada es
+  **`application-prod.yml.example`**, y las variables nuevas quedaron documentadas en `.env.example`.
+  - **Falta todavía `telegram.bot.token` / `telegram.bot.username`** (P-20): no se agregaron porque
+    ninguna property de Telegram existe aún en `application.yml`. Las declara **T-32**, en los tres
+    archivos a la vez.
+  - **El criterio 2 de §1.1 no está cubierto por ningún test automático** (que `/swagger-ui.html`
+    dé 404 con perfil `prod`). Un test así dependería de un archivo que no está versionado y
+    fallaría en un clon limpio. Se verifica a mano en el servidor. Si se prefiere automatizarlo,
+    hay que sacar `**/application-prod.yml` del `.gitignore` — el archivo no tiene secretos que lo
+    impidan; es decisión del desarrollador.
 - **El frontend todavía no refleja D-19.** Cuando llegue T-25, el menú del odontólogo no debe
   ofrecer "Nueva orden": eso lo retira T-33b.
 - **El correo de credenciales de §3.1.b todavía no existe.** Es de T-31. `TipoEvento` ya lo declara
