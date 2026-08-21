@@ -320,7 +320,7 @@ Sus criterios eran el front de CU-09 para el **odontólogo**, que D-19 retira de
 | 4 · Notificaciones | T-21 a T-23 | Outbox, correo, campana | Terminado |
 | 5 · Pantallas de órdenes | T-25, T-26 | Front de odontólogo y administración *(T-24 eliminada por D-19)* | Pendiente |
 | 6 · Paneles y cierre | T-27 a T-28 | Dashboards y verificación integral | Pendiente |
-| CR-01 · Cambio de alcance | T-29 a T-33b | Solicitud de acceso, alta por admin, Telegram, órdenes por admin | T-29 y T-33a terminadas |
+| CR-01 · Cambio de alcance | T-29 a T-33b | Solicitud de acceso, alta por admin, Telegram, órdenes por admin | T-29, T-30 y T-33a terminadas |
 
 > El orden de ejecución **no** sigue esta tabla: rige la secuencia del principio del documento.
 
@@ -358,7 +358,7 @@ Estas tareas aplican las decisiones D-17 a D-21 de `spec.md`. **No se ejecutan d
 - Eliminados los endpoints de verificación y reenvío si existían (D-18).
 - **V1 intacta.**
 
-### T-30 · Solicitud de acceso
+### T-30 · Solicitud de acceso — ✅ TERMINADA (21/08/2026)
 **Objetivo:** flujo público de solicitud + gestión del admin.
 **Depende de:** T-29, T-22 *(la solicitud notifica al admin: necesita el outbox y la campana)*
 **Spec:** §3.1

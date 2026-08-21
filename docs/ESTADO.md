@@ -1,7 +1,7 @@
 # ESTADO.md — Punto de retomada
 
 **Proyecto:** Lab. Garcia's Connect
-**Actualizado:** 20/08/2026 · rama `feature/T-23_Campara_frontend`
+**Actualizado:** 21/08/2026 · rama `feature/T-30_SolicitudAccesso`
 
 Este archivo existe para retomar el trabajo sin releer toda la conversación. No reemplaza a
 `spec.md`, `Plan.md` ni `Agente.md`: ante cualquier diferencia, **mandan esos tres**. Acá solo
@@ -25,37 +25,45 @@ va el estado de avance y lo que se acordó de palabra y no quedó escrito en ell
 | **T-33a** | `POST /ordenes` pasa a ADMIN/SUPERADMIN con `odontologoId` validado (D-19) | `cb2f38b` |
 | **T-21** | Módulo `notificaciones`: outbox, puerto `CanalNotificacion` con app y correo reales, Telegram y WhatsApp como estructura, despachador `@Scheduled` | `c6a5274` / `c539da9` → `82302a5` (PR #29) |
 | **T-22** | Los seis endpoints de §6.4: campana (listado, contador, leer, leer-todas) y configuración de canales con CU-21 | `073b93e` → `f4de6b1` (PR #30) |
-| **T-23** | Campana en el frontend: contador por polling de 60 s, panel desplegable paginado por el backend, marcar una y todas como leídas, layout autenticado compartido | rama `feature/T-23_Campara_frontend` |
+| **T-23** | Campana en el frontend: contador por polling de 60 s, panel desplegable paginado por el backend, marcar una y todas como leídas, layout autenticado compartido | `213b5c4` → `8cf962d` (PR #31) |
+| **—** | `application-prod.yml` y su copia de referencia versionada (deuda de T-29; ver puntos abiertos) | `15394a9` |
+| **T-30** | Solicitud de acceso: `POST /auth/solicitud-acceso` público, listado y rechazo para administración, aviso `SOLICITUD_ACCESO` al admin, pantallas `/solicitar-acceso` y `/admin/solicitudes` | rama `feature/T-30_SolicitudAccesso` |
 
 > **Sobre la columna "Commit":** desde que rige el paso 7 de `Agente.md`, este archivo se actualiza
 > *dentro* del commit de la tarea, así que ese commit no puede citar su propio hash. La tarea en
 > curso se identifica por su rama; el hash o el merge se completan al integrarla a `develop`.
 
-**Verificación al día de hoy:** `mvn -o test` en `backend/` → **221 tests, 0 fallos** (T-23 no tocó el backend).
-`npm test` en `frontend/` → **108 tests, 0 fallos**. `npm run lint` y `npm run build` limpios.
+**Verificación al día de hoy:** `mvn -o test` en `backend/` → **240 tests, 0 fallos**.
+`npm test` en `frontend/` → **133 tests, 0 fallos**. `npm run lint` y `npm run build` limpios.
+
+T-30 además se probó de punta a punta con el backend levantado en `dev` contra la base real: los
+tres endpoints, sus cuatro códigos de error y las tres notificaciones al administrador con sus
+envíos (`APP` enviado, `CORREO` y `TELEGRAM` fallidos por entorno). **Quedaron datos de prueba en
+la base de desarrollo:** dos solicitudes de `juan.prueba@mail.com` y sus notificaciones.
 
 ---
 
 ## (b) Próxima tarea
 
-### T-30 · Solicitud de acceso
+### T-31 · Alta de odontólogo con credenciales autogeneradas
 
-**Spec:** §3.1 · **Depende de:** T-29 ✅, T-22 ✅
-**Terminado cuando:** se cumplen los 3 criterios de §3.1; el listado de solicitudes cumple la
-convención §8.1; el botón del login lleva al formulario.
+**Spec:** §3.1.b · **Depende de:** T-30 ✅, T-21 ✅
+**Terminado cuando:** se cumplen los 4 criterios de §3.1.b; el frontend intercepta
+`debeCambiarPassword` y fuerza el paso por `/cambiar-password`.
 
-Es backend + frontend en la misma tarea: flujo público de solicitud (`/solicitar-acceso`, hoy
-comentada en `App.jsx`) y gestión del admin en `/admin/solicitudes` (§8).
+Es la tarea que cierra el circuito de D-18: `POST /api/v1/odontologos` crea la cuenta con
+contraseña aleatoria, y su `solicitudId` opcional es **lo único que pasa una solicitud a
+`APROBADA`** (T-30 dejó ese estado sin escritor a propósito).
 
 Lo que ya está hecho y no hay que rehacer:
 
-- **`SOLICITUD_ACCESO` ya existe en el outbox** (T-21): `TipoEvento`, textos y canales. T-30
-  publica el evento; el despacho ya funciona.
-- **La campana ya muestra el aviso al admin** (T-23): no hay trabajo de notificación en el front.
-- **Los componentes de §8.1 están disponibles** (`TablaPaginada`, `ControlesPaginacion`,
-  `LayoutFormulario`, `CampoFormulario`, `usePaginacion`), y las rutas autenticadas ya cuelgan
-  del `LayoutAutenticado` de T-23: una pantalla nueva se suma con `<PantallaAutenticada>`.
-- **La tabla `solicitud_acceso` la creó `V2`** (T-29). No hace falta migración nueva.
+- **`CREDENCIALES_CREADAS` ya existe en `TipoEvento`**, declarado como **solo correo** (§6.2).
+  Falta su asunto en `TextosNotificacion`, que la tarea define al emitirlo.
+- **`usuario.debe_cambiar_password` y `usuario.telefono` los creó `V2`** (T-29). Sin migración.
+- **La contraseña temporal no va al outbox.** Está resuelto y documentado en la decisión 1 de la
+  sección (c): el correo se compone en el listener, la contraseña viaja solo en memoria y **no se
+  implementa ningún endpoint de "regenerar credenciales"**.
+- **La pantalla `/cambiar-password` está en §8** y el token restringido, en §3.1.b.
 
 ---
 
@@ -176,6 +184,39 @@ Las tomó el desarrollador antes de implementar, sobre los cuatro puntos que §6
    T-31, T-32, T-32b y T-33: un enlace muerto viviría cinco tareas, y los criterios de T-23 no piden
    navegar a la orden.
 
+### 10. Las nueve decisiones de T-30 (21/08/2026)
+
+Los dos primeros puntos los decidió el desarrollador; el resto se resolvió al implementar.
+
+1. **La gestión de solicitudes es de ADMIN y SUPERADMIN.** §3.1.b dice `· ADMIN` a secas, pero
+   todos los demás endpoints de administración dicen "ADMIN, SUPERADMIN" y el SUPERADMIN **recibe**
+   el aviso de cada solicitud (decisión 4 de T-21): con la lectura literal le llegaría un aviso de
+   algo que no puede abrir.
+2. **La pantalla lleva filtro por estado**, arrancando en Pendientes. Es el único caso donde se
+   agregó un control que ninguna sección pide de forma explícita: §3.1.b documenta el parámetro
+   con el ejemplo `?estado=PENDIENTE`, que apunta justo a ese valor por defecto. *(No contradice la
+   decisión 3 de T-23: ahí no había parámetro documentado.)*
+3. **Teléfono validado como E.164** (`^\+[1-9]\d{7,14}$`): §3.1 pide "formato internacional" sin
+   definirlo, y el ejemplo `+59891234567` de la spec valida contra ese patrón.
+4. **Texto del aviso:** *"Nueva solicitud de acceso de {nombre}."*, asunto *"Lab. Garcia's Connect
+   — Nueva solicitud de acceso"*. Calcado del formato de CU-07, como la decisión 6 de T-21.
+5. **`SOLICITUD_YA_RESUELTA` (409)** al rechazar una solicitud ya aprobada o rechazada. §3.1.b no
+   documenta las respuestas del rechazo y el caso había que cubrirlo.
+6. **El filtro `estado` se recibe como texto y se convierte en el service**, con
+   `ESTADO_SOLICITUD_INVALIDO` (400). Si lo convirtiera Spring, un valor cualquiera caería en el
+   manejador genérico y devolvería 500.
+7. **`SolicitudAccesoEvent` lleva solo id y nombre.** El mensaje de una notificación se persiste y
+   viaja por correo y Telegram: correo, dirección y teléfono se consultan en la pantalla.
+8. **La solicitud NO está exenta del filtro de licencia.** La lista de excepciones de §3.6 es
+   cerrada y no la incluye: con licencia vencida, el formulario público responde `423`.
+9. **`usePaginacion` se extendió con `filtro`/`cambiarFiltro`** en lugar de manejar el parámetro
+   suelto en la pantalla (Agente.md §6.2): el filtro vive en la URL igual que `page` y `size`, y
+   cambiarlo vuelve a `page=0`.
+
+**Sobre §8.1 en el listado de solicitudes:** rigen las Reglas 2 a 5, no la Regla 1. Las solicitudes
+nacen del formulario público: no hay alta ni edición, así que no existen `/nuevo` ni `/{id}/editar`.
+Mismo criterio que se fijó para la campana en T-23.
+
 ### Puntos abiertos (no son decisiones, son deudas)
 
 - **T-25 tiene que convertir el `ordenId` de la campana en un enlace a `/ordenes/:id`.** Queda
@@ -218,7 +259,7 @@ Las tomó el desarrollador antes de implementar, sobre los cuatro puntos que §6
 
 ```
 T-29 ✅ → T-18 ✅ → T-19 ✅ → T-20 ✅ → T-33a ✅ → T-21 ✅ → T-22 ✅ → T-23 ✅
-     → [T-30] → T-31 → T-32 → T-32b → T-33b
+     → T-30 ✅ → [T-31] → T-32 → T-32b → T-33b
      → T-25 → T-26 → T-27 → T-28
 ```
 
