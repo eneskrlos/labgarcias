@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SolicitudesListado from '../SolicitudesListado';
 import { listarSolicitudes, rechazarSolicitud } from '../api';
@@ -34,6 +34,12 @@ const RECHAZADA = {
 
 const PAGINA = { contenido: [PENDIENTE], total: 1, pagina: 0, tamano: 10, totalPaginas: 1 };
 
+/** Muestra el state con el que se navega al alta, para poder afirmar la precarga. */
+function PantallaDeAlta() {
+  const location = useLocation();
+  return <pre>{JSON.stringify(location.state)}</pre>;
+}
+
 function renderizar(entrada = '/admin/solicitudes') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
@@ -41,6 +47,7 @@ function renderizar(entrada = '/admin/solicitudes') {
       <MemoryRouter initialEntries={[entrada]}>
         <Routes>
           <Route path="/admin/solicitudes" element={<SolicitudesListado />} />
+          <Route path="/admin/odontologos/nuevo" element={<PantallaDeAlta />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -116,6 +123,49 @@ describe('SolicitudesListado', () => {
     await screen.findByText('Dr. Juan Pérez');
 
     expect(screen.queryByRole('button', { name: /aprobar/i })).not.toBeInTheDocument();
+  });
+
+  /** §3.1.b: "Crear cuenta" lleva al alta con los datos y el id de la solicitud. */
+  it('"Crear cuenta" navega al alta con la solicitud precargada', async () => {
+    const usuarioEvento = userEvent.setup();
+    renderizar();
+    const fila = (await screen.findByText('Dr. Juan Pérez')).closest('tr');
+
+    await usuarioEvento.click(within(fila).getByRole('button', { name: 'Crear cuenta' }));
+
+    const estado = JSON.parse((await screen.findByText(/solicitud/)).textContent);
+    expect(estado.solicitud).toEqual({
+      id: 12,
+      nombreCompleto: 'Dr. Juan Pérez',
+      correo: 'juan@mail.com',
+      direccion: 'Av. 18 de Julio 1234',
+      telefono: '+59891234567',
+    });
+    expect(estado.origen).toBe('/admin/solicitudes');
+  });
+
+  it('una solicitud ya resuelta no ofrece "Crear cuenta"', async () => {
+    listarSolicitudes.mockResolvedValue({ ...PAGINA, contenido: [RECHAZADA] });
+    renderizar('/admin/solicitudes?estado=RECHAZADA');
+    const fila = (await screen.findByText('Dra. Ana Gómez')).closest('tr');
+
+    expect(within(fila).queryByRole('button', { name: 'Crear cuenta' })).not.toBeInTheDocument();
+  });
+
+  it('muestra la confirmación con la que vuelve el alta', async () => {
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <MemoryRouter
+          initialEntries={[{ pathname: '/admin/solicitudes', state: { mensaje: 'Cuenta creada.' } }]}
+        >
+          <Routes>
+            <Route path="/admin/solicitudes" element={<SolicitudesListado />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText('Cuenta creada.')).toBeInTheDocument();
   });
 
   it('no contiene ningún formulario de alta: las solicitudes nacen del formulario público', async () => {

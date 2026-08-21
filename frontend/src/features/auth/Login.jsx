@@ -17,10 +17,12 @@ export default function Login() {
   const [password, setPassword] = useState('');
 
   const mutacionLogin = useMutation({
-    mutationFn: login,
+    mutationFn: (credenciales) => login(credenciales),
     onSuccess: (datos) => {
-      iniciarSesion(datos.token, datos.usuario);
-      navigate('/');
+      // §3.1.b: la bandera viaja fuera del objeto usuario, pero la sesión la necesita adentro
+      // para que RutaProtegida pueda decidir en cada ruta.
+      iniciarSesion(datos.token, { ...datos.usuario, debeCambiarPassword: datos.debeCambiarPassword });
+      navigate(datos.debeCambiarPassword ? '/cambiar-password' : '/');
     },
   });
 

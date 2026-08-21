@@ -71,6 +71,36 @@ public class NotificacionService {
         return persistida;
     }
 
+    /**
+     * §3.1.b: la variante para un envío que **ya ocurrió**, fuera del despachador.
+     *
+     * El correo de credenciales se compone y se manda en el listener porque lleva la contraseña
+     * temporal, que no puede quedar en `notificacion.mensaje`. Su envío se registra igual, pero
+     * ya resuelto: dejarlo PENDIENTE haría que el despachador mandara un segundo correo, esta vez
+     * con el texto genérico.
+     *
+     * `detalleError` nulo significa ENVIADO. Un fallo queda FALLIDO y **no es reintentable**: la
+     * contraseña ya no existe en ningún lado (limitación aceptada en §3.1.b).
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public Notificacion registrarConEnvioResuelto(Long destinatarioId, TipoEvento tipoEvento, String mensaje,
+                                                   Canal canal, String detalleError) {
+        Notificacion notificacion = new Notificacion();
+        notificacion.setDestinatario(entityManager.getReference(Usuario.class, destinatarioId));
+        notificacion.setTipoEvento(tipoEvento);
+        notificacion.setMensaje(mensaje);
+        Notificacion persistida = notificacionRepository.save(notificacion);
+
+        NotificacionEnvio envio = envioPendiente(persistida, canal);
+        if (detalleError == null) {
+            envio.marcarEnviado();
+        } else {
+            envio.marcarFallido(detalleError);
+        }
+        envioRepository.save(envio);
+        return persistida;
+    }
+
     private NotificacionEnvio envioPendiente(Notificacion notificacion, Canal canal) {
         NotificacionEnvio envio = new NotificacionEnvio();
         envio.setNotificacion(notificacion);

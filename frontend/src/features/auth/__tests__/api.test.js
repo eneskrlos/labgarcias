@@ -1,7 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiFetch } from '../../../shared/api/cliente';
 import * as api from '../api';
-import { listarSolicitudes, login, logout, rechazarSolicitud, solicitarAcceso } from '../api';
+import {
+  cambiarPassword,
+  crearOdontologo,
+  listarSolicitudes,
+  login,
+  logout,
+  rechazarSolicitud,
+  solicitarAcceso,
+} from '../api';
 
 vi.mock('../../../shared/api/cliente', () => ({
   apiFetch: vi.fn(),
@@ -50,6 +58,35 @@ describe('features/auth/api', () => {
   it('rechazarSolicitud llama a PATCH /solicitudes-acceso/{id}/rechazar', () => {
     rechazarSolicitud(12);
     expect(apiFetch).toHaveBeenCalledWith('/solicitudes-acceso/12/rechazar', { method: 'PATCH' });
+  });
+
+  it('crearOdontologo llama a POST /odontologos con el cuerpo serializado', () => {
+    const datos = {
+      nombreCompleto: 'Dr. Juan Pérez',
+      correo: 'juan@mail.com',
+      nombreUsuario: 'jperez',
+      direccion: 'Av. 18 de Julio 1234',
+      telefono: '+59891234567',
+      solicitudId: 12,
+    };
+    crearOdontologo(datos);
+    expect(apiFetch).toHaveBeenCalledWith('/odontologos', { method: 'POST', body: JSON.stringify(datos) });
+  });
+
+  /** §3.1.b: la contraseña la genera el backend; el cliente no la manda ni la puede elegir. */
+  it('crearOdontologo no envía ninguna contraseña', () => {
+    crearOdontologo({ nombreCompleto: 'X', correo: 'x@mail.com', nombreUsuario: 'x', solicitudId: null });
+
+    expect(apiFetch.mock.calls[0][1].body).not.toMatch(/password/i);
+  });
+
+  it('cambiarPassword llama a POST /auth/cambiar-password', () => {
+    const datos = { passwordActual: 'temporal', passwordNueva: 'MiClave2026$' };
+    cambiarPassword(datos);
+    expect(apiFetch).toHaveBeenCalledWith('/auth/cambiar-password', {
+      method: 'POST',
+      body: JSON.stringify(datos),
+    });
   });
 
   // CR-01 (D-17/D-18): estas funciones se retiraron. El test las vigila para que no vuelvan por descuido.

@@ -55,6 +55,17 @@ public class Usuario {
     @Column(name = "correo_verificado", nullable = false)
     private boolean correoVerificado;
 
+    /** D-17/D-18: teléfono de contacto, agregado por V2. Llega en el alta y en la solicitud. */
+    @Column(name = "telefono", length = 30)
+    private String telefono;
+
+    /**
+     * §3.1.b: mientras esté en true, el token que emite el login solo habilita el cambio de
+     * contraseña. Se apaga al cambiarla.
+     */
+    @Column(name = "debe_cambiar_password", nullable = false)
+    private boolean debeCambiarPassword;
+
     @Column(name = "fecha_creacion", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime fechaCreacion;
 
@@ -146,6 +157,22 @@ public class Usuario {
 
     public void setCorreoVerificado(boolean correoVerificado) {
         this.correoVerificado = correoVerificado;
+    }
+
+    public String getTelefono() {
+        return telefono;
+    }
+
+    public void setTelefono(String telefono) {
+        this.telefono = telefono;
+    }
+
+    public boolean isDebeCambiarPassword() {
+        return debeCambiarPassword;
+    }
+
+    public void setDebeCambiarPassword(boolean debeCambiarPassword) {
+        this.debeCambiarPassword = debeCambiarPassword;
     }
 
     public OffsetDateTime getFechaCreacion() {

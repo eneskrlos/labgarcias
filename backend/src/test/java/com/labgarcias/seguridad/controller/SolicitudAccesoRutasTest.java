@@ -31,7 +31,8 @@ class SolicitudAccesoRutasTest {
     /** RN-14: ningún endpoint queda sin anotación de autorización. */
     @Test
     void rn14TodosLosEndpointsDeclaranSuAutorizacion() {
-        List<String> sinAutorizacion = Arrays.asList(SolicitudAccesoController.class, AuthController.class).stream()
+        List<String> sinAutorizacion = Arrays
+                .asList(SolicitudAccesoController.class, AuthController.class, OdontologoController.class).stream()
                 .flatMap(controller -> endpointsDe(controller).stream())
                 .filter(metodo -> !metodo.isAnnotationPresent(PreAuthorize.class))
                 .map(Method::getName)
@@ -44,6 +45,17 @@ class SolicitudAccesoRutasTest {
     @Test
     void laGestionDeSolicitudesEsSoloDeAdministracion() {
         List<String> autorizaciones = endpointsDe(SolicitudAccesoController.class).stream()
+                .map(metodo -> metodo.getAnnotation(PreAuthorize.class).value())
+                .distinct()
+                .toList();
+
+        assertThat(autorizaciones).containsExactly(ROLES_ADMINISTRACION);
+    }
+
+    /** D-18: dar de alta una cuenta es del administrador, nunca del odontólogo. */
+    @Test
+    void elAltaDeOdontologoEsSoloDeAdministracion() {
+        List<String> autorizaciones = endpointsDe(OdontologoController.class).stream()
                 .map(metodo -> metodo.getAnnotation(PreAuthorize.class).value())
                 .distinct()
                 .toList();

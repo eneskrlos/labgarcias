@@ -24,6 +24,9 @@ public class JwtService {
 
     private static final String CLAVE_ROL = "rol";
 
+    /** §3.1.b: token restringido. Va en el token porque es el backend quien tiene que hacerlo cumplir. */
+    public static final String CLAVE_DEBE_CAMBIAR_PASSWORD = "debeCambiarPassword";
+
     private final SecretKey clave;
     private final long minutosExpiracion;
 
@@ -38,6 +41,7 @@ public class JwtService {
         return Jwts.builder()
                 .subject(String.valueOf(usuario.getId()))
                 .claim(CLAVE_ROL, usuario.getRol().getCodigo().name())
+                .claim(CLAVE_DEBE_CAMBIAR_PASSWORD, usuario.isDebeCambiarPassword())
                 .issuedAt(Date.from(ahora))
                 .expiration(Date.from(ahora.plus(minutosExpiracion, ChronoUnit.MINUTES)))
                 .signWith(clave)

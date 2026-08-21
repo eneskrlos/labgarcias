@@ -34,3 +34,16 @@ export function listarSolicitudes({ pagina, tamano, estado }) {
 export function rechazarSolicitud(id) {
   return apiFetch(`/solicitudes-acceso/${id}/rechazar`, { method: 'PATCH' });
 }
+
+/**
+ * D-18/§3.1.b: alta de la cuenta. La contraseña la genera el backend y la manda por correo:
+ * el formulario no la pide ni la recibe. Con `solicitudId`, esa solicitud queda APROBADA.
+ */
+export function crearOdontologo(datos) {
+  return apiFetch('/odontologos', { method: 'POST', body: JSON.stringify(datos) });
+}
+
+/** §3.1.b: cambio obligatorio del primer ingreso. Devuelve un token nuevo, ya sin restricción. */
+export function cambiarPassword(datos) {
+  return apiFetch('/auth/cambiar-password', { method: 'POST', body: JSON.stringify(datos) });
+}

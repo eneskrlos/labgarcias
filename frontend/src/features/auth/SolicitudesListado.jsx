@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { usePaginacion } from '../../shared/hooks/usePaginacion';
 import { TablaPaginada } from '../../shared/components/TablaPaginada';
 import { listarSolicitudes, rechazarSolicitud } from './api';
@@ -34,6 +36,18 @@ const FORMATO_FECHA = new Intl.DateTimeFormat('es-AR', { dateStyle: 'short', tim
 export default function SolicitudesListado() {
   const { pagina, tamano, cambiarPagina, cambiarTamano, filtro, cambiarFiltro } = usePaginacion();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Foto del mensaje con el que vuelve el alta: el efecto limpia location.state enseguida.
+  const [mensajeConfirmacion] = useState(location.state?.mensaje ?? null);
+
+  useEffect(() => {
+    if (location.state?.mensaje) {
+      navigate(location.pathname + location.search, { replace: true, state: {} });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const estado = filtro('estado') || ESTADO_POR_DEFECTO;
 
@@ -47,6 +61,21 @@ export default function SolicitudesListado() {
     mutationFn: (id) => rechazarSolicitud(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [CLAVE_CONSULTA] }),
   });
+
+  const crearCuentaDesde = (solicitud) => {
+    navigate('/admin/odontologos/nuevo', {
+      state: {
+        solicitud: {
+          id: solicitud.id,
+          nombreCompleto: solicitud.nombreCompleto,
+          correo: solicitud.correo,
+          direccion: solicitud.direccion,
+          telefono: solicitud.telefono,
+        },
+        origen: '/admin/solicitudes',
+      },
+    });
+  };
 
   const columnas = [
     { clave: 'nombreCompleto', encabezado: 'Nombre' },
@@ -64,13 +93,19 @@ export default function SolicitudesListado() {
       encabezado: 'Acciones',
       render: (fila) =>
         fila.estado === 'PENDIENTE' ? (
-          <button
-            type="button"
-            onClick={() => mutacionRechazar.mutate(fila.id)}
-            disabled={mutacionRechazar.isPending}
-          >
-            Rechazar
-          </button>
+          <>
+            {/* §3.1.b: aprobar es crear la cuenta. El alta lleva el solicitudId y la deja APROBADA. */}
+            <button type="button" onClick={() => crearCuentaDesde(fila)}>
+              Crear cuenta
+            </button>
+            <button
+              type="button"
+              onClick={() => mutacionRechazar.mutate(fila.id)}
+              disabled={mutacionRechazar.isPending}
+            >
+              Rechazar
+            </button>
+          </>
         ) : null,
     },
   ];
@@ -90,6 +125,8 @@ export default function SolicitudesListado() {
           </select>
         </label>
       </div>
+
+      {mensajeConfirmacion && <p className={estilos.confirmacion}>{mensajeConfirmacion}</p>}
 
       {mutacionRechazar.isError && <p className={estilos.error}>{mutacionRechazar.error.mensaje}</p>}
 

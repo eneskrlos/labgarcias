@@ -178,6 +178,40 @@ class SolicitudAccesoServiceTest {
                 .isEqualTo("SOLICITUD_YA_RESUELTA");
     }
 
+    /** §3.1.b criterio 4: el alta de la cuenta es lo que aprueba la solicitud. */
+    @Test
+    void criterio4AprobarMarcaLaSolicitudYSellaLaFecha() {
+        SolicitudAcceso pendiente = solicitudEn(EstadoSolicitud.PENDIENTE);
+        when(solicitudAccesoRepository.findById(12L)).thenReturn(Optional.of(pendiente));
+
+        solicitudAccesoService.aprobar(12L);
+
+        assertThat(pendiente.getEstado()).isEqualTo(EstadoSolicitud.APROBADA);
+        assertThat(pendiente.getFechaResolucion()).isNotNull();
+    }
+
+    @Test
+    void aprobarUnaSolicitudInexistenteResponde404() {
+        when(solicitudAccesoRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> solicitudAccesoService.aprobar(99L))
+                .isInstanceOf(RecursoNoEncontradoException.class)
+                .extracting(excepcion -> ((DominioException) excepcion).getCodigo())
+                .isEqualTo("SOLICITUD_NO_ENCONTRADA");
+    }
+
+    /** Una solicitud ya rechazada no puede aprobarse por la puerta de atrás del alta. */
+    @Test
+    void aprobarUnaSolicitudYaResueltaResponde409() {
+        when(solicitudAccesoRepository.findById(12L))
+                .thenReturn(Optional.of(solicitudEn(EstadoSolicitud.RECHAZADA)));
+
+        assertThatThrownBy(() -> solicitudAccesoService.aprobar(12L))
+                .isInstanceOf(ConflictoException.class)
+                .extracting(excepcion -> ((DominioException) excepcion).getCodigo())
+                .isEqualTo("SOLICITUD_YA_RESUELTA");
+    }
+
     /** §8.1 Regla 2: el tamaño de página lo valida el backend. */
     @Test
     void listarRechazaUnTamanoDePaginaNoPermitido() {

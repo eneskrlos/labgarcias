@@ -21,6 +21,7 @@ function renderizarLogin() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/solicitar-acceso" element={<div>Pantalla de solicitud de acceso</div>} />
+            <Route path="/cambiar-password" element={<div>Pantalla de cambio de contraseña</div>} />
             <Route path="/" element={<div>Pantalla de inicio autenticada</div>} />
           </Routes>
         </MemoryRouter>
@@ -87,6 +88,24 @@ describe('Login', () => {
     await usuarioEvento.click(screen.getByRole('button', { name: 'Ingresar' }));
 
     expect(await screen.findByText('Tu cuenta está inactiva. Contactá al laboratorio.')).toBeInTheDocument();
+  });
+
+  /** §3.1.b: con el cambio pendiente, el login no lleva al inicio sino al cambio de contraseña. */
+  it('un login con debeCambiarPassword lleva a /cambiar-password', async () => {
+    login.mockResolvedValue({
+      token: 'token-restringido',
+      debeCambiarPassword: true,
+      usuario: { id: 7, nombreCompleto: 'Dr. Juan Pérez', rol: 'ODONTOLOGO' },
+    });
+    const usuarioEvento = userEvent.setup();
+
+    renderizarLogin();
+    await usuarioEvento.type(screen.getByLabelText('Correo'), 'juan@mail.com');
+    await usuarioEvento.type(screen.getByLabelText('Contraseña'), 'Ab3$Kd9!Xz2P');
+    await usuarioEvento.click(screen.getByRole('button', { name: 'Ingresar' }));
+
+    expect(await screen.findByText('Pantalla de cambio de contraseña')).toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem('labgarcias_usuario')).debeCambiarPassword).toBe(true);
   });
 
   /** D-17: el botón "Solicitar acceso" del mockup reemplaza al registro y a Google. */

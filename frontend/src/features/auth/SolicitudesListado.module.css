@@ -23,3 +23,8 @@
   color: var(--color-error);
   margin: 0 0 var(--espaciado-md);
 }
+
+.confirmacion {
+  color: var(--color-exito);
+  margin: 0 0 var(--espaciado-md);
+}

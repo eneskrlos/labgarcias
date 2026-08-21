@@ -217,6 +217,52 @@ Los dos primeros puntos los decidió el desarrollador; el resto se resolvió al 
 nacen del formulario público: no hay alta ni edición, así que no existen `/nuevo` ni `/{id}/editar`.
 Mismo criterio que se fijó para la campana en T-23.
 
+### 11. Ampliación de alcance de T-31 y sus decisiones (21/08/2026)
+
+**La ampliación, autorizada por el desarrollador antes de implementar:** `Plan.md` acota T-31 a los
+cuatro criterios de §3.1.b más la pantalla `/cambiar-password`, y deja `/admin/odontologos` (CU-11)
+en **T-28**. Con esa lectura literal, `POST /odontologos` no tenía ninguna interfaz —solo Swagger— y
+la bandeja de solicitudes entregada en T-30 quedaba sin salida durante cinco tareas. Se agregaron a
+T-31, y **solo** esto:
+
+- **`/admin/odontologos/nuevo`**: el formulario de alta, con la convención de §8.1 Regla 1
+  (`LayoutFormulario` y `CampoFormulario` de `shared/`, guardar vuelve al origen con confirmación,
+  cancelar vuelve sin guardar).
+- **Botón "Crear cuenta"** en cada solicitud `PENDIENTE` de `/admin/solicitudes`, que abre ese
+  formulario con `nombreCompleto`, `correo`, `direccion` y `telefono` precargados y el `solicitudId`
+  en mano. No es un flujo de aprobación nuevo: aprobar **es** crear la cuenta con `solicitudId`,
+  como define §3.1.b.
+
+> **T-28 hereda solo el listado de CU-11** (`GET /api/v1/odontologos` y la pantalla
+> `/admin/odontologos`), con su botón "Nuevo" apuntando al formulario que ya existe.
+>
+> **Criterio para futuras ampliaciones** *(fijado por el desarrollador)*: se justifican con la spec y
+> el plan —un criterio de aceptación no verificable, o una pantalla ya entregada que queda sin
+> salida—, **nunca** con la proximidad de una reunión con la clienta.
+
+**Las decisiones de implementación:**
+
+1. **El token restringido es un claim del JWT** (`debeCambiarPassword`) más
+   `CambioPasswordObligatorioFilter`, que rechaza toda ruta que no sea `POST /auth/cambiar-password`
+   con `403 CAMBIO_PASSWORD_REQUERIDO`. Va en el token y no en el cuerpo ni en un header: el cliente
+   no puede sacárselo. Se descartó emitir el token con un rol falso, que ensuciaría RN-14.
+2. **El correo de credenciales se registra con el envío ya resuelto**, no `PENDIENTE`
+   (`NotificacionService.registrarConEnvioResuelto`). Dejarlo pendiente haría que el despachador
+   mandara un segundo correo, esta vez con el texto genérico.
+3. **`CanalCorreo` expone `enviarCorreo(destino, asunto, cuerpo)`** para ese envío directo, en vez de
+   abrirle una conexión SMTP propia al listener: el servidor de correo se configura en un solo lugar.
+4. **`CredencialesCreadasEvent.toString()` enmascara la contraseña.** Es la vía de fuga más probable:
+   cualquier log del evento, o una excepción que lo incluya, la imprimiría en claro.
+5. **La contraseña generada es de 12 caracteres**, por encima del mínimo de 9 de RN-15, que fija un
+   piso y no una longitud exacta. Se arma con un carácter obligatorio de cada categoría y se mezcla
+   con Fisher-Yates sobre `SecureRandom`, para que cumplir la regla no dependa del sorteo.
+6. **`PASSWORD_ACTUAL_INCORRECTA` responde 422, no 401.** La sesión es válida; lo que no coincide es
+   el dato que mandó el usuario. Un 401 haría que el cliente lo interpretara como sesión vencida.
+7. **La pantalla de cambio no tiene "Cancelar"**, solo "Cerrar sesión": con el cambio pendiente
+   ninguna otra pantalla responde, así que cancelar no llevaría a ningún lado.
+8. **`RutaProtegida` redirige a `/cambiar-password`** mientras la sesión tenga la bandera. Es la
+   mitad visible de la regla; la que manda es el filtro del backend.
+
 ### Puntos abiertos (no son decisiones, son deudas)
 
 - **T-25 tiene que convertir el `ordenId` de la campana en un enlace a `/ordenes/:id`.** Queda
@@ -238,6 +284,13 @@ Mismo criterio que se fijó para la campana en T-23.
     impidan; es decisión del desarrollador.
 - **El frontend todavía no refleja D-19.** Cuando llegue T-25, el menú del odontólogo no debe
   ofrecer "Nueva orden": eso lo retira T-33b.
+- **`/admin/odontologos/nuevo` solo es alcanzable desde una solicitud.** No se le agregó enlace en
+  el inicio: el botón "Nuevo" pertenece al listado de CU-11, que construye **T-28**. Hasta entonces,
+  el alta sin solicitud previa —el "o directamente" de D-17— solo se puede hacer escribiendo la URL.
+- **`LicenciaBloqueoFilter` devuelve su mensaje con los acentos rotos.** No fija el charset de la
+  respuesta, así que `getWriter()` usa ISO-8859-1 ("La licencia del sistema está vencida" llega
+  mal). Es previo a T-31 y no se tocó por estar fuera de alcance; el filtro nuevo de T-31 ya sale
+  con `setCharacterEncoding(UTF_8)`. Es una línea, cuando se quiera.
 - **El correo de credenciales de §3.1.b todavía no existe.** Es de T-31. `TipoEvento` ya lo declara
   como solo-correo y `TextosNotificacion` documenta que ese texto se compone **fuera del outbox**.
 - **`CanalesDeEstructuraTest` va a fallar cuando T-32 integre Telegram.** Es deliberado: fija que

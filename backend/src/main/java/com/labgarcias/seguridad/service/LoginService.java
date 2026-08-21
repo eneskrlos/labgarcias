@@ -41,7 +41,9 @@ public class LoginService {
         String token = jwtService.generar(usuario);
         UsuarioResumenResponse resumen = new UsuarioResumenResponse(
                 usuario.getId(), usuario.getNombreCompleto(), usuario.getRol().getCodigo().name());
-        return new LoginResponse(token, resumen);
+        // §3.1.b: la bandera viaja en la respuesta para el frontend y dentro del token para el
+        // backend. La que manda es la del token: el cliente no puede quitársela.
+        return new LoginResponse(token, usuario.isDebeCambiarPassword(), resumen);
     }
 
     /** RN-16: un usuario GOOGLE no tiene passwordHash; nunca puede autenticarse por este medio. */

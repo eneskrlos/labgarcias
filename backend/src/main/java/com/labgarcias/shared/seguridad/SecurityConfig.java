@@ -60,7 +60,8 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http,
                                             CorsConfigurationSource corsConfigurationSource,
                                             OncePerRequestFilter jwtAuthenticationFilter,
-                                            OncePerRequestFilter licenciaBloqueoFilter) throws Exception {
+                                            OncePerRequestFilter licenciaBloqueoFilter,
+                                            OncePerRequestFilter cambioPasswordObligatorioFilter) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(csrf -> csrf.disable())
@@ -70,6 +71,8 @@ public class SecurityConfig {
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(licenciaBloqueoFilter, UsernamePasswordAuthenticationFilter.class)
+                // §3.1.b: con la contraseña temporal sin cambiar, el token no habilita nada más.
+                .addFilterBefore(cambioPasswordObligatorioFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(this::noAutenticado)
                         .accessDeniedHandler(this::sinPermiso));

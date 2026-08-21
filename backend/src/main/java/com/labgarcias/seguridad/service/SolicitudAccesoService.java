@@ -117,6 +117,29 @@ public class SolicitudAccesoService {
         }
     }
 
+    /**
+     * §3.1.b criterio 4: aprobar una solicitud es crear la cuenta, así que esto lo llama el alta
+     * de odontólogo y nadie más. No hay endpoint de aprobación: sin cuenta creada, aprobar no
+     * significaría nada.
+     *
+     * Corre dentro de la transacción del alta: si la creación del usuario falla, la solicitud no
+     * queda marcada como aprobada.
+     */
+    @Transactional
+    public void aprobar(Long id) {
+        SolicitudAcceso solicitud = solicitudAccesoRepository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException("SOLICITUD_NO_ENCONTRADA",
+                        "La solicitud de acceso no existe."));
+
+        if (solicitud.getEstado() != EstadoSolicitud.PENDIENTE) {
+            throw new ConflictoException("SOLICITUD_YA_RESUELTA",
+                    "La solicitud ya fue resuelta.", "solicitudId");
+        }
+
+        solicitud.setEstado(EstadoSolicitud.APROBADA);
+        solicitud.setFechaResolucion(OffsetDateTime.now());
+    }
+
     private void validarCorreoDisponible(String correo) {
         if (usuarioRepository.findByCorreoIgnoreCase(correo).isPresent()) {
             throw new ConflictoException("CORREO_YA_REGISTRADO",
