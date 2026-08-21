@@ -247,7 +247,7 @@ T-29 → T-18 → T-19 → T-20 → [T-33a] → T-21 → T-22 → T-23
 **Reglas:** RN-19, CU-21
 **Terminado cuando:** se cumplen los criterios 3 y 4 de §6.
 
-### T-23 · Campana en el frontend
+### T-23 · Campana en el frontend — ✅ TERMINADA (20/08/2026)
 **Objetivo:** contador y listado de notificaciones.
 **Depende de:** T-11, T-22
 **Spec:** §6.4, §8
@@ -317,7 +317,7 @@ Sus criterios eran el front de CU-09 para el **odontólogo**, que D-19 retira de
 | 1 · Seguridad | T-05 a T-11 | Login, licencia. *(Registro, verificación y Google se revierten en T-29 por CR-01.)* | Terminado |
 | 2 · Catálogos | T-12 a T-15 | Tipos de trabajo y estados administrables | Terminado |
 | 3 · Órdenes | T-16 a T-20 | Ciclo completo: creación, adjuntos, seguimiento, estados | Terminado |
-| 4 · Notificaciones | T-21 a T-23 | Outbox, correo, campana | T-21 y T-22 terminadas |
+| 4 · Notificaciones | T-21 a T-23 | Outbox, correo, campana | Terminado |
 | 5 · Pantallas de órdenes | T-25, T-26 | Front de odontólogo y administración *(T-24 eliminada por D-19)* | Pendiente |
 | 6 · Paneles y cierre | T-27 a T-28 | Dashboards y verificación integral | Pendiente |
 | CR-01 · Cambio de alcance | T-29 a T-33b | Solicitud de acceso, alta por admin, Telegram, órdenes por admin | T-29 y T-33a terminadas |

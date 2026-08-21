@@ -3,14 +3,28 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { SesionProvider, useSesion } from './shared/hooks/useSesion';
 import { RutaProtegida } from './shared/components/RutaProtegida';
+import { LayoutAutenticado } from './shared/components/LayoutAutenticado';
 import { logout } from './features/auth/api';
 import Login from './features/auth/Login';
 import Bloqueado from './features/auth/Bloqueado';
+import Campana from './features/notificaciones/Campana';
 import TiposTrabajoListado from './features/catalogos/TiposTrabajoListado';
 import TipoTrabajoFormulario from './features/catalogos/TipoTrabajoFormulario';
 
 const queryClient = new QueryClient();
 const ROLES_ADMIN = ['ADMIN', 'SUPERADMIN'];
+
+/**
+ * Toda ruta con sesión iniciada comparte el encabezado, y la campana vive ahí (§6.4): montarla
+ * en una sola pantalla la dejaría invisible en el resto.
+ */
+function PantallaAutenticada({ rolesPermitidos, children }) {
+  return (
+    <RutaProtegida rolesPermitidos={rolesPermitidos}>
+      <LayoutAutenticado acciones={<Campana />}>{children}</LayoutAutenticado>
+    </RutaProtegida>
+  );
+}
 
 function Inicio() {
   const { usuario, cerrarSesion } = useSesion();
@@ -28,7 +42,7 @@ function Inicio() {
 
   return (
     <div className="contenedor">
-      <h1>Lab. Garcia's Connect</h1>
+      <h1>Inicio</h1>
       <p>
         Hola, {usuario.nombreCompleto} ({usuario.rol})
       </p>
@@ -54,33 +68,33 @@ function App() {
             <Route
               path="/"
               element={
-                <RutaProtegida>
+                <PantallaAutenticada>
                   <Inicio />
-                </RutaProtegida>
+                </PantallaAutenticada>
               }
             />
             <Route
               path="/admin/tipos-trabajo"
               element={
-                <RutaProtegida rolesPermitidos={ROLES_ADMIN}>
+                <PantallaAutenticada rolesPermitidos={ROLES_ADMIN}>
                   <TiposTrabajoListado />
-                </RutaProtegida>
+                </PantallaAutenticada>
               }
             />
             <Route
               path="/admin/tipos-trabajo/nuevo"
               element={
-                <RutaProtegida rolesPermitidos={ROLES_ADMIN}>
+                <PantallaAutenticada rolesPermitidos={ROLES_ADMIN}>
                   <TipoTrabajoFormulario />
-                </RutaProtegida>
+                </PantallaAutenticada>
               }
             />
             <Route
               path="/admin/tipos-trabajo/:id/editar"
               element={
-                <RutaProtegida rolesPermitidos={ROLES_ADMIN}>
+                <PantallaAutenticada rolesPermitidos={ROLES_ADMIN}>
                   <TipoTrabajoFormulario />
-                </RutaProtegida>
+                </PantallaAutenticada>
               }
             />
           </Routes>
