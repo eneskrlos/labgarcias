@@ -1,5 +1,6 @@
 package com.labgarcias.seguridad.controller;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -10,7 +11,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.labgarcias.seguridad.dto.LoginRequest;
 import com.labgarcias.seguridad.dto.LoginResponse;
 import com.labgarcias.seguridad.dto.MensajeResponse;
+import com.labgarcias.seguridad.dto.SolicitudAccesoRequest;
 import com.labgarcias.seguridad.service.LoginService;
+import com.labgarcias.seguridad.service.SolicitudAccesoService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -31,9 +34,11 @@ import jakarta.validation.Valid;
 public class AuthController {
 
     private final LoginService loginService;
+    private final SolicitudAccesoService solicitudAccesoService;
 
-    public AuthController(LoginService loginService) {
+    public AuthController(LoginService loginService, SolicitudAccesoService solicitudAccesoService) {
         this.loginService = loginService;
+        this.solicitudAccesoService = solicitudAccesoService;
     }
 
     @PostMapping("/login")
@@ -50,6 +55,27 @@ public class AuthController {
     })
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(loginService.login(request));
+    }
+
+    @PostMapping("/solicitud-acceso")
+    @PreAuthorize("permitAll()")
+    @SecurityRequirements
+    @Operation(
+            summary = "Solicitar acceso al laboratorio (D-17)",
+            description = "Formulario público que reemplaza al auto-registro. Registra la solicitud y avisa "
+                    + "al administrador por sus canales activos (§6.2). **No crea ningún usuario** ni habilita "
+                    + "ningún inicio de sesión: las cuentas las da de alta el administrador (§3.1.b). "
+                    + "Sin captcha en esta versión (§3.1)."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Solicitud registrada"),
+            @ApiResponse(responseCode = "400", description = "Datos inválidos"),
+            @ApiResponse(responseCode = "409", description = "CORREO_YA_REGISTRADO, SOLICITUD_YA_EXISTENTE")
+    })
+    public ResponseEntity<MensajeResponse> solicitarAcceso(@Valid @RequestBody SolicitudAccesoRequest request) {
+        solicitudAccesoService.registrar(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new MensajeResponse("Solicitud enviada. El laboratorio se pondrá en contacto."));
     }
 
     @PostMapping("/logout")

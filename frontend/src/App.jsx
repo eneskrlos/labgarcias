@@ -7,6 +7,8 @@ import { LayoutAutenticado } from './shared/components/LayoutAutenticado';
 import { logout } from './features/auth/api';
 import Login from './features/auth/Login';
 import Bloqueado from './features/auth/Bloqueado';
+import SolicitarAcceso from './features/auth/SolicitarAcceso';
+import SolicitudesListado from './features/auth/SolicitudesListado';
 import Campana from './features/notificaciones/Campana';
 import TiposTrabajoListado from './features/catalogos/TiposTrabajoListado';
 import TipoTrabajoFormulario from './features/catalogos/TipoTrabajoFormulario';
@@ -48,6 +50,7 @@ function Inicio() {
       </p>
       {ROLES_ADMIN.includes(usuario.rol) && (
         <p>
+          <Link to="/admin/solicitudes">Solicitudes de acceso</Link> ·{' '}
           <Link to="/admin/tipos-trabajo">Tipos de trabajo</Link>
         </p>
       )}
@@ -62,14 +65,23 @@ function App() {
       <SesionProvider>
         <BrowserRouter>
           <Routes>
-            {/* CR-01: /registro y /verificar retiradas (D-17/D-18). /solicitar-acceso llega en T-30. */}
+            {/* CR-01: /registro y /verificar retiradas (D-17/D-18); las reemplaza /solicitar-acceso. */}
             <Route path="/login" element={<Login />} />
+            <Route path="/solicitar-acceso" element={<SolicitarAcceso />} />
             <Route path="/bloqueado" element={<Bloqueado />} />
             <Route
               path="/"
               element={
                 <PantallaAutenticada>
                   <Inicio />
+                </PantallaAutenticada>
+              }
+            />
+            <Route
+              path="/admin/solicitudes"
+              element={
+                <PantallaAutenticada rolesPermitidos={ROLES_ADMIN}>
+                  <SolicitudesListado />
                 </PantallaAutenticada>
               }
             />

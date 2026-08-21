@@ -32,5 +32,25 @@ export function usePaginacion() {
     });
   };
 
-  return { pagina, tamano, cambiarPagina, cambiarTamano };
+  /**
+   * Un filtro de la vista, leído de la URL. Vale lo mismo que page y size: refrescar el
+   * navegador o compartir el enlace tiene que devolver la misma lista (§8.1 Regla 2).
+   */
+  const filtro = (nombre) => searchParams.get(nombre) ?? '';
+
+  const cambiarFiltro = (nombre, valor) => {
+    setSearchParams((anteriores) => {
+      const siguientes = new URLSearchParams(anteriores);
+      if (valor) {
+        siguientes.set(nombre, valor);
+      } else {
+        siguientes.delete(nombre);
+      }
+      // Por el mismo motivo que cambiar el tamaño: con otro filtro, la página 3 puede no existir.
+      siguientes.set('page', '0');
+      return siguientes;
+    });
+  };
+
+  return { pagina, tamano, cambiarPagina, cambiarTamano, filtro, cambiarFiltro };
 }
