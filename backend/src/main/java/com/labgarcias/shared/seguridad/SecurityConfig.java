@@ -4,7 +4,6 @@ import java.io.IOException;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -18,7 +17,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.labgarcias.shared.excepcion.ErrorRespuesta;
+import com.labgarcias.shared.excepcion.EscritorErrorHttp;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -60,7 +59,8 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http,
                                             CorsConfigurationSource corsConfigurationSource,
                                             OncePerRequestFilter jwtAuthenticationFilter,
-                                            OncePerRequestFilter licenciaBloqueoFilter) throws Exception {
+                                            OncePerRequestFilter licenciaBloqueoFilter,
+                                            OncePerRequestFilter cambioPasswordObligatorioFilter) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(csrf -> csrf.disable())
@@ -70,6 +70,8 @@ public class SecurityConfig {
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(licenciaBloqueoFilter, UsernamePasswordAuthenticationFilter.class)
+                // §3.1.b: con la contraseña temporal sin cambiar, el token no habilita nada más.
+                .addFilterBefore(cambioPasswordObligatorioFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(this::noAutenticado)
                         .accessDeniedHandler(this::sinPermiso));
@@ -87,8 +89,6 @@ public class SecurityConfig {
     }
 
     private void escribirError(HttpServletResponse response, int status, String codigo, String mensaje) throws IOException {
-        response.setStatus(status);
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.getWriter().write(objectMapper.writeValueAsString(new ErrorRespuesta(codigo, mensaje, null)));
+        EscritorErrorHttp.escribir(response, objectMapper, status, codigo, mensaje);
     }
 }

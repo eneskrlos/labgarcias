@@ -37,11 +37,25 @@ public class CanalCorreo implements CanalNotificacion {
     @Override
     public void enviar(Notificacion notificacion) {
         Usuario destinatario = notificacion.getDestinatario();
+        enviarCorreo(destinatario.getCorreo(),
+                TextosNotificacion.asuntoDe(notificacion.getTipoEvento()),
+                notificacion.getMensaje());
+    }
+
+    /**
+     * §3.1.b: envío que no sale del outbox. El correo de credenciales lleva la contraseña
+     * temporal, que no puede persistirse en `notificacion.mensaje`, así que su cuerpo se compone
+     * en memoria y se manda por acá.
+     *
+     * Público para que ese caso no tenga que abrir su propia conexión SMTP: el servidor de correo
+     * se configura y se maneja en un solo lugar.
+     */
+    public void enviarCorreo(String destino, String asunto, String cuerpo) {
         SimpleMailMessage correo = new SimpleMailMessage();
         correo.setFrom(remitente);
-        correo.setTo(destinatario.getCorreo());
-        correo.setSubject(TextosNotificacion.asuntoDe(notificacion.getTipoEvento()));
-        correo.setText(notificacion.getMensaje());
+        correo.setTo(destino);
+        correo.setSubject(asunto);
+        correo.setText(cuerpo);
         try {
             remitenteCorreo.send(correo);
         } catch (MailException ex) {

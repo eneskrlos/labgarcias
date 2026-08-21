@@ -26,10 +26,19 @@ public final class TextosNotificacion {
     /** D-17/§3.1. Sin texto documentado: calcado del formato de CU-07. */
     private static final String SOLICITUD_ACCESO = "Nueva solicitud de acceso de %s.";
 
+    /**
+     * §3.1.b: texto documentado palabra por palabra, y **deliberadamente sin la contraseña**.
+     * Es el que se persiste en el outbox; las credenciales van por el correo que se compone
+     * aparte, en el listener.
+     */
+    private static final String CREDENCIALES_CREADAS =
+            "Se creó tu cuenta en Lab. Garcia's Connect. Revisá tu correo por las credenciales de acceso.";
+
     private static final String ASUNTO_CAMBIO_ESTADO = "Lab. Garcia's Connect — Tu trabajo avanzó de etapa";
     private static final String ASUNTO_NUEVA_ORDEN = "Lab. Garcia's Connect — Orden registrada";
     private static final String ASUNTO_ORDEN_URGENTE = "Lab. Garcia's Connect — Nueva orden urgente";
     private static final String ASUNTO_SOLICITUD_ACCESO = "Lab. Garcia's Connect — Nueva solicitud de acceso";
+    private static final String ASUNTO_CREDENCIALES_CREADAS = "Lab. Garcia's Connect — Tus credenciales de acceso";
     private static final String ASUNTO_GENERICO = "Lab. Garcia's Connect — Aviso";
 
     private TextosNotificacion() {
@@ -52,10 +61,14 @@ public final class TextosNotificacion {
         return SOLICITUD_ACCESO.formatted(nombreCompleto);
     }
 
+    /** §3.1.b: lo que queda en el outbox del alta de una cuenta. Nunca incluye la contraseña. */
+    public static String credencialesCreadas() {
+        return CREDENCIALES_CREADAS;
+    }
+
     /**
      * §6.3: el asunto del correo no está documentado en ningún caso de uso. Cada evento que se
-     * emite define el suyo; CREDENCIALES_CREADAS (T-31) definirá el propio cuando esa tarea lo
-     * emita.
+     * emite define el suyo.
      */
     public static String asuntoDe(TipoEvento tipoEvento) {
         return switch (tipoEvento) {
@@ -63,6 +76,7 @@ public final class TextosNotificacion {
             case NUEVA_ORDEN -> ASUNTO_NUEVA_ORDEN;
             case ORDEN_URGENTE -> ASUNTO_ORDEN_URGENTE;
             case SOLICITUD_ACCESO -> ASUNTO_SOLICITUD_ACCESO;
+            case CREDENCIALES_CREADAS -> ASUNTO_CREDENCIALES_CREADAS;
             default -> ASUNTO_GENERICO;
         };
     }

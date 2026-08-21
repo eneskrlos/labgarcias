@@ -9,6 +9,8 @@ import Login from './features/auth/Login';
 import Bloqueado from './features/auth/Bloqueado';
 import SolicitarAcceso from './features/auth/SolicitarAcceso';
 import SolicitudesListado from './features/auth/SolicitudesListado';
+import CambiarPassword from './features/auth/CambiarPassword';
+import OdontologoFormulario from './features/auth/OdontologoFormulario';
 import Campana from './features/notificaciones/Campana';
 import TiposTrabajoListado from './features/catalogos/TiposTrabajoListado';
 import TipoTrabajoFormulario from './features/catalogos/TipoTrabajoFormulario';
@@ -74,6 +76,23 @@ function App() {
               element={
                 <PantallaAutenticada>
                   <Inicio />
+                </PantallaAutenticada>
+              }
+            />
+            {/* §3.1.b: única ruta que se puede abrir con el cambio de contraseña pendiente. */}
+            <Route
+              path="/cambiar-password"
+              element={
+                <RutaProtegida permitidaConCambioPendiente>
+                  <CambiarPassword />
+                </RutaProtegida>
+              }
+            />
+            <Route
+              path="/admin/odontologos/nuevo"
+              element={
+                <PantallaAutenticada rolesPermitidos={ROLES_ADMIN}>
+                  <OdontologoFormulario />
                 </PantallaAutenticada>
               }
             />
