@@ -287,10 +287,13 @@ T-31, y **solo** esto:
 - **`/admin/odontologos/nuevo` solo es alcanzable desde una solicitud.** No se le agregó enlace en
   el inicio: el botón "Nuevo" pertenece al listado de CU-11, que construye **T-28**. Hasta entonces,
   el alta sin solicitud previa —el "o directamente" de D-17— solo se puede hacer escribiendo la URL.
-- **`LicenciaBloqueoFilter` devuelve su mensaje con los acentos rotos.** No fija el charset de la
-  respuesta, así que `getWriter()` usa ISO-8859-1 ("La licencia del sistema está vencida" llega
-  mal). Es previo a T-31 y no se tocó por estar fuera de alcance; el filtro nuevo de T-31 ya sale
-  con `setCharacterEncoding(UTF_8)`. Es una línea, cuando se quiera.
+- ~~**`LicenciaBloqueoFilter` devuelve su mensaje con los acentos rotos.**~~ — **resuelto el
+  21/08/2026**, a pedido del desarrollador. El defecto estaba en los **tres** lugares que escriben
+  un error fuera del `@RestControllerAdvice`: el filtro de licencia, el `authenticationEntryPoint`
+  y el `accessDeniedHandler` de `SecurityConfig`, y el filtro nuevo de T-31. Se centralizó en
+  **`shared/excepcion/EscritorErrorHttp`**, que fija `charset=UTF-8` y arma el mismo cuerpo que
+  devuelve `ManejadorGlobalExcepciones`, para que el próximo filtro no vuelva a olvidarlo.
+  Efecto visible: el `Content-Type` de esas respuestas pasa a ser `application/json;charset=UTF-8`.
 - **El correo de credenciales de §3.1.b todavía no existe.** Es de T-31. `TipoEvento` ya lo declara
   como solo-correo y `TextosNotificacion` documenta que ese texto se compone **fuera del outbox**.
 - **`CanalesDeEstructuraTest` va a fallar cuando T-32 integre Telegram.** Es deliberado: fija que

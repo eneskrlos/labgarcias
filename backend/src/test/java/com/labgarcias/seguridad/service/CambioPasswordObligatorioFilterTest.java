@@ -72,6 +72,19 @@ class CambioPasswordObligatorioFilterTest {
         assertThat(response.getContentAsString()).contains("CAMBIO_PASSWORD_REQUERIDO");
     }
 
+    /** El mensaje se escribe fuera del @RestControllerAdvice: el charset se fija a mano. */
+    @Test
+    void elMensajeLlegaEnUtf8ConLosAcentosIntactos() throws Exception {
+        elTokenExigeCambio(true);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        construirFiltro().doFilter(requestConToken("GET", "/api/v1/ordenes"), response, filterChain);
+
+        assertThat(response.getCharacterEncoding()).isEqualToIgnoringCase("UTF-8");
+        assertThat(response.getContentAsString(java.nio.charset.StandardCharsets.UTF_8))
+                .contains("Tenés que cambiar tu contraseña antes de usar el sistema.");
+    }
+
     /** §3.1.b: la única puerta abierta es el propio cambio de contraseña. */
     @Test
     void dejaPasarElCambioDePassword() throws Exception {

@@ -1,17 +1,15 @@
 package com.labgarcias.seguridad.service;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.labgarcias.shared.excepcion.ErrorRespuesta;
+import com.labgarcias.shared.excepcion.EscritorErrorHttp;
 
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -74,12 +72,7 @@ public class CambioPasswordObligatorioFilter extends OncePerRequestFilter {
     }
 
     private void responderCambioRequerido(HttpServletResponse response) throws IOException {
-        response.setStatus(HttpStatus.FORBIDDEN.value());
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        // Sin esto, el mensaje llega con los acentos rotos: getWriter() usa ISO-8859-1 por defecto.
-        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        response.getWriter().write(objectMapper.writeValueAsString(new ErrorRespuesta(
-                "CAMBIO_PASSWORD_REQUERIDO",
-                "Tenés que cambiar tu contraseña antes de usar el sistema.", null)));
+        EscritorErrorHttp.escribir(response, objectMapper, HttpStatus.FORBIDDEN.value(),
+                "CAMBIO_PASSWORD_REQUERIDO", "Tenés que cambiar tu contraseña antes de usar el sistema.");
     }
 }
