@@ -66,6 +66,20 @@ public class Usuario {
     @Column(name = "debe_cambiar_password", nullable = false)
     private boolean debeCambiarPassword;
 
+    /**
+     * D-21/§6.3: destino de Telegram **de este usuario**, no del laboratorio. Un bot no puede
+     * iniciar la conversación, así que este valor solo existe si el usuario se vinculó por el
+     * flujo de §6.5. Sin él, el envío por Telegram queda FALLIDO con "Telegram no vinculado".
+     *
+     * Columnas de V2. Las escribe la vinculación (T-32b); T-32 solo necesita leerlas, así que
+     * todavía no llevan setter.
+     */
+    @Column(name = "telegram_chat_id", length = 100)
+    private String telegramChatId;
+
+    @Column(name = "telegram_vinculado", nullable = false)
+    private boolean telegramVinculado;
+
     @Column(name = "fecha_creacion", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime fechaCreacion;
 
@@ -173,6 +187,14 @@ public class Usuario {
 
     public void setDebeCambiarPassword(boolean debeCambiarPassword) {
         this.debeCambiarPassword = debeCambiarPassword;
+    }
+
+    public String getTelegramChatId() {
+        return telegramChatId;
+    }
+
+    public boolean isTelegramVinculado() {
+        return telegramVinculado;
     }
 
     public OffsetDateTime getFechaCreacion() {

@@ -1,7 +1,7 @@
 # ESTADO.md — Punto de retomada
 
 **Proyecto:** Lab. Garcia's Connect
-**Actualizado:** 21/08/2026 · rama `feature/T-30_SolicitudAccesso`
+**Actualizado:** 21/08/2026 · rama `feature/T-32_TelegramImplementado_Whatsapp`
 
 Este archivo existe para retomar el trabajo sin releer toda la conversación. No reemplaza a
 `spec.md`, `Plan.md` ni `Agente.md`: ante cualquier diferencia, **mandan esos tres**. Acá solo
@@ -27,43 +27,60 @@ va el estado de avance y lo que se acordó de palabra y no quedó escrito en ell
 | **T-22** | Los seis endpoints de §6.4: campana (listado, contador, leer, leer-todas) y configuración de canales con CU-21 | `073b93e` → `f4de6b1` (PR #30) |
 | **T-23** | Campana en el frontend: contador por polling de 60 s, panel desplegable paginado por el backend, marcar una y todas como leídas, layout autenticado compartido | `213b5c4` → `8cf962d` (PR #31) |
 | **—** | `application-prod.yml` y su copia de referencia versionada (deuda de T-29; ver puntos abiertos) | `15394a9` |
-| **T-30** | Solicitud de acceso: `POST /auth/solicitud-acceso` público, listado y rechazo para administración, aviso `SOLICITUD_ACCESO` al admin, pantallas `/solicitar-acceso` y `/admin/solicitudes` | rama `feature/T-30_SolicitudAccesso` |
+| **T-30** | Solicitud de acceso: `POST /auth/solicitud-acceso` público, listado y rechazo para administración, aviso `SOLICITUD_ACCESO` al admin, pantallas `/solicitar-acceso` y `/admin/solicitudes` | `5c69a0d` → `20dbe98` (PR #32) |
+| **T-31** | Alta de odontólogo (D-18): contraseña `SecureRandom` enviada por correo fuera del outbox, token restringido con su filtro, `POST /auth/cambiar-password`, pantalla `/cambiar-password`, formulario `/admin/odontologos/nuevo` y "Crear cuenta" desde una solicitud | `b07cb66` → `852e569` (PR #33) |
+| **—** | `EscritorErrorHttp`: los errores escritos fuera del `@RestControllerAdvice` salen en UTF-8 (ver puntos abiertos) | `783793c` |
+| **T-32** | Canal Telegram real por la Bot API (`sendMessage`) con el token en properties, `usuario.telegram_chat_id` mapeado, WhatsApp confirmado como estructura con validación de teléfono | rama `feature/T-32_TelegramImplementado_Whatsapp` |
 
 > **Sobre la columna "Commit":** desde que rige el paso 7 de `Agente.md`, este archivo se actualiza
 > *dentro* del commit de la tarea, así que ese commit no puede citar su propio hash. La tarea en
 > curso se identifica por su rama; el hash o el merge se completan al integrarla a `develop`.
 
-**Verificación al día de hoy:** `mvn -o test` en `backend/` → **240 tests, 0 fallos**.
-`npm test` en `frontend/` → **133 tests, 0 fallos**. `npm run lint` y `npm run build` limpios.
+**Verificación al día de hoy:** `mvn -o test` en `backend/` → **352 tests, 0 fallos**.
+`npm test` en `frontend/` → **156 tests, 0 fallos** (T-32 no tocó el frontend). `npm run lint` y
+`npm run build` limpios.
 
-T-30 además se probó de punta a punta con el backend levantado en `dev` contra la base real: los
-tres endpoints, sus cuatro códigos de error y las tres notificaciones al administrador con sus
-envíos (`APP` enviado, `CORREO` y `TELEGRAM` fallidos por entorno). **Quedaron datos de prueba en
-la base de desarrollo:** dos solicitudes de `juan.prueba@mail.com` y sus notificaciones.
+T-30, T-31 y T-32 se probaron además de punta a punta con el backend levantado en `dev` contra la
+base real. De T-31, con un SMTP de prueba: el correo de credenciales llegó completo y la contraseña
+generada **no aparece** en el log del backend ni en ninguna columna de la base (verificado por
+búsqueda directa); el token restringido devolvió `403 CAMBIO_PASSWORD_REQUERIDO` en todos los
+endpoints hasta el cambio. De T-32, contra la API real de Telegram con un token falso: los tres
+canales se despacharon por separado, el usuario vinculado llegó hasta `api.telegram.org` y quedó
+`FALLIDO` con el motivo que devolvió Telegram, los no vinculados con "Telegram no vinculado", y el
+token no aparece **ninguna vez** ni en el log ni en `detalle_error`. Levantado sin
+`TELEGRAM_BOT_TOKEN`, arranca igual y los envíos quedan `FALLIDO` con el motivo.
+
+**Datos de prueba deliberados en la base de desarrollo** (se conservan para mostrarle el flujo a la
+clienta): dos solicitudes de `juan.prueba@mail.com` —una `RECHAZADA` y otra `APROBADA`—, el
+odontólogo `jperez` (id 17, contraseña ya cambiada) y las notificaciones de ambos flujos.
+La verificación de T-32, en cambio, **no dejó residuo**: sus dos solicitudes de prueba, sus
+notificaciones y el `telegram_chat_id` falso que se cargó para probar el envío se borraron al
+terminar, porque un chat inexistente haría fallar los envíos de la demostración.
 
 ---
 
 ## (b) Próxima tarea
 
-### T-31 · Alta de odontólogo con credenciales autogeneradas
+### T-32b · Vinculación de Telegram desde el perfil
 
-**Spec:** §3.1.b · **Depende de:** T-30 ✅, T-21 ✅
-**Terminado cuando:** se cumplen los 4 criterios de §3.1.b; el frontend intercepta
-`debeCambiarPassword` y fuerza el paso por `/cambiar-password`.
+**Spec:** §6.5 · **Depende de:** T-32 ✅
+**Terminado cuando:** se cumplen los cuatro criterios de §6.5 — el perfil muestra el estado y los
+botones de conectar/desvincular, `POST /api/v1/telegram/vinculacion` devuelve el enlace profundo
+`https://t.me/{bot}?start={token}`, el consumo de `getUpdates` corre por `@Scheduled` (**sin
+webhook**, D-16) y `DELETE` desvincula.
 
-Es la tarea que cierra el circuito de D-18: `POST /api/v1/odontologos` crea la cuenta con
-contraseña aleatoria, y su `solicitudId` opcional es **lo único que pasa una solicitud a
-`APROBADA`** (T-30 dejó ese estado sin escritor a propósito).
+Lo que ya está y no hay que rehacer:
 
-Lo que ya está hecho y no hay que rehacer:
-
-- **`CREDENCIALES_CREADAS` ya existe en `TipoEvento`**, declarado como **solo correo** (§6.2).
-  Falta su asunto en `TextosNotificacion`, que la tarea define al emitirlo.
-- **`usuario.debe_cambiar_password` y `usuario.telefono` los creó `V2`** (T-29). Sin migración.
-- **La contraseña temporal no va al outbox.** Está resuelto y documentado en la decisión 1 de la
-  sección (c): el correo se compone en el listener, la contraseña viaja solo en memoria y **no se
-  implementa ningún endpoint de "regenerar credenciales"**.
-- **La pantalla `/cambiar-password` está en §8** y el token restringido, en §3.1.b.
+- **El canal de envío ya es real** (T-32): `CanalTelegram` llama a la Bot API y lee
+  `usuario.telegram_chat_id`. T-32b solo tiene que **poblar** esa columna.
+- **`usuario.telegram_chat_id` y `telegram_vinculado` ya están mapeados** en la entidad `Usuario`,
+  **pero sin setter**: los escribe esta tarea, que es la que los necesita.
+- **`telegram_token_vinculacion` la creó `V2`** (T-29), con `fecha_uso`. Sin migración.
+- **`telegram.bot.token` ya está declarado** en `application.yml`, `application-prod.yml.example` y
+  `.env.example`. Falta **`telegram.bot.username`**, que es de esta tarea: lo usa el enlace profundo
+  y no se declaró antes para no dejar una property sin uso.
+- **P-20:** el bot y el token los crea el desarrollador. El agente no inventa tokens ni los pone en
+  el código, y ninguno puede terminar en un log (§6.5 criterio 4).
 
 ---
 
@@ -263,6 +280,44 @@ T-31, y **solo** esto:
 8. **`RutaProtegida` redirige a `/cambiar-password`** mientras la sesión tenga la bandera. Es la
    mitad visible de la regla; la que manda es el filtro del backend.
 
+### 12. Las decisiones de T-32 (21/08/2026)
+
+**La decisión de alcance, tomada por el desarrollador antes de implementar:** el envío usa
+**`usuario.telegram_chat_id`** (V2, D-21, §6.3) y **CU-21 queda exactamente como la entregó T-22**.
+Se descartó cambiar §6.4 para que activar Telegram exigiera estar vinculado —que dejaría el sistema
+más coherente— porque sería reinterpretar una regla escrita y modificar una tarea ya cerrada
+(`Agente.md` §3.1). La incoherencia queda anotada abajo como deuda de spec y la eleva el
+desarrollador a la clienta.
+
+**Las decisiones de implementación:**
+
+1. **Cliente HTTP: `RestClient` de `spring-web`**, que ya venía con `spring-boot-starter-web`.
+   **No se agregó ninguna dependencia** (`Agente.md` §3.4); se descartó una librería de terceros
+   para Telegram, que traería el flujo de bot entero para usar un solo endpoint.
+2. **El token del bot no sale del adaptador** (§6.5 criterio 4). Viaja en la URL, así que **ningún
+   mensaje de la librería HTTP se propaga tal cual**: `ResourceAccessException` incluye la URI
+   completa y terminaría copiada en `notificacion_envio.detalle_error`, a la vista de cualquiera que
+   abra la base. Cada fallo se traduce a un texto propio: el motivo que devuelve Telegram cuando lo
+   hay, y uno genérico cuando el fallo es de red. Hay dos tests que lo vigilan.
+3. **Una respuesta `200` con `ok:false` cuenta como fallo.** La Bot API contesta así en algunos
+   casos; darla por buena dejaría el envío en `ENVIADO` sin que el mensaje haya salido.
+4. **Timeouts de conexión y lectura en `spring.http.client`** (5 s), por el mismo motivo que los del
+   SMTP: el despachador llama desde un hilo programado y una API que no responde bloquearía el
+   despacho de todos los demás canales.
+5. **Se declaró solo `telegram.bot.token`.** `telegram.bot.username` lo pide §6.5 para el enlace
+   profundo, que es T-32b; declararlo ahora dejaría una property sin uso (`Agente.md` §3.3).
+6. **El envío exige `telegram_vinculado = true` además del `chat_id`.** §6.3 solo nombra el chat,
+   pero §6.5 criterio 3 pide que desvincular detenga los envíos: si quedara un chat viejo con la
+   bandera apagada, se le escribiría a alguien que pidió no recibir más.
+7. **`usuario.telegram_chat_id` y `telegram_vinculado` se mapearon sin setter.** T-32 solo los lee;
+   los escribe la vinculación de T-32b, que es la tarea que los necesita.
+8. **`CanalWhatsApp` ahora valida el teléfono** antes de fallar por falta de proveedor, como pide
+   §6.3. Son dos motivos distintos —"sin destino" y "sin proveedor"— con dos responsables distintos,
+   y `detalle_error` tiene que poder distinguirlos. Sigue **sin integrar nada** (P-18).
+9. **`CanalesDeEstructuraTest` se reescribió, no se borró.** Quedó cubriendo lo que sigue sin
+   integrarse —WhatsApp— con el mismo criterio de antes; los tests de Telegram se mudaron a
+   `CanalTelegramTest`, que usa `MockRestServiceServer`.
+
 ### Puntos abiertos (no son decisiones, son deudas)
 
 - **T-25 tiene que convertir el `ordenId` de la campana en un enlace a `/ordenes/:id`.** Queda
@@ -274,9 +329,9 @@ T-31, y **solo** esto:
   sensible llega por variable de entorno y las que no tienen default hacen fallar el arranque a
   propósito. Sigue en `.gitignore` (línea 18), así que la copia de referencia versionada es
   **`application-prod.yml.example`**, y las variables nuevas quedaron documentadas en `.env.example`.
-  - **Falta todavía `telegram.bot.token` / `telegram.bot.username`** (P-20): no se agregaron porque
-    ninguna property de Telegram existe aún en `application.yml`. Las declara **T-32**, en los tres
-    archivos a la vez.
+  - **`telegram.bot.token` ya está declarado** (P-20) en los tres archivos, con valor vacío por
+    defecto en `dev` para que el canal se deshabilite solo. **Falta `telegram.bot.username`**, que
+    usa el enlace profundo de §6.5: lo declara **T-32b**, la tarea que lo necesita.
   - **El criterio 2 de §1.1 no está cubierto por ningún test automático** (que `/swagger-ui.html`
     dé 404 con perfil `prod`). Un test así dependería de un archivo que no está versionado y
     fallaría en un clon limpio. Se verifica a mano en el servidor. Si se prefiere automatizarlo,
@@ -294,17 +349,19 @@ T-31, y **solo** esto:
   **`shared/excepcion/EscritorErrorHttp`**, que fija `charset=UTF-8` y arma el mismo cuerpo que
   devuelve `ManejadorGlobalExcepciones`, para que el próximo filtro no vuelva a olvidarlo.
   Efecto visible: el `Content-Type` de esas respuestas pasa a ser `application/json;charset=UTF-8`.
-- **El correo de credenciales de §3.1.b todavía no existe.** Es de T-31. `TipoEvento` ya lo declara
-  como solo-correo y `TextosNotificacion` documenta que ese texto se compone **fuera del outbox**.
-- **`CanalesDeEstructuraTest` va a fallar cuando T-32 integre Telegram.** Es deliberado: fija que
-  hoy no hay integración, para que nadie la dé por hecha.
-- **El chat de Telegram está en dos lugares y T-32 tiene que decidir cuál manda.**
-  `configuracion_notificacion.telegram_chat_id` (V1) es contra el que §6.4 manda validar CU-21, y es
-  lo que implementó T-22. Pero V2 agregó `usuario.telegram_chat_id` + `telegram_vinculado`, que es
-  donde el flujo de §6.5 guarda el chat, y §6.3 dice que el envío "solo se intenta si el usuario
-  está vinculado". Lectura probable: cuando exista la vinculación real, el chat lo pone el bot en
-  `usuario` y el de la configuración sobra; ahí CU-21 pasaría a validar "estás vinculado" en vez de
-  "cargaste un chat a mano". **No resolver por las nuestras: es decisión de T-32.**
+- ~~**El correo de credenciales de §3.1.b todavía no existe.**~~ — **resuelto por T-31**: lo compone
+  y envía `CredencialesNotificacionListener`, fuera del outbox, como documenta la decisión 1 de (c).
+- ~~**`CanalesDeEstructuraTest` va a fallar cuando T-32 integre Telegram.**~~ — **resuelto el
+  21/08/2026 por T-32.** El archivo se reescribió y quedó cubriendo solo WhatsApp, que es lo que
+  sigue sin integrarse; Telegram pasó a `CanalTelegramTest`. El criterio sigue vigente para lo que
+  quedó: el día que exista un proveedor de WhatsApp, ese test tiene que fallar.
+
+- **Deuda de spec (T-32):** §6.4 valida CU-21 contra `configuracion_notificacion.telegram_chat_id`
+  (chat del laboratorio), mientras que el envío real usa `usuario.telegram_chat_id` (D-21, §6.3).
+  Un ADMIN puede activar el canal cargando un chat en la configuración y aun así recibir todos sus
+  envíos `FALLIDO` si no se vinculó por el bot. Si se decide que activar Telegram exija
+  `usuario.telegram_vinculado = true`, es un cambio de §6.4 que requiere confirmación de la clienta.
+  **No resolver por cuenta propia.**
 - **Un odontólogo no puede apagar ningún canal.** §6.4 reserva `/configuracion-notificaciones` a
   ADMIN y SUPERADMIN, pero D-20 le manda notificaciones por tres canales. Se implementó como dice la
   spec. Si la clienta quiere que el odontólogo elija, es un cambio de spec, no un error.
@@ -315,7 +372,7 @@ T-31, y **solo** esto:
 
 ```
 T-29 ✅ → T-18 ✅ → T-19 ✅ → T-20 ✅ → T-33a ✅ → T-21 ✅ → T-22 ✅ → T-23 ✅
-     → T-30 ✅ → [T-31] → T-32 → T-32b → T-33b
+     → T-30 ✅ → T-31 ✅ → T-32 ✅ → [T-32b] → T-33b
      → T-25 → T-26 → T-27 → T-28
 ```
 

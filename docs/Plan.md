@@ -364,13 +364,14 @@ Estas tareas aplican las decisiones D-17 a D-21 de `spec.md`. **No se ejecutan d
 **Spec:** §3.1
 **Terminado cuando:** se cumplen los 3 criterios de §3.1; el listado de solicitudes cumple la convención §8.1; el botón del login lleva al formulario.
 
-### T-31 · Alta de odontólogo con credenciales autogeneradas
+### T-31 · Alta de odontólogo con credenciales autogeneradas — ✅ TERMINADA (21/08/2026)
 **Objetivo:** D-18 completo, incluido el cambio obligatorio de contraseña.
 **Depende de:** T-30, T-21 *(el correo de credenciales se envía desde el listener; ver §3.1.b)*
 **Spec:** §3.1.b
 **Terminado cuando:** se cumplen los 4 criterios de §3.1.b; el frontend intercepta `debeCambiarPassword` y fuerza el paso por `/cambiar-password`.
+> **Alcance ampliado el 21/08/2026 por el desarrollador:** se sumaron el formulario `/admin/odontologos/nuevo` (§8.1 Regla 1) y el botón "Crear cuenta" de `/admin/solicitudes`, porque el criterio 4 de §3.1.b no era verificable sin interfaz. **T-28 hereda solo el listado de CU-11.**
 
-### T-32 · Canal Telegram implementado + estructura WhatsApp (D-21)
+### T-32 · Canal Telegram implementado + estructura WhatsApp (D-21) — ✅ TERMINADA (21/08/2026)
 **Objetivo:** Telegram como canal real del outbox; WhatsApp solo estructura.
 **Depende de:** T-21 *(convierte en canal real el adaptador que T-21 dejó como estructura)*
 **Spec:** §6.3, §6.5
@@ -379,6 +380,8 @@ Estas tareas aplican las decisiones D-17 a D-21 de `spec.md`. **No se ejecutan d
 - Un cambio de estado genera envíos APP + CORREO + TELEGRAM; sin vinculación, Telegram queda `FALLIDO` con "Telegram no vinculado".
 - `CanalWhatsApp` existe como estructura (P-18): `FALLIDO` con "canal no configurado".
 - Sin `telegram.bot.token` configurado, el canal se deshabilita con mensaje claro (no rompe el arranque).
+
+> **Decisión del desarrollador (21/08/2026):** el envío usa **`usuario.telegram_chat_id`** (V2, D-21, §6.3). **CU-21 queda tal como lo entregó T-22**: §6.4 y su endpoint no se tocan, aunque valide contra `configuracion_notificacion.telegram_chat_id`. La incoherencia entre las dos columnas la eleva el desarrollador a la clienta; no se resuelve dentro de T-32 (deuda de spec anotada en `ESTADO.md`).
 
 ### T-32b · Vinculación de Telegram desde el perfil
 **Objetivo:** flujo de §6.5 completo.

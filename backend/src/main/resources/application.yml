@@ -36,6 +36,21 @@ spring:
           connectiontimeout: 5000
           timeout: 5000
           writetimeout: 5000
+  http:
+    client:
+      # §6.3: mismo motivo que los timeouts del SMTP. La Bot API de Telegram es un servidor
+      # externo y el despachador la llama desde un hilo programado: sin tope, una API que no
+      # responde bloquea el despacho de todos los demás canales.
+      connect-timeout: 5s
+      read-timeout: 5s
+
+# §6.3 y §6.5 (P-20): el token del bot lo crea el desarrollador con @BotFather y llega por
+# variable de entorno. Nunca va en el código ni en los logs. Vacío por defecto a propósito:
+# sin token el canal se deshabilita solo y la aplicación arranca igual (§6.5), con los envíos
+# de Telegram en FALLIDO y el motivo a la vista.
+telegram:
+  bot:
+    token: ${TELEGRAM_BOT_TOKEN:}
 
 app:
   almacenamiento:
