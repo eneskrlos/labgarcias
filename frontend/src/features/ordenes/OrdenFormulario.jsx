@@ -18,8 +18,8 @@ const VALORES_INICIALES = {
 
 const CAMPOS_CONOCIDOS = Object.keys(VALORES_INICIALES);
 
-/** §8 y §5.1: el listado de órdenes del admin es de T-26; hasta que exista, se vuelve al inicio. */
-const DESTINO = '/';
+/** §8.1 Regla 1: al guardar se vuelve al listado, que existe desde T-26. */
+const DESTINO = '/admin/ordenes';
 
 /**
  * CU-09/§5.1 con D-19: **el laboratorio registra la orden** a nombre de un odontólogo. La pantalla

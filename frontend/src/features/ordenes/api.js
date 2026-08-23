@@ -15,6 +15,34 @@ export function listarMisOrdenes({ pagina, tamano, estado }) {
   return apiFetch(`/ordenes?${parametros.toString()}`);
 }
 
+/**
+ * CU-06/§5.7: las órdenes de todo el laboratorio, con los tres filtros opcionales. A diferencia
+ * de `listarMisOrdenes`, acá `odontologoId` **sí** es un filtro: quien consulta ve todas por rol.
+ */
+export function listarOrdenesAdmin({ pagina, tamano, estado, tipoOrden, odontologoId }) {
+  const parametros = new URLSearchParams();
+  parametros.set('page', String(pagina));
+  parametros.set('size', String(tamano));
+  if (estado) {
+    parametros.set('estado', estado);
+  }
+  if (tipoOrden) {
+    parametros.set('tipoOrden', tipoOrden);
+  }
+  if (odontologoId) {
+    parametros.set('odontologoId', String(odontologoId));
+  }
+  return apiFetch(`/admin/ordenes?${parametros.toString()}`);
+}
+
+/**
+ * CU-06/§5.5: avanza la orden a la etapa siguiente. El código que se manda es el que vino en
+ * `siguienteEstado`: la transición la decide el backend, no la pantalla (§8).
+ */
+export function avanzarEstado(id, estadoCodigo) {
+  return apiFetch(`/ordenes/${id}/estado`, { method: 'PATCH', body: JSON.stringify({ estadoCodigo }) });
+}
+
 /** CU-04/§5.4: detalle con línea de tiempo y adjuntos. Una orden ajena responde 404, no 403. */
 export function obtenerOrden(id) {
   return apiFetch(`/ordenes/${id}`);

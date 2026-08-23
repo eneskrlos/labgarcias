@@ -10,12 +10,14 @@ import org.springframework.transaction.annotation.Transactional;
 import com.labgarcias.catalogos.domain.CodigoTipoOrden;
 import com.labgarcias.catalogos.domain.TipoOrden;
 import com.labgarcias.catalogos.domain.TipoTrabajo;
+import com.labgarcias.catalogos.service.EstadoService;
 import com.labgarcias.catalogos.service.TipoOrdenService;
 import com.labgarcias.catalogos.service.TipoTrabajoService;
 import com.labgarcias.ordenes.domain.Orden;
 import com.labgarcias.ordenes.domain.OrdenCreadaEvent;
 import com.labgarcias.ordenes.domain.OrdenHistorialEstado;
 import com.labgarcias.ordenes.dto.CrearOrdenRequest;
+import com.labgarcias.ordenes.dto.EstadoSiguienteResponse;
 import com.labgarcias.ordenes.dto.EtapaSeguimientoResponse;
 import com.labgarcias.ordenes.dto.OrdenArchivoResponse;
 import com.labgarcias.ordenes.dto.OrdenDetalleResponse;
@@ -27,6 +29,7 @@ import com.labgarcias.seguridad.domain.Usuario;
 import com.labgarcias.seguridad.service.UsuarioService;
 import com.labgarcias.shared.dto.PaginaResponse;
 import com.labgarcias.shared.excepcion.RecursoNoEncontradoException;
+import com.labgarcias.shared.excepcion.ValidacionException;
 import com.labgarcias.shared.util.ValidadorPaginacion;
 
 /**
@@ -40,6 +43,7 @@ public class OrdenService {
     private final OrdenHistorialEstadoRepository historialRepository;
     private final TipoTrabajoService tipoTrabajoService;
     private final TipoOrdenService tipoOrdenService;
+    private final EstadoService estadoService;
     private final FabricaOrden fabricaOrden;
     private final OrdenArchivoService ordenArchivoService;
     private final UsuarioService usuarioService;
@@ -49,6 +53,7 @@ public class OrdenService {
                         OrdenHistorialEstadoRepository historialRepository,
                         TipoTrabajoService tipoTrabajoService,
                         TipoOrdenService tipoOrdenService,
+                        EstadoService estadoService,
                         FabricaOrden fabricaOrden,
                         OrdenArchivoService ordenArchivoService,
                         UsuarioService usuarioService,
@@ -57,6 +62,7 @@ public class OrdenService {
         this.historialRepository = historialRepository;
         this.tipoTrabajoService = tipoTrabajoService;
         this.tipoOrdenService = tipoOrdenService;
+        this.estadoService = estadoService;
         this.fabricaOrden = fabricaOrden;
         this.ordenArchivoService = ordenArchivoService;
         this.usuarioService = usuarioService;
@@ -95,6 +101,44 @@ public class OrdenService {
     }
 
     /**
+     * CU-06/§5.7: las órdenes de todo el laboratorio, con los tres filtros opcionales.
+     *
+     * Acá `odontologoId` **sí** es un filtro de la petición, al revés que en `listarMisOrdenes`:
+     * quien consulta es la administración, que ve todas por rol. `tipoOrden` se valida contra la
+     * lista cerrada de RN-11 antes de llegar a la consulta.
+     *
+     * **El ítem no lleva el nombre del paciente**: `Agente.md` §8.2 lo prohíbe en cualquier
+     * listado. El laboratorio lo ve en el detalle (§5.4), que es donde lo necesita para operar.
+     */
+    @Transactional(readOnly = true)
+    public PaginaResponse<OrdenListadoResponse> listarParaAdministracion(String estado,
+                                                                         String tipoOrden,
+                                                                         Long odontologoId,
+                                                                         Pageable pageable) {
+        ValidadorPaginacion.validarTamano(pageable.getPageSize());
+        return PaginaResponse.de(ordenRepository
+                .buscarParaAdministracion(estado, tipoOrdenDe(tipoOrden), odontologoId, pageable)
+                .map(this::aItemDeListado));
+    }
+
+    /**
+     * Un tipo de orden inexistente se rechaza con un código propio en vez de dejar que reviente
+     * el `valueOf`: `MethodArgumentTypeMismatchException` saldría como 500 (mismo criterio que el
+     * filtro de estado de las solicitudes en §3.1.b).
+     */
+    private CodigoTipoOrden tipoOrdenDe(String tipoOrden) {
+        if (tipoOrden == null || tipoOrden.isBlank()) {
+            return null;
+        }
+        try {
+            return CodigoTipoOrden.valueOf(tipoOrden);
+        } catch (IllegalArgumentException noEsUnCodigoValido) {
+            throw new ValidacionException("TIPO_ORDEN_INVALIDO",
+                    "El tipo de orden debe ser NORMAL o URGENTE.", "tipoOrden");
+        }
+    }
+
+    /**
      * CU-04/§5.4: detalle con adjuntos y línea de tiempo.
      * RN-01: una orden ajena responde 404, no 403, para no revelar que existe.
      */
@@ -128,7 +172,19 @@ public class OrdenService {
                 orden.getRecargoUrgencia(),
                 orden.getPrecioTotal(),
                 archivos,
-                lineaTiempo);
+                lineaTiempo,
+                siguienteEstadoDe(orden));
+    }
+
+    /**
+     * §5.5 y §8: la transición posible la decide el backend y viaja en la respuesta. La regla es la
+     * del catálogo —`orden_secuencia`—, la misma que valida `OrdenEstadoService`: acá se expone,
+     * no se vuelve a escribir.
+     */
+    private EstadoSiguienteResponse siguienteEstadoDe(Orden orden) {
+        return estadoService.siguienteEnFlujo(orden.getEstado())
+                .map(siguiente -> new EstadoSiguienteResponse(siguiente.getCodigo(), siguiente.getNombre()))
+                .orElse(null);
     }
 
     private OrdenListadoResponse aItemDeListado(Orden orden) {

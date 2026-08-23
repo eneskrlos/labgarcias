@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.labgarcias.catalogos.domain.CodigoTipoOrden;
 import com.labgarcias.ordenes.domain.Orden;
 
 public interface OrdenRepository extends JpaRepository<Orden, Long> {
@@ -28,6 +29,22 @@ public interface OrdenRepository extends JpaRepository<Orden, Long> {
     Page<Orden> buscarDelOdontologo(@Param("odontologoId") Long odontologoId,
                                     @Param("estado") String estado,
                                     Pageable pageable);
+
+    /**
+     * CU-06/§5.7: las órdenes del laboratorio, con los tres filtros opcionales de la spec.
+     * A diferencia de `buscarDelOdontologo`, acá el odontólogo **sí** es un filtro que llega de
+     * la petición: quien consulta es el laboratorio, que ve todas (RN-01 no aplica a su rol).
+     * Los filtros comparan contra los códigos, que son los identificadores estables.
+     */
+    @EntityGraph(attributePaths = { "tipoTrabajo", "tipoOrden", "estado" })
+    @Query("SELECT o FROM Orden o "
+            + "WHERE (:estado IS NULL OR o.estado.codigo = :estado) "
+            + "AND (:tipoOrden IS NULL OR o.tipoOrden.codigo = :tipoOrden) "
+            + "AND (:odontologoId IS NULL OR o.odontologo.id = :odontologoId)")
+    Page<Orden> buscarParaAdministracion(@Param("estado") String estado,
+                                         @Param("tipoOrden") CodigoTipoOrden tipoOrden,
+                                         @Param("odontologoId") Long odontologoId,
+                                         Pageable pageable);
 
     /** CU-04: el detalle lee tipo de trabajo, tipo de orden y estado; se traen en la misma consulta. */
     @EntityGraph(attributePaths = { "tipoTrabajo", "tipoOrden", "estado" })

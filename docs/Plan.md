@@ -16,8 +16,10 @@ Las tareas **no** se ejecutan en orden numérico. El bloque CR-01 no puede corre
 ```
 T-29 → T-18 → T-19 → T-20 → [T-33a] → T-21 → T-22 → T-23
      → T-30 → T-31 → T-32 → T-32b → T-33b
-     → T-25 → T-26 → T-27 → T-28
+     → T-25 → T-26 → T-27 → T-34 → T-28
 ```
+
+> **T-34 agregada (23/08/2026).** La pantalla de CU-21 no tenía tarea: T-22 hizo sus endpoints y T-23 solo la campana. Va **después de T-27 y antes de T-28**, para que la tarea de cierre no estrene funcionalidad que tendría que verificar en la misma pasada.
 
 > **T-33a adelantada (19/08/2026).** T-33 quedó partida: su etapa de backend solo dependía de T-29 y T-20, ya terminadas, y hasta hacerla `POST /ordenes` seguía aceptando al odontólogo, en contra de D-19. La etapa de pantalla (T-33b) conserva su lugar después de T-32b, porque el selector necesita las cuentas de T-31.
 
@@ -273,7 +275,7 @@ Sus criterios eran el front de CU-09 para el **odontólogo**, que D-19 retira de
 
 > **Decisiones del desarrollador (23/08/2026):** el menú del odontólogo se monta acá por primera vez —**Inicio · Mis trabajos · Historial · Perfil**, exactamente §8—, con "Historial" apuntando a la pantalla que construye **T-27**; el menú del admin lo arman T-26 y T-27 junto con sus destinos. El `ordenId` de la campana pasa a ser enlace a `/ordenes/:id` **solo para el ODONTOLOGO**: esa pantalla es suya según §8 y muestra el botón de cancelar, que §5.6 reserva al propietario. **T-26 debe enlazarlo al detalle del admin cuando esa pantalla exista.**
 
-### T-26 · Gestión de órdenes (admin)
+### T-26 · Gestión de órdenes (admin) — ✅ TERMINADA (23/08/2026)
 **Objetivo:** CU-10 completo (backend + pantalla) y front de CU-06.
 **Depende de:** T-20, T-25
 **Spec:** §5.5, §5.7, §8
@@ -282,6 +284,8 @@ Sus criterios eran el front de CU-09 para el **odontólogo**, que D-19 retira de
 - El admin lista y filtra órdenes, ve el detalle y avanza el estado con un botón que solo ofrece la transición siguiente válida.
 
 > **Precisión (19/08/2026):** el objetivo decía "front de CU-10" pero el criterio exigía que el admin listara y filtrara órdenes, cosa imposible sin el endpoint. **El backend de §5.7 —salvo el dashboard— es de esta tarea**, no de otra. Es el único endpoint de §5.7 que no tenía tarea asignada.
+
+> **Decisión del desarrollador (23/08/2026):** el botón de avance se dibuja con **`siguienteEstado`**, un campo nuevo de `OrdenDetalleResponse` que el backend calcula con la regla de RN-04 y que **§5.4 documenta**. La alternativa —que el frontend sumara uno a `orden_secuencia`— reimplementaría RN-04 en el cliente, y `Agente.md` §6.1 y §8 lo prohíben. Lleva código **y nombre**, porque `estado.nombre` es editable por CU-22. Va solo en el detalle: el listado no tiene botón de avance. El menú del laboratorio de §8 se monta en esta tarea, con `PantallaPendiente` en los tres destinos que llegan después (T-27, T-34, T-28).
 
 ---
 
@@ -298,6 +302,22 @@ Sus criterios eran el front de CU-09 para el **odontólogo**, que D-19 retira de
 - Dashboard admin con contadores, distribución por estado, próximas a entregar y urgentes.
 - Historial del odontólogo.
 > **Sin reportes ni estadísticas más allá de estos contadores** (CU-13 es Fase 4).
+
+### T-34 · Pantalla de configuración de notificaciones
+**Objetivo:** front de CU-21.
+**Depende de:** T-22, T-26
+**Spec:** §6.4, §8, §8.1
+**Reglas:** RN-19, CU-21
+**Terminado cuando:**
+- `/admin/configuracion` permite ver y editar los canales activos del administrador consumiendo `GET` y `PUT /configuracion-notificaciones`.
+- Activar Telegram sin `chatId` es rechazado y el mensaje de `422 TELEGRAM_SIN_DESTINO` se muestra en el campo correspondiente.
+- Usa `LayoutFormulario` y `CampoFormulario` de `shared/`.
+
+> **No es un CRUD con listado y alta**, así que **§8.1 Regla 1 no aplica**: es un formulario único de edición sobre un registro existente, sin rutas `/nuevo` ni `/{id}/editar`. Aplican las Reglas 3, 4 y 5.
+
+> **Arrastra la deuda de spec de T-32** sobre `configuracion_notificacion.telegram_chat_id` (chat del laboratorio) frente a `usuario.telegram_chat_id` (destino real del envío). **No resolverla en esta tarea.**
+
+> **Creada el 23/08/2026.** La pantalla de CU-21 estaba huérfana: T-22 entregó sus endpoints (§6.4) y T-23 fue solo la campana, así que §8 la listaba sin que ninguna tarea la construyera. **No se asignó a T-28**, que es la tarea de cierre y no corresponde que implemente funcionalidad nueva y la verifique en la misma pasada. Hasta que esta tarea corra, `/admin/configuracion` es una `PantallaPendiente` puesta por T-26.
 
 ### T-28 · Perfil, odontólogos y repaso final
 **Objetivo:** CU-11, CU-17 y verificación integral.
@@ -320,9 +340,9 @@ Sus criterios eran el front de CU-09 para el **odontólogo**, que D-19 retira de
 | 2 · Catálogos | T-12 a T-15 | Tipos de trabajo y estados administrables | Terminado |
 | 3 · Órdenes | T-16 a T-20 | Ciclo completo: creación, adjuntos, seguimiento, estados | Terminado |
 | 4 · Notificaciones | T-21 a T-23 | Outbox, correo, campana | Terminado |
-| 5 · Pantallas de órdenes | T-25, T-26 | Front de odontólogo y administración *(T-24 eliminada por D-19)* | Pendiente |
-| 6 · Paneles y cierre | T-27 a T-28 | Dashboards y verificación integral | Pendiente |
-| CR-01 · Cambio de alcance | T-29 a T-33b | Solicitud de acceso, alta por admin, Telegram, órdenes por admin | T-29, T-30 y T-33a terminadas |
+| 5 · Pantallas de órdenes | T-25, T-26 | Front de odontólogo y administración *(T-24 eliminada por D-19)* | T-25 terminada |
+| 6 · Paneles y cierre | T-27, T-34, T-28 | Dashboards, configuración de notificaciones y verificación integral | Pendiente |
+| CR-01 · Cambio de alcance | T-29 a T-33b | Solicitud de acceso, alta por admin, Telegram, órdenes por admin | Terminado |
 
 > El orden de ejecución **no** sigue esta tabla: rige la secuencia del principio del documento.
 

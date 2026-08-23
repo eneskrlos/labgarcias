@@ -1,0 +1,37 @@
+.encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaciado-md);
+  margin-bottom: var(--espaciado-md);
+}
+
+/* §8.1 Regla 5: la acción principal, arriba a la derecha. */
+.nuevo {
+  padding: var(--espaciado-sm) var(--espaciado-md);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-borde);
+  text-decoration: none;
+}
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaciado-md);
+  margin-bottom: var(--espaciado-md);
+}
+
+.filtros label {
+  display: flex;
+  align-items: center;
+  gap: var(--espaciado-xs);
+  font-size: 0.9rem;
+  color: var(--color-texto-tenue);
+}
+
+.filtros select {
+  padding: var(--espaciado-xs) var(--espaciado-sm);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-borde);
+}

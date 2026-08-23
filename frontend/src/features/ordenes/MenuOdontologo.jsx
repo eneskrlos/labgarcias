@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import estilos from './MenuOdontologo.module.css';
+import estilos from './Menu.module.css';
 
 /**
  * §8, menú del odontólogo: **Inicio · Mis trabajos · Historial · Perfil**, exactamente esos cuatro.
