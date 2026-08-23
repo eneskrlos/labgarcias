@@ -5,6 +5,11 @@ export function listarActivos() {
   return apiFetch('/tipos-trabajo/activos');
 }
 
+/** RN-11/§5.1: NORMAL y URGENTE, con su recargo. Solo lectura: es configuración del sistema. */
+export function listarTiposOrden() {
+  return apiFetch('/tipos-orden');
+}
+
 /** CU-16: listado paginado de administración, con filtros opcionales. */
 export function listarPaginado({ pagina, tamano, activo, busqueda }) {
   const parametros = new URLSearchParams();

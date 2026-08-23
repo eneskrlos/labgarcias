@@ -1,7 +1,7 @@
 # ESTADO.md — Punto de retomada
 
 **Proyecto:** Lab. Garcia's Connect
-**Actualizado:** 22/08/2026 · rama `feature/T-32b_VisualizacionTelegramDesdePerfil`
+**Actualizado:** 23/08/2026 · rama `feature/T-33b_PantallaNotificacion`
 
 Este archivo existe para retomar el trabajo sin releer toda la conversación. No reemplaza a
 `spec.md`, `Plan.md` ni `Agente.md`: ante cualquier diferencia, **mandan esos tres**. Acá solo
@@ -31,14 +31,15 @@ va el estado de avance y lo que se acordó de palabra y no quedó escrito en ell
 | **T-31** | Alta de odontólogo (D-18): contraseña `SecureRandom` enviada por correo fuera del outbox, token restringido con su filtro, `POST /auth/cambiar-password`, pantalla `/cambiar-password`, formulario `/admin/odontologos/nuevo` y "Crear cuenta" desde una solicitud | `b07cb66` → `852e569` (PR #33) |
 | **—** | `EscritorErrorHttp`: los errores escritos fuera del `@RestControllerAdvice` salen en UTF-8 (ver puntos abiertos) | `783793c` |
 | **T-32** | Canal Telegram real por la Bot API (`sendMessage`) con el token en properties, `usuario.telegram_chat_id` mapeado, WhatsApp confirmado como estructura con validación de teléfono | `8bee928` → `c0f5c18` (PR #34) |
-| **T-32b** | Vinculación de §6.5: `POST`/`DELETE /telegram/vinculacion`, token de un solo uso con 15 minutos de vigencia, consumo de `getUpdates` por `@Scheduled`, `GET /perfil` y pantalla `/perfil` con la sección de Telegram | rama `feature/T-32b_VisualizacionTelegramDesdePerfil` |
+| **T-32b** | Vinculación de §6.5: `POST`/`DELETE /telegram/vinculacion`, token de un solo uso con 15 minutos de vigencia, consumo de `getUpdates` por `@Scheduled`, `GET /perfil` y pantalla `/perfil` con la sección de Telegram | `f139ddf` → `ad3173c` (PR #35) |
+| **T-33b** | Pantalla `/admin/ordenes/nueva` con selector de odontólogo (D-19) y `GET /odontologos/activos` que la alimenta | rama `feature/T-33b_PantallaNotificacion` |
 
 > **Sobre la columna "Commit":** desde que rige el paso 7 de `Agente.md`, este archivo se actualiza
 > *dentro* del commit de la tarea, así que ese commit no puede citar su propio hash. La tarea en
 > curso se identifica por su rama; el hash o el merge se completan al integrarla a `develop`.
 
-**Verificación al día de hoy:** `mvn -o test` en `backend/` → **377 tests, 0 fallos**.
-`npm test` en `frontend/` → **167 tests, 0 fallos**. `npm run lint` y `npm run build` limpios.
+**Verificación al día de hoy:** `mvn -o test` en `backend/` → **379 tests, 0 fallos**.
+`npm test` en `frontend/` → **177 tests, 0 fallos**. `npm run lint` y `npm run build` limpios.
 
 T-30, T-31 y T-32 se probaron además de punta a punta con el backend levantado en `dev` contra la
 base real. De T-31, con un SMTP de prueba: el correo de credenciales llegó completo y la contraseña
@@ -55,39 +56,55 @@ devuelve el usuario con `telegramVinculado`, `POST /telegram/vinculacion` devuel
 con el nombre real del bot y deja el token en la tabla, `DELETE` responde 204, el `getUpdates`
 programado corre sin un solo aviso en el log, el token del bot no aparece en el log, y sin
 `TELEGRAM_BOT_USERNAME` la aplicación arranca igual y la vinculación responde `422
-TELEGRAM_NO_CONFIGURADO`. **Falta un paso que necesita una cuenta de Telegram** —abrir el enlace y
-tocar Iniciar—, así que la captura del `chat_id` y el corte de envíos al desvincular están cubiertos
-por tests y no por una corrida real: ver puntos abiertos.
+TELEGRAM_NO_CONFIGURADO`.
+
+**El flujo de §6.5 quedó cerrado de punta a punta el 23/08/2026**, por una corrida del desarrollador
+—el único paso que necesitaba una cuenta de Telegram—: se emitieron cuatro tokens, uno se usó, y
+`erneskrlos` (id 11) quedó vinculado. Durante la verificación de T-33b, la notificación
+`ORDEN_URGENTE` de una orden real le **llegó por Telegram** (`notificacion_envio` en `ENVIADO`), que
+es el criterio 1 de §6.5 comprobado sobre datos que produjo el flujo real y no la base a mano.
+
+De T-33b, contra la base real: `GET /odontologos/activos` devolvió los seis odontólogos ACTIVOS con
+solo id y nombre —las cuentas sin verificar quedaron afuera— y `403` con rol ODONTOLOGO, igual que
+`POST /ordenes` (D-19). Un alta NORMAL generó **solo** `NUEVA_ORDEN` al odontólogo dueño; una
+URGENTE, `NUEVA_ORDEN` al dueño **más** `ORDEN_URGENTE` a los cuatro administradores (RN-11, leído de
+`tipo_orden`). Ningún evento de más, ningún nombre de paciente en los mensajes ni en el `201`, y la
+fecha estimada del viernes 21/08 cayó en el martes 01/09 (§5.1 criterio 3).
 
 **Datos de prueba deliberados en la base de desarrollo** (se conservan para mostrarle el flujo a la
 clienta): dos solicitudes de `juan.prueba@mail.com` —una `RECHAZADA` y otra `APROBADA`—, el
 odontólogo `jperez` (id 17, contraseña ya cambiada) y las notificaciones de ambos flujos.
-Las verificaciones de T-32 y T-32b, en cambio, **no dejaron residuo**: las solicitudes de prueba, sus
-notificaciones, el `telegram_chat_id` falso que se cargó para probar el envío y el token de
-vinculación emitido se borraron al terminar. Hoy **ningún usuario tiene Telegram vinculado** y la
-tabla `telegram_token_vinculacion` está vacía: es el estado del que parte la primera vinculación real.
+Las verificaciones de T-32, T-32b y T-33b, en cambio, **no dejaron residuo**: las solicitudes de
+prueba, el `telegram_chat_id` falso que se cargó para probar el envío y las dos órdenes de
+verificación —con sus notificaciones y su historial— se borraron al terminar. **La tabla `orden`
+está vacía**; la primera orden que se registre desde la pantalla será `LG-0003`, porque la secuencia
+no se reinicia.
+
+**Vinculación real de Telegram:** `erneskrlos` (id 11) está vinculado desde el 23/08/2026, por la
+corrida del propio desarrollador. No es dato de prueba: es el estado que dejó el flujo de §6.5.
 
 ---
 
 ## (b) Próxima tarea
 
-### T-33b · Pantalla de alta de órdenes por el admin y su notificación
+### T-25 · Pantallas del odontólogo
 
-**Spec:** §5.1 · **Depende de:** T-33a ✅, T-31 ✅, T-21 ✅
-**Terminado cuando:** existe la pantalla `/admin/ordenes/nueva` con **selector de odontólogo**, y
-"Nueva orden" queda retirada del menú y de las rutas del odontólogo (D-19; el flujo del odontólogo
-queda documentado por P-19).
+**Spec:** §8 · **Depende de:** T-19 ✅, T-23 ✅
+**Terminado cuando:** el odontólogo tiene sus pantallas de §8 —`/inicio`, `/ordenes`, `/ordenes/:id`,
+`/historial`— consumiendo los endpoints que ya existen desde T-19.
 
-Lo que ya está y no hay que rehacer:
+Lo que hay que tener presente antes de empezar:
 
-- **`POST /ordenes` ya exige ADMIN/SUPERADMIN** con `odontologoId` validado (T-33a).
-- **El aviso `NUEVA_ORDEN` ya sale** hacia el odontólogo dueño (T-21); §5.1 paso 10 quedó cubierto
-  ahí. Esta tarea es **solo la pantalla**.
-- **El odontólogo hoy no tiene pantalla de órdenes**: la que hay que revisar para que no ofrezca
-  "Nueva orden" es la de T-25 en adelante. Hasta entonces, no hay nada que retirar de un menú que
-  todavía no existe (`LayoutAutenticado` no tiene navegación, decisión de T-23).
-- **El selector necesita el listado de odontólogos**, que es `GET /api/v1/odontologos` (CU-11) y
-  pertenece a **T-28**. Si T-33b lo necesita antes, es un punto a decidir con el desarrollador.
+- **El menú del odontólogo es "Inicio · Mis trabajos · Historial · Perfil"** (§8). **"Nueva orden" no
+  va**: la retiró D-19 y el flujo queda documentado por P-19. Como hoy no hay menú, la regla se
+  cumple no construyéndolo — no agregarlo por inercia al armar la navegación.
+- **`ItemNotificacion` muestra el `ordenId` como texto**: T-25 lo convierte en enlace a
+  `/ordenes/:id`, que es la deuda que dejó T-23.
+- **RN-01 y RN-22 en cada pantalla**: el odontólogo solo ve lo suyo, y al paciente se lo identifica
+  por iniciales y código, nunca por nombre.
+- **La ruta `/` de hoy es un inicio genérico para cualquier rol.** Si T-25 arma `/inicio` como
+  pantalla del odontólogo, tiene que redefinir a dónde vuelven los formularios de administración
+  que hoy caen en `/` con su confirmación (ver puntos abiertos).
 
 ---
 
@@ -364,6 +381,41 @@ desarrollador a la clienta.
    cada 5 s.** El chat lo captura el backend cuando el usuario toca Iniciar, así que la pantalla no
    se entera sola; sin esto habría que refrescar a mano y el criterio 1 ("en segundos") no se vería.
 
+### 14. Las decisiones de T-33b (23/08/2026)
+
+**La decisión de alcance, tomada por el desarrollador antes de implementar:** el selector de
+odontólogo se alimenta de **`GET /api/v1/odontologos/activos`**, sin paginar, ADMIN y SUPERADMIN,
+devolviendo **solo `id` y `nombreCompleto`**. La alternativa —consumir el listado paginado de
+CU-11— se descartó porque no es una limitación sino un defecto: con 31 odontólogos el administrador
+no podría registrar la orden del último, y acumular páginas en el cliente lo prohíbe `Agente.md`
+§6.2. **La frase de la exención de paginado de §4 quedó reescrita** con autorización explícita: la
+exención cubre los endpoints que alimentan selectores donde se necesita el catálogo completo.
+
+> **T-28 no hereda menos por esto.** Sigue implementando `GET /api/v1/odontologos` **paginado**
+> (§7, CU-11) y la pantalla `/admin/odontologos` con §8.1 Regla 2. Son dos endpoints con propósitos
+> distintos: **uno alimenta un selector, el otro una tabla administrable**, con acciones sobre cada
+> cuenta y datos que un selector no necesita.
+
+**Las decisiones de implementación:**
+
+1. **`OdontologoActivoResponse` va aparte de `OdontologoResponse`.** Aquella es la ficha de la cuenta
+   creada y lleva correo, dirección y teléfono; devolver el padrón de contacto del laboratorio en
+   cada apertura del formulario sería regalarlo.
+2. **Solo cuentas `ACTIVA`**: son las únicas que `POST /ordenes` acepta como dueño. Ofrecer una dada
+   de baja sería ofrecer un alta que va a fallar.
+3. **La pantalla no calcula ni anticipa nada** (`Agente.md` §6.1): precio, recargo, estado inicial y
+   fecha estimada aparecen recién en la confirmación, tal como los devolvió el `201`. Hay un test que
+   lo vigila.
+4. **La confirmación no nombra al paciente** (§5.1 criterio 4, RN-22): dice código, entrega estimada
+   y total.
+5. **Al guardar se vuelve a `/`**, que hoy es un inicio genérico para cualquier rol autenticado, no
+   la pantalla del odontólogo. El listado `/admin/ordenes` al que debería volver es de T-26.
+6. **`Inicio` ahora muestra la confirmación** que le llega por `location.state`. Estaba previsto por
+   §8.1 Regla 1 pero no implementado: el mensaje de T-31 se perdía en silencio al volver.
+7. **El punto 2 de la tarea se cumplió no construyendo.** No hay ninguna ruta de órdenes del
+   odontólogo ni menú de navegación, así que no había "Nueva orden" que retirar; queda anotado para
+   T-25, que es quien arma ese menú.
+
 ### Puntos abiertos (no son decisiones, son deudas)
 
 - **T-25 tiene que convertir el `ordenId` de la campana en un enlace a `/ordenes/:id`.** Queda
@@ -383,8 +435,10 @@ desarrollador a la clienta.
     fallaría en un clon limpio. Se verifica a mano en el servidor. Si se prefiere automatizarlo,
     hay que sacar `**/application-prod.yml` del `.gitignore` — el archivo no tiene secretos que lo
     impidan; es decisión del desarrollador.
-- **El frontend todavía no refleja D-19.** Cuando llegue T-25, el menú del odontólogo no debe
-  ofrecer "Nueva orden": eso lo retira T-33b.
+- **D-19 en el frontend: la parte que le toca a T-25.** T-33b puso el alta donde corresponde
+  —`/admin/ordenes/nueva`, con enlace solo para las cuentas de administración— pero **el menú del
+  odontólogo todavía no existe**. Cuando T-25 lo arme, es "Inicio · Mis trabajos · Historial ·
+  Perfil" (§8): **"Nueva orden" no va**, y el flujo queda documentado por P-19.
 - **`/admin/odontologos/nuevo` solo es alcanzable desde una solicitud.** No se le agregó enlace en
   el inicio: el botón "Nuevo" pertenece al listado de CU-11, que construye **T-28**. Hasta entonces,
   el alta sin solicitud previa —el "o directamente" de D-17— solo se puede hacer escribiendo la URL.
@@ -407,11 +461,15 @@ desarrollador a la clienta.
   **Si conviene invalidar los anteriores al emitir uno nuevo, es una decisión a tomar, no un
   arreglo:** no resolver por cuenta propia.
 
-- **El último paso de §6.5 no se probó contra Telegram**: abrir el enlace y tocar Iniciar necesita
-  una cuenta de Telegram, que el agente no tiene. Lo que queda cubierto solo por tests es la captura
-  del `chat_id` al recibir el `/start` (criterio 1) y que desvincular corte los envíos (criterio 3).
-  **Lo cierra el desarrollador en una corrida**: entrar a `/perfil`, tocar "Conectar Telegram", abrir
-  el enlace, tocar Iniciar, y confirmar que el bot responde y que el perfil pasa a "vinculado ✅".
+- ~~**El último paso de §6.5 no se probó contra Telegram**~~ — **cerrado el 23/08/2026** por la
+  corrida del desarrollador: `erneskrlos` quedó vinculado y recibió por Telegram la notificación
+  `ORDEN_URGENTE` de una orden real. Sigue sin probarse en una corrida el **desvincular** (criterio 3
+  de §6.5), que está cubierto por tests.
+
+- **Al guardar, los formularios de administración vuelven a `/`.** Es lo que hay: el listado
+  `/admin/ordenes` es de **T-26**, y el `/admin` de §8 es de T-27. **T-26 tiene que redirigir el alta
+  de orden a `/admin/ordenes` cuando ese listado exista**, como manda §8.1 Regla 1. Lo mismo vale
+  para el alta de odontólogo cuando T-28 construya `/admin/odontologos`.
 
 - **Deuda de spec (T-32):** §6.4 valida CU-21 contra `configuracion_notificacion.telegram_chat_id`
   (chat del laboratorio), mientras que el envío real usa `usuario.telegram_chat_id` (D-21, §6.3).
@@ -429,8 +487,8 @@ desarrollador a la clienta.
 
 ```
 T-29 ✅ → T-18 ✅ → T-19 ✅ → T-20 ✅ → T-33a ✅ → T-21 ✅ → T-22 ✅ → T-23 ✅
-     → T-30 ✅ → T-31 ✅ → T-32 ✅ → T-32b ✅ → [T-33b]
-     → T-25 → T-26 → T-27 → T-28
+     → T-30 ✅ → T-31 ✅ → T-32 ✅ → T-32b ✅ → T-33b ✅
+     → [T-25] → T-26 → T-27 → T-28
 ```
 
 Es el orden de `Plan.md`, que **no** sigue la numeración de los bloques. `T-24` fue eliminada

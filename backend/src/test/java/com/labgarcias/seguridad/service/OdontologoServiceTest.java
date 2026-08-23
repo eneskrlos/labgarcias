@@ -9,6 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +31,7 @@ import com.labgarcias.seguridad.domain.Rol;
 import com.labgarcias.seguridad.domain.RolCodigo;
 import com.labgarcias.seguridad.domain.Usuario;
 import com.labgarcias.seguridad.dto.CrearOdontologoRequest;
+import com.labgarcias.seguridad.dto.OdontologoActivoResponse;
 import com.labgarcias.seguridad.dto.OdontologoResponse;
 import com.labgarcias.seguridad.repository.RolRepository;
 import com.labgarcias.seguridad.repository.UsuarioRepository;
@@ -219,5 +221,39 @@ class OdontologoServiceTest {
         odontologoService.crear(request);
 
         verify(usuarioRepository).findByCorreoIgnoreCase(anyString());
+    }
+
+    /** §5.1/D-19: el selector pide solo odontólogos ACTIVOS, que son los que `POST /ordenes` acepta. */
+    @Test
+    void elSelectorPideSoloOdontologosActivos() {
+        when(usuarioRepository.findByRolCodigoAndEstadoCuentaOrderByNombreCompletoAsc(
+                RolCodigo.ODONTOLOGO, EstadoCuenta.ACTIVA)).thenReturn(List.of());
+
+        odontologoService.listarActivos();
+
+        verify(usuarioRepository)
+                .findByRolCodigoAndEstadoCuentaOrderByNombreCompletoAsc(RolCodigo.ODONTOLOGO, EstadoCuenta.ACTIVA);
+    }
+
+    /**
+     * El selector solo necesita a quién elegir. Devolver el padrón de contacto del laboratorio
+     * —correo, teléfono, dirección— en cada apertura del formulario sería regalarlo.
+     */
+    @Test
+    void elSelectorNoDevuelveDatosDeContacto() {
+        Usuario odontologo = new Usuario();
+        odontologo.setNombreCompleto("Dr. Juan Pérez");
+        odontologo.setCorreo(CORREO);
+        odontologo.setTelefono("+59891234567");
+        when(usuarioRepository.findByRolCodigoAndEstadoCuentaOrderByNombreCompletoAsc(
+                RolCodigo.ODONTOLOGO, EstadoCuenta.ACTIVA)).thenReturn(List.of(odontologo));
+
+        assertThat(odontologoService.listarActivos())
+                .singleElement()
+                .extracting(OdontologoActivoResponse::nombreCompleto)
+                .isEqualTo("Dr. Juan Pérez");
+        assertThat(OdontologoActivoResponse.class.getRecordComponents())
+                .extracting(java.lang.reflect.RecordComponent::getName)
+                .containsExactly("id", "nombreCompleto");
     }
 }

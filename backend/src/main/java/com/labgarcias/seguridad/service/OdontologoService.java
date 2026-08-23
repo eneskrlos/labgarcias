@@ -1,5 +1,7 @@
 package com.labgarcias.seguridad.service;
 
+import java.util.List;
+
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -12,6 +14,7 @@ import com.labgarcias.seguridad.domain.Rol;
 import com.labgarcias.seguridad.domain.RolCodigo;
 import com.labgarcias.seguridad.domain.Usuario;
 import com.labgarcias.seguridad.dto.CrearOdontologoRequest;
+import com.labgarcias.seguridad.dto.OdontologoActivoResponse;
 import com.labgarcias.seguridad.dto.OdontologoResponse;
 import com.labgarcias.seguridad.repository.RolRepository;
 import com.labgarcias.seguridad.repository.UsuarioRepository;
@@ -65,6 +68,22 @@ public class OdontologoService {
                 odontologo.getId(), odontologo.getCorreo(), odontologo.getNombreUsuario(), passwordTemporal));
 
         return OdontologoResponse.de(odontologo);
+    }
+
+    /**
+     * §5.1/D-19: los odontólogos que el laboratorio puede elegir al registrar una orden.
+     *
+     * **Sin paginar**, por el mismo motivo que `/tipos-trabajo/activos`: alimenta un selector que
+     * necesita la lista entera. Solo cuentas ACTIVAS, que son las únicas que `POST /ordenes`
+     * acepta como dueño; ofrecer una dada de baja sería ofrecer un alta que va a fallar.
+     */
+    @Transactional(readOnly = true)
+    public List<OdontologoActivoResponse> listarActivos() {
+        return usuarioRepository
+                .findByRolCodigoAndEstadoCuentaOrderByNombreCompletoAsc(RolCodigo.ODONTOLOGO, EstadoCuenta.ACTIVA)
+                .stream()
+                .map(OdontologoActivoResponse::de)
+                .toList();
     }
 
     /**
