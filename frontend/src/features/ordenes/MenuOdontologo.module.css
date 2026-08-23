@@ -1,0 +1,14 @@
+.enlace {
+  color: var(--color-texto-tenue);
+  text-decoration: none;
+  padding: var(--espaciado-xs) 0;
+}
+
+.enlace:hover {
+  text-decoration: underline;
+}
+
+.activo {
+  color: var(--color-primario);
+  font-weight: 600;
+}

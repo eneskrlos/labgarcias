@@ -1,5 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import { render, screen, within } from '@testing-library/react';
+import { SesionProvider } from '../../../shared/hooks/useSesion';
+import { guardarUsuario } from '../../../shared/api/token';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PanelNotificaciones from '../PanelNotificaciones';
@@ -42,11 +45,21 @@ const PAGINA = {
   totalPaginas: 1,
 };
 
-function renderizar() {
+/**
+ * El panel vive dentro del encabezado autenticado, así que en la aplicación siempre tiene sesión
+ * y router alrededor. Desde T-25 los necesita de verdad: el `ordenId` es enlace, y solo para el
+ * odontólogo (§8, §5.6).
+ */
+function renderizar(rol = 'ODONTOLOGO') {
+  guardarUsuario({ id: 1, nombreCompleto: 'Dr. Juan Pérez', rol });
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={queryClient}>
-      <PanelNotificaciones onCerrar={vi.fn()} />
+      <MemoryRouter>
+        <SesionProvider>
+          <PanelNotificaciones onCerrar={vi.fn()} />
+        </SesionProvider>
+      </MemoryRouter>
     </QueryClientProvider>,
   );
   return queryClient;
@@ -54,10 +67,31 @@ function renderizar() {
 
 describe('PanelNotificaciones', () => {
   beforeEach(() => {
+    localStorage.clear();
     listarPaginado.mockReset().mockResolvedValue(PAGINA);
     marcarLeida.mockReset().mockResolvedValue({ ...NOTIFICACION_SIN_LEER, leida: true });
     marcarTodasLeidas.mockReset().mockResolvedValue({ noLeidas: 0 });
     contarNoLeidas.mockReset().mockResolvedValue({ noLeidas: 1 });
+  });
+
+  /** Pendiente que dejó T-23: el `ordenId` lleva al seguimiento de §5.4. */
+  it('el ordenId es enlace al seguimiento para el odontólogo', async () => {
+    renderizar('ODONTOLOGO');
+
+    const enlace = await screen.findByRole('link', { name: `Orden #${NOTIFICACION_SIN_LEER.ordenId}` });
+    expect(enlace).toHaveAttribute('href', `/ordenes/${NOTIFICACION_SIN_LEER.ordenId}`);
+  });
+
+  /**
+   * §8 asigna `/ordenes/:id` al odontólogo y §5.6 reserva la cancelación al propietario: el
+   * administrador vería una pantalla que no es suya. Su destino lo construye T-26.
+   */
+  it('para el administrador el ordenId sigue siendo texto, sin enlace', async () => {
+    renderizar('ADMIN');
+
+    await screen.findByText(NOTIFICACION_SIN_LEER.mensaje);
+    expect(screen.getByText(`Orden #${NOTIFICACION_SIN_LEER.ordenId}`)).toBeInTheDocument();
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 
   it('pide la primera página al backend con tamaño 10 (Agente.md §6.2)', async () => {
@@ -74,14 +108,6 @@ describe('PanelNotificaciones', () => {
     expect(screen.getByText(NOTIFICACION_LEIDA.mensaje)).toBeInTheDocument();
     expect(screen.getAllByText('Sin leer')).toHaveLength(1);
     expect(screen.getAllByRole('button', { name: 'Marcar como leída' })).toHaveLength(1);
-  });
-
-  it('muestra el ordenId como dato, sin enlace (T-25 lo convierte en enlace)', async () => {
-    renderizar();
-    const item = (await screen.findByText(NOTIFICACION_SIN_LEER.mensaje)).closest('li');
-
-    expect(within(item).getByText('Orden #7')).toBeInTheDocument();
-    expect(within(item).queryByRole('link')).not.toBeInTheDocument();
   });
 
   it('una notificación sin orden no muestra ninguna referencia de orden (§6.4)', async () => {

@@ -25,6 +25,17 @@
   color: var(--color-primario);
 }
 
+/* §8: el menú, debajo de la barra. Se envuelve en pantallas chicas, sin desbordar. */
+.navegacion {
+  width: 100%;
+  max-width: var(--ancho-escritorio);
+  margin: 0 auto;
+  padding: 0 var(--espaciado-md) var(--espaciado-sm);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaciado-md);
+}
+
 .contenido {
   flex: 1;
 }

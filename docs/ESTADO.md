@@ -1,7 +1,7 @@
 # ESTADO.md — Punto de retomada
 
 **Proyecto:** Lab. Garcia's Connect
-**Actualizado:** 23/08/2026 · rama `feature/T-33b_PantallaNotificacion`
+**Actualizado:** 23/08/2026 · rama `feature/T-25_Mis_Ordenes_seguimiento`
 
 Este archivo existe para retomar el trabajo sin releer toda la conversación. No reemplaza a
 `spec.md`, `Plan.md` ni `Agente.md`: ante cualquier diferencia, **mandan esos tres**. Acá solo
@@ -32,14 +32,17 @@ va el estado de avance y lo que se acordó de palabra y no quedó escrito en ell
 | **—** | `EscritorErrorHttp`: los errores escritos fuera del `@RestControllerAdvice` salen en UTF-8 (ver puntos abiertos) | `783793c` |
 | **T-32** | Canal Telegram real por la Bot API (`sendMessage`) con el token en properties, `usuario.telegram_chat_id` mapeado, WhatsApp confirmado como estructura con validación de teléfono | `8bee928` → `c0f5c18` (PR #34) |
 | **T-32b** | Vinculación de §6.5: `POST`/`DELETE /telegram/vinculacion`, token de un solo uso con 15 minutos de vigencia, consumo de `getUpdates` por `@Scheduled`, `GET /perfil` y pantalla `/perfil` con la sección de Telegram | `f139ddf` → `ad3173c` (PR #35) |
-| **T-33b** | Pantalla `/admin/ordenes/nueva` con selector de odontólogo (D-19) y `GET /odontologos/activos` que la alimenta | rama `feature/T-33b_PantallaNotificacion` |
+| **T-33b** | Pantalla `/admin/ordenes/nueva` con selector de odontólogo (D-19) y `GET /odontologos/activos` que la alimenta | `c3fca8b` → `3d92a26` (PR #36) |
+| **—** | `/odontologos/activos` documentado en la tabla de endpoints de `spec.md` §7 (deuda de T-33b) | `675f4b9` |
+| **T-25** | Pantallas del odontólogo: `/ordenes` paginado con filtro por estado, `/ordenes/:id` con línea de tiempo, adjuntos y cancelación, menú de §8 y el `ordenId` de la campana convertido en enlace | rama `feature/T-25_Mis_Ordenes_seguimiento` |
 
 > **Sobre la columna "Commit":** desde que rige el paso 7 de `Agente.md`, este archivo se actualiza
 > *dentro* del commit de la tarea, así que ese commit no puede citar su propio hash. La tarea en
 > curso se identifica por su rama; el hash o el merge se completan al integrarla a `develop`.
 
-**Verificación al día de hoy:** `mvn -o test` en `backend/` → **379 tests, 0 fallos**.
-`npm test` en `frontend/` → **177 tests, 0 fallos**. `npm run lint` y `npm run build` limpios.
+**Verificación al día de hoy:** `mvn -o test` en `backend/` → **379 tests, 0 fallos** (T-25 no tocó
+el backend). `npm test` en `frontend/` → **198 tests, 0 fallos**. `npm run lint` y `npm run build`
+limpios.
 
 T-30, T-31 y T-32 se probaron además de punta a punta con el backend levantado en `dev` contra la
 base real. De T-31, con un SMTP de prueba: el correo de credenciales llegó completo y la contraseña
@@ -71,14 +74,36 @@ URGENTE, `NUEVA_ORDEN` al dueño **más** `ORDEN_URGENTE` a los cuatro administr
 `tipo_orden`). Ningún evento de más, ningún nombre de paciente en los mensajes ni en el `201`, y la
 fecha estimada del viernes 21/08 cayó en el martes 01/09 (§5.1 criterio 3).
 
+De T-25, contra la base real y con los datos de demostración cargados: el odontólogo 3 ve **solo sus
+dos órdenes**, el detalle de una ajena responde **404** —igual que una inexistente—, agregar
+`?odontologoId=` al listado **no cambia el resultado** (RN-01), y la respuesta al odontólogo **no
+trae `pacienteNombre`** en ningún campo (RN-22). Cancelar una orden entregada dio `409
+ORDEN_NO_CANCELABLE`; cancelar una propia en curso funcionó y dejó `cargo_cancelacion` en **null**
+(§5.6 criterio 3). La línea de tiempo trae cada etapa con fecha, hora y autor, y el registro inicial
+sin autor porque lo asigna el sistema (§5.1 paso 9).
+
 **Datos de prueba deliberados en la base de desarrollo** (se conservan para mostrarle el flujo a la
 clienta): dos solicitudes de `juan.prueba@mail.com` —una `RECHAZADA` y otra `APROBADA`—, el
 odontólogo `jperez` (id 17, contraseña ya cambiada) y las notificaciones de ambos flujos.
+**Cinco órdenes de demostración, cargadas el 23/08/2026** a pedido del desarrollador, por los mismos
+endpoints que usan las pantallas —**nada se insertó por SQL**—, y **repartidas entre dos odontólogos**
+para poder verificar RN-01:
+
+| Código | Dueño | Tipo | Estado | Etapas |
+|---|---|---|---|---|
+| LG-0003 | Dr. Ernesto Pérez (id 3) | Normal | En producción | 3 |
+| LG-0004 | Dr. Ernesto Pérez (id 3) | Urgente | Entregado | 5 |
+| LG-0005 | Dr. Juan Pérez (id 17) | Normal | Recibido | 1 |
+| LG-0006 | Dr. Juan Pérez (id 17) | Normal | **Cancelado** por su dueño | 3 |
+| LG-0007 | Dr. Juan Pérez (id 17) | Urgente | En producción | 2 |
+
+Sus notificaciones también son reales: 20 correos en mailpit, y dos avisos entregados por Telegram a
+la cuenta vinculada. **`erneskrlos` (id 11) no puede ser dueño de una orden**: es SUPERADMIN y
+`POST /ordenes` exige rol ODONTOLOGO. La cuenta de odontólogo equivalente es `eperez` (id 3).
+
 Las verificaciones de T-32, T-32b y T-33b, en cambio, **no dejaron residuo**: las solicitudes de
 prueba, el `telegram_chat_id` falso que se cargó para probar el envío y las dos órdenes de
-verificación —con sus notificaciones y su historial— se borraron al terminar. **La tabla `orden`
-está vacía**; la primera orden que se registre desde la pantalla será `LG-0003`, porque la secuencia
-no se reinicia.
+verificación se borraron al terminar.
 
 **Vinculación real de Telegram:** `erneskrlos` (id 11) está vinculado desde el 23/08/2026, por la
 corrida del propio desarrollador. No es dato de prueba: es el estado que dejó el flujo de §6.5.
@@ -87,24 +112,22 @@ corrida del propio desarrollador. No es dato de prueba: es el estado que dejó e
 
 ## (b) Próxima tarea
 
-### T-25 · Pantallas del odontólogo
+### T-26 · Gestión de órdenes (admin)
 
-**Spec:** §8 · **Depende de:** T-19 ✅, T-23 ✅
-**Terminado cuando:** el odontólogo tiene sus pantallas de §8 —`/inicio`, `/ordenes`, `/ordenes/:id`,
-`/historial`— consumiendo los endpoints que ya existen desde T-19.
+**Spec:** §5.5, §5.7, §8 · **Depende de:** T-20 ✅, T-25 ✅
+**Terminado cuando:** el laboratorio tiene su listado `/admin/ordenes` con los filtros de §5.7
+—`estado`, `tipoOrden`, `odontologoId`— y su pantalla de detalle, desde donde avanza el estado
+(CU-06, RN-04). Ver los criterios exactos en `Plan.md`.
 
 Lo que hay que tener presente antes de empezar:
 
-- **El menú del odontólogo es "Inicio · Mis trabajos · Historial · Perfil"** (§8). **"Nueva orden" no
-  va**: la retiró D-19 y el flujo queda documentado por P-19. Como hoy no hay menú, la regla se
-  cumple no construyéndolo — no agregarlo por inercia al armar la navegación.
-- **`ItemNotificacion` muestra el `ordenId` como texto**: T-25 lo convierte en enlace a
-  `/ordenes/:id`, que es la deuda que dejó T-23.
-- **RN-01 y RN-22 en cada pantalla**: el odontólogo solo ve lo suyo, y al paciente se lo identifica
-  por iniciales y código, nunca por nombre.
-- **La ruta `/` de hoy es un inicio genérico para cualquier rol.** Si T-25 arma `/inicio` como
-  pantalla del odontólogo, tiene que redefinir a dónde vuelven los formularios de administración
-  que hoy caen en `/` con su confirmación (ver puntos abiertos).
+- **`GET /api/v1/admin/ordenes` no existe todavía.** `Plan.md` lo pone en esta tarea; el `PATCH` de
+  estado y el de cancelación ya están desde T-20.
+- **El admin sí ve `pacienteNombre`** (§5.4, "lo necesita para operar"). Es la diferencia con las
+  pantallas del odontólogo, y el motivo por el que necesita su propio detalle.
+- **Tres cosas apuntan a esta tarea y no hay que perderlas** (ver puntos abiertos): el enlace del
+  `ordenId` de la campana para el administrador, el destino al guardar del alta de orden, y el menú
+  del admin de §8, que todavía no se montó.
 
 ---
 
@@ -416,10 +439,46 @@ exención cubre los endpoints que alimentan selectores donde se necesita el cat�
    odontólogo ni menú de navegación, así que no había "Nueva orden" que retirar; queda anotado para
    T-25, que es quien arma ese menú.
 
+### 15. Las decisiones de T-25 (23/08/2026)
+
+**La decisión de alcance, tomada por el desarrollador antes de implementar:** el `ordenId` de la
+campana es **enlace solo para el ODONTOLOGO**. Se descartó abrir `/ordenes/:id` al administrador
+porque esa pantalla muestra el botón de cancelar, que §5.6 reserva al propietario: habría que
+condicionarlo por rol dentro de una pantalla que §8 asigna a un solo rol. **El destino del admin es
+su propio detalle, en T-26.**
+
+**Las decisiones de implementación:**
+
+1. **El menú vive en `LayoutAutenticado` a través de un hueco `navegacion`**, igual que la campana.
+   El componente compartido sigue sin importar nada de `features/` (Agente.md §5.4.3), y cada tarea
+   monta el menú cuyos destinos ya existen. Hoy se monta solo el del odontólogo.
+2. **El filtro de estado del listado se resuelve en el backend** (`?estado=`, §5.3) y vive en la URL
+   junto con `page` y `size` (§8.1 Regla 2). Nunca se corta una lista ya traída (Agente.md §6.2).
+3. **Los estados terminales se leen de la tabla `estado`** (`esTerminal`), no de una lista escrita en
+   el frontend: es RN-04 y lo define la base. Si el catálogo todavía no llegó, se muestra el botón y
+   la última palabra la tiene el backend con su `409`.
+4. **Cancelar pide una confirmación explícita en la propia pantalla**, no un diálogo del navegador:
+   es irreversible y no hay pantalla de edición para deshacerlo (RN-17).
+5. **La descarga de adjuntos va por `fetch` y blob**, no por un enlace directo. Ver la restricción
+   técnica en los puntos abiertos.
+6. **La pantalla no formatea importes.** Se muestran como los devuelve el backend, sin símbolo de
+   moneda, porque P-17 no está resuelto.
+7. **El test de T-23 que fijaba "el `ordenId` no es enlace" se reemplazó**, no se borró: ahora hay dos
+   —uno por rol— que fijan la regla nueva. Es el mismo criterio que se usó con
+   `CanalesDeEstructuraTest` en T-32.
+
 ### Puntos abiertos (no son decisiones, son deudas)
 
-- **T-25 tiene que convertir el `ordenId` de la campana en un enlace a `/ordenes/:id`.** Queda
-  pendiente por la decisión 4 de arriba: el dato ya se muestra en `ItemNotificacion`; falta la ruta.
+- **El `ordenId` de la campana es enlace solo para ODONTOLOGO.** **T-26 debe convertirlo en enlace al
+  detalle del admin cuando esa pantalla exista.** Es el pendiente que dejó T-23, resuelto a medias
+  por T-25: el odontólogo ya llega a `/ordenes/:id`; el administrador sigue viendo el dato como
+  texto porque su pantalla todavía no existe.
+
+- **Restricción técnica del JWT: los adjuntos no se pueden abrir con un enlace directo.** La sesión
+  viaja en el header `Authorization`, así que un `<a href="/api/v1/archivos/{id}">` sale sin token y
+  devuelve **401**. La descarga se pide con `fetch`, se recibe como blob y se abre desde memoria:
+  está resuelto en `shared/api/cliente.js` con **`apiFetchArchivo`**, que es el que tiene que
+  reutilizar **T-26** al listar los adjuntos del lado del admin.
 
 - ~~**`application-prod.yml` no existe**~~ — **resuelto el 20/08/2026**, a pedido del desarrollador,
   antes de empezar T-30. Apaga Swagger (§1.1), exige SMTP real sin defaults (§6.3, §3.1.b), acota
@@ -435,10 +494,13 @@ exención cubre los endpoints que alimentan selectores donde se necesita el cat�
     fallaría en un clon limpio. Se verifica a mano en el servidor. Si se prefiere automatizarlo,
     hay que sacar `**/application-prod.yml` del `.gitignore` — el archivo no tiene secretos que lo
     impidan; es decisión del desarrollador.
-- **D-19 en el frontend: la parte que le toca a T-25.** T-33b puso el alta donde corresponde
-  —`/admin/ordenes/nueva`, con enlace solo para las cuentas de administración— pero **el menú del
-  odontólogo todavía no existe**. Cuando T-25 lo arme, es "Inicio · Mis trabajos · Historial ·
-  Perfil" (§8): **"Nueva orden" no va**, y el flujo queda documentado por P-19.
+- ~~**D-19 en el frontend: la parte que le toca a T-25.**~~ — **resuelto el 23/08/2026**: el menú del
+  odontólogo se montó con los cuatro ítems de §8 y **sin "Nueva orden"**; el alta vive solo en
+  `/admin/ordenes/nueva`, con enlace únicamente para las cuentas de administración.
+
+- **El menú del admin de §8 todavía no se montó.** Es "Dashboard · Trabajos · Odontólogos ·
+  Solicitudes · Tipos de trabajo · Configuración", y sus destinos son de **T-26** y **T-27**. Hasta
+  entonces, la cuenta de administración navega por los enlaces del inicio.
 - **`/admin/odontologos/nuevo` solo es alcanzable desde una solicitud.** No se le agregó enlace en
   el inicio: el botón "Nuevo" pertenece al listado de CU-11, que construye **T-28**. Hasta entonces,
   el alta sin solicitud previa —el "o directamente" de D-17— solo se puede hacer escribiendo la URL.
@@ -488,7 +550,7 @@ exención cubre los endpoints que alimentan selectores donde se necesita el cat�
 ```
 T-29 ✅ → T-18 ✅ → T-19 ✅ → T-20 ✅ → T-33a ✅ → T-21 ✅ → T-22 ✅ → T-23 ✅
      → T-30 ✅ → T-31 ✅ → T-32 ✅ → T-32b ✅ → T-33b ✅
-     → [T-25] → T-26 → T-27 → T-28
+     → T-25 ✅ → [T-26] → T-27 → T-28
 ```
 
 Es el orden de `Plan.md`, que **no** sigue la numeración de los bloques. `T-24` fue eliminada
