@@ -498,6 +498,11 @@ su propio detalle, en T-26.**
   odontólogo se montó con los cuatro ítems de §8 y **sin "Nueva orden"**; el alta vive solo en
   `/admin/ordenes/nueva`, con enlace únicamente para las cuentas de administración.
 
+- **`/historial` es hoy una `PantallaPendiente`**, no la pantalla de CU-12: dice "Disponible
+  próximamente" y no tiene ninguna funcionalidad. **T-27 la reemplaza por el historial del
+  odontólogo.** El componente `shared/components/PantallaPendiente` está para el mismo caso en
+  cualquier otro ítem de menú cuya pantalla llegue después.
+
 - **El menú del admin de §8 todavía no se montó.** Es "Dashboard · Trabajos · Odontólogos ·
   Solicitudes · Tipos de trabajo · Configuración", y sus destinos son de **T-26** y **T-27**. Hasta
   entonces, la cuenta de administración navega por los enlaces del inicio.

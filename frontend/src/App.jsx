@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { SesionProvider, useSesion } from './shared/hooks/useSesion';
 import { RutaProtegida } from './shared/components/RutaProtegida';
 import { LayoutAutenticado } from './shared/components/LayoutAutenticado';
+import { PantallaPendiente } from './shared/components/PantallaPendiente';
 import { logout } from './features/auth/api';
 import Login from './features/auth/Login';
 import Bloqueado from './features/auth/Bloqueado';
@@ -135,6 +136,18 @@ function App() {
               element={
                 <PantallaAutenticada rolesPermitidos={[ROL_ODONTOLOGO]}>
                   <OrdenDetalle />
+                </PantallaAutenticada>
+              }
+            />
+            {/* §8: el ítem del menú existe desde T-25; la pantalla de CU-12 la construye T-27. */}
+            <Route
+              path="/historial"
+              element={
+                <PantallaAutenticada rolesPermitidos={[ROL_ODONTOLOGO]}>
+                  <PantallaPendiente
+                    titulo="Historial"
+                    detalle="Vas a poder consultar acá tus trabajos entregados y cancelados."
+                  />
                 </PantallaAutenticada>
               }
             />
