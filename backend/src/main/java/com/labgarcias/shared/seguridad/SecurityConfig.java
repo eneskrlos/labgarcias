@@ -4,7 +4,6 @@ import java.io.IOException;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -18,7 +17,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.labgarcias.shared.excepcion.ErrorRespuesta;
+import com.labgarcias.shared.excepcion.EscritorErrorHttp;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -35,10 +34,13 @@ import jakarta.servlet.http.HttpServletResponse;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    /**
+     * CR-01: sin auto-registro (D-17), sin verificación por correo (D-18) ni Google (D-17).
+     * La única alta pública es la solicitud de acceso de §3.1, que no crea ninguna cuenta.
+     */
     private static final String[] RUTAS_PUBLICAS = {
             "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
-            "/api/v1/auth/registro", "/api/v1/auth/verificar", "/api/v1/auth/reenviar-verificacion",
-            "/api/v1/auth/login", "/api/v1/auth/google"
+            "/api/v1/auth/login", "/api/v1/auth/solicitud-acceso"
     };
 
     private final ObjectMapper objectMapper;
@@ -57,7 +59,8 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http,
                                             CorsConfigurationSource corsConfigurationSource,
                                             OncePerRequestFilter jwtAuthenticationFilter,
-                                            OncePerRequestFilter licenciaBloqueoFilter) throws Exception {
+                                            OncePerRequestFilter licenciaBloqueoFilter,
+                                            OncePerRequestFilter cambioPasswordObligatorioFilter) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(csrf -> csrf.disable())
@@ -67,6 +70,8 @@ public class SecurityConfig {
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(licenciaBloqueoFilter, UsernamePasswordAuthenticationFilter.class)
+                // §3.1.b: con la contraseña temporal sin cambiar, el token no habilita nada más.
+                .addFilterBefore(cambioPasswordObligatorioFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(this::noAutenticado)
                         .accessDeniedHandler(this::sinPermiso));
@@ -84,8 +89,6 @@ public class SecurityConfig {
     }
 
     private void escribirError(HttpServletResponse response, int status, String codigo, String mensaje) throws IOException {
-        response.setStatus(status);
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.getWriter().write(objectMapper.writeValueAsString(new ErrorRespuesta(codigo, mensaje, null)));
+        EscritorErrorHttp.escribir(response, objectMapper, status, codigo, mensaje);
     }
 }

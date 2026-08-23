@@ -1,0 +1,30 @@
+.encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--espaciado-md);
+  margin-bottom: var(--espaciado-md);
+}
+
+.encabezado h1 {
+  margin: 0;
+}
+
+.filtro {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espaciado-sm);
+  font-size: 0.9rem;
+  color: var(--color-texto-tenue);
+}
+
+.error {
+  color: var(--color-error);
+  margin: 0 0 var(--espaciado-md);
+}
+
+.confirmacion {
+  color: var(--color-exito);
+  margin: 0 0 var(--espaciado-md);
+}

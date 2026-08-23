@@ -4,13 +4,13 @@ import java.io.IOException;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.labgarcias.licencia.repository.LicenciaRepository;
-import com.labgarcias.shared.excepcion.ErrorRespuesta;
+import com.labgarcias.shared.excepcion.EscritorErrorHttp;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -44,8 +44,12 @@ public class LicenciaBloqueoFilter extends OncePerRequestFilter {
         this.objectMapper = objectMapper;
     }
 
+    // @NonNull repite el contrato que OncePerRequestFilter ya declara: el contenedor nunca
+    // pasa null acá, y dejarlo explícito evita que el análisis lo marque como sin verificar.
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+    protected void doFilterInternal(@NonNull HttpServletRequest request,
+                                    @NonNull HttpServletResponse response,
+                                    @NonNull FilterChain filterChain)
             throws ServletException, IOException {
         if (esRutaExenta(request.getRequestURI()) || licenciaRepository.existeLicenciaVigente()) {
             filterChain.doFilter(request, response);
@@ -59,9 +63,7 @@ public class LicenciaBloqueoFilter extends OncePerRequestFilter {
     }
 
     private void responderLicenciaVencida(HttpServletResponse response) throws IOException {
-        response.setStatus(HttpStatus.LOCKED.value());
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.getWriter().write(objectMapper.writeValueAsString(new ErrorRespuesta(
-                "LICENCIA_VENCIDA", "La licencia del sistema está vencida. Contactá al SuperAdmin.", null)));
+        EscritorErrorHttp.escribir(response, objectMapper, HttpStatus.LOCKED.value(),
+                "LICENCIA_VENCIDA", "La licencia del sistema está vencida. Contactá al SuperAdmin.");
     }
 }

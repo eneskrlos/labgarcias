@@ -23,8 +23,8 @@ Solo estos documentos definen el sistema:
 
 | Documento | Contenido |
 |---|---|
-| `Fase1_Analisis_LabGarciasConnect_v2.2.docx` | Reglas de negocio (RN), casos de uso (CU), decisiones (D), pendientes (P) |
-| `Fase2_Modelo_Datos_PostgreSQL_v1.2.docx` | Modelo de datos, diccionario, sugerencias (S) |
+| `Fase1_Analisis_LabGarciasConnect_v2.3.docx` | Reglas de negocio (RN), casos de uso (CU), decisiones (D), pendientes (P). **Incluye la Adenda CR-01 (D-17 a D-21), que prevalece sobre el cuerpo del documento.** |
+| `Fase2_Modelo_Datos_PostgreSQL_v1.3.docx` | Modelo de datos, diccionario, sugerencias (S). **Incluye la Adenda CR-01 (migración V2).** |
 | `01_labgarcias_schema.sql` | Esquema PostgreSQL validado |
 | `spec.md` | Especificación técnica de cada tarea |
 | `Plan.md` | Orden de ejecución |
@@ -77,7 +77,7 @@ Estos puntos están pendientes de definición o pospuestos. **No los implementes
 | P-17 | Moneda | No mostrar símbolo de moneda hasta confirmación. |
 | D-11 | Módulo de mensajería | La tabla existe. **Sin entidad, servicio, endpoint ni pantalla.** |
 
-El módulo de Telegram (RN-19) **sí** está en alcance para el laboratorio, pero solo como configuración y adaptador; el envío efectivo a Telegram queda como adaptador vacío documentado hasta que se provean credenciales.
+**Telegram (D-21) está COMPLETAMENTE en alcance:** canal implementado con la Bot API oficial y flujo de vinculación (`spec.md` §6.3 y §6.5). Lo único que no hace el agente es crear el bot ni inventar el token (P-20: lo configura el desarrollador en properties). **WhatsApp queda solo como estructura** (P-18): puerto implementado, envío `FALLIDO` con "canal no configurado", sin integración con ningún proveedor.
 
 ### 3.4 Herramientas autorizadas por el desarrollador
 
@@ -96,12 +96,14 @@ Cualquier otra herramienta, librería o dependencia que no esté en `spec.md` §
 
 **Una tarea a la vez. Sin excepciones.**
 
+0. Leé `ESTADO.md` para saber qué está terminado, cuál es la próxima tarea y qué se acordó fuera de estos documentos.
 1. Leé la tarea en `Plan.md` y su especificación en `spec.md`.
 2. Si hay algo que no está definido → aplicá 3.2 y detenete.
 3. Implementá **solo** esa tarea.
 4. Verificá que cumple sus criterios de aceptación.
 5. **Detenete y reportá** con el formato de abajo.
 6. **Esperá confirmación explícita.** No empieces la siguiente tarea aunque sea obvia, trivial o dependiente.
+7. Al confirmarse, actualizá `ESTADO.md` (tarea terminada, próxima tarea, decisiones nuevas) **en el mismo commit** que la tarea. *(Acordado el 20/08/2026.)*
 
 ### 4.1 Formato del reporte de fin de tarea
 
@@ -137,6 +139,8 @@ Modificados:
 
 ⏸️ Esperando confirmación para continuar con T-XX+1.
 ```
+
+> Tras la confirmación, el commit de la tarea incluye la actualización de `ESTADO.md` (paso 7).
 
 **Prohibido:** encadenar tareas, adelantar trabajo de la siguiente, o reportar dos tareas juntas.
 
@@ -196,7 +200,7 @@ Los únicos tres autorizados:
 
 | Puerto | Adaptadores | Justificación |
 |---|---|---|
-| `CanalNotificacion` | `CanalApp`, `CanalCorreo`, `CanalTelegram` | RN-19: canales configurables |
+| `CanalNotificacion` | `CanalApp`, `CanalCorreo`, `CanalTelegram`, `CanalWhatsApp` *(estructura, P-18)* | RN-19: canales configurables |
 | `AlmacenamientoArchivos` | `AlmacenamientoLocal` | RN-13: migrable a S3 sin tocar órdenes |
 | `PasarelaPago` | *(ninguno todavía)* | P-12: no implementar |
 
@@ -228,6 +232,7 @@ src/
 - **Estado del servidor:** TanStack Query. **No usar Redux.**
 - **Estado local:** `useState` / `useContext`. Nada más.
 - **Rutas:** React Router.
+- **Vistas CRUD:** toda pantalla de administración sigue obligatoriamente la convención de `spec.md` §8.1 — listado paginado y formulario en rutas separadas, paginación resuelta en el backend (10/20/30) y componentes compartidos de `shared/`. **Prohibido el formulario embebido sobre la tabla.**
 
 ### 5.8 Migraciones
 
@@ -263,6 +268,8 @@ src/
 - Exponer entidades JPA en los esquemas de Swagger, o usar datos reales de pacientes en los ejemplos.
 - Dejar Swagger habilitado en el perfil de producción.
 - Abstracciones sin uso actual: interfaces con una sola implementación (fuera de 5.5), clases genéricas "para el futuro", capas de mapeo automático innecesarias.
+- Resolver en una pantalla algo que ya cubre un componente compartido de `shared/`. Si falta capacidad, se extiende el compartido.
+- Paginar en el cliente sobre una colección completa traída del backend.
 
 ---
 
@@ -331,6 +338,7 @@ Antes de dar una tarea por terminada:
 - [ ] No hay credenciales, `println` ni código comentado.
 - [ ] Los endpoints nuevos tienen autorización por rol.
 - [ ] Los endpoints nuevos están documentados en Swagger y **los probé desde `/swagger-ui.html`**.
+- [ ] Si es una vista CRUD: cumple los 5 criterios de `spec.md` §8.1.
 - [ ] Si toca órdenes: RN-01 verificado y nombre del paciente no expuesto.
 
 ---

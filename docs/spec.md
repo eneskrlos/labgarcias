@@ -1,8 +1,22 @@
 # spec.md — Especificación técnica
 
 **Proyecto:** Lab. Garcia's Connect
-**Versión:** 1.0 — 08/08/2026
-**Base:** Análisis v2.2 + Modelo de datos v1.2 + esquema `01_labgarcias_schema.sql`
+**Versión:** 2.0 — 18/08/2026
+**Base:** Análisis v2.2 + Modelo de datos v1.2 + esquema `01_labgarcias_schema.sql` + **CR-01**
+
+## CR-01 — Cambio de alcance (reunión con la clienta, 17/08/2026)
+
+| Decisión | Cambio | Reemplaza a |
+|---|---|---|
+| D-17 | Se **elimina** la autenticación con Google. En su lugar: botón "Solicitar acceso" con formulario público (nombre, correo, dirección, teléfono) que notifica al admin. | §3.4 (Google), CU-18 auto-registro |
+| D-18 | El **admin crea las cuentas** de odontólogo desde la gestión de usuarios, con contraseña autogenerada notificada por **correo** (y Telegram si ya está vinculado), y **cambio obligatorio en el primer login**. | CU-19 verificación por correo |
+| D-19 | **Por el momento las órdenes las crea el admin** (el odontólogo la envía en papel o por teléfono). La pantalla "Nueva orden" del odontólogo se retira; el endpoint queda restringido a ADMIN. | §5.1 (rol) |
+| D-20 | Cada cambio de estado notifica al odontólogo por **correo y Telegram**, además de la campana. | RN-05 (canales) |
+| D-21 | **Telegram reemplaza a WhatsApp como canal de mensajería instantánea** (18/08/2026): la Bot API de Telegram es oficial y gratuita; WhatsApp requiere un proveedor pago (Meta/Twilio) que la clienta no puede asumir hoy. WhatsApp queda como **estructura** activable a futuro (P-18). | D-20 original (WhatsApp) |
+
+**Nuevos pendientes:** P-18 (WhatsApp: canal en estructura; se activará cuando el negocio justifique pagar un proveedor — Meta Cloud API o Twilio), P-19 (¿la creación de órdenes por el odontólogo vuelve más adelante? el flujo queda documentado), P-20 (bot de Telegram: crear con @BotFather y configurar el token en las properties — tarea del desarrollador, no del agente).
+
+Los cambios de base de datos de CR-01 van en la migración **V2** (§1.2). **V1 no se toca.**
 
 Este documento define **qué** construir. Las reglas de cómo trabajar están en `Agente.md`; el orden en `Plan.md`.
 
@@ -32,7 +46,66 @@ Este documento define **qué** construir. Las reglas de cómo trabajar están en
   { "codigo": "TIPO_TRABAJO_INACTIVO", "mensaje": "...", "campo": "tipoTrabajoId" }
   ```
 - Fechas en ISO-8601. `TIMESTAMPTZ` se serializa en UTC.
-- Paginación: `?page=0&size=20`, respuesta `{ "contenido": [], "total": n, "pagina": 0 }`
+- Paginación: `?page=0&size=10&sort=campo,asc`. Respuesta:
+  ```json
+  { "contenido": [], "total": 45, "pagina": 0, "tamano": 10, "totalPaginas": 5 }
+  ```
+  `page` es **base 0**. `size` solo admite **10, 20 o 30**; otro valor → `400 TAMANO_PAGINA_INVALIDO`. Por defecto `page=0`, `size=10`.
+  **Toda paginación se resuelve en el backend** con `Pageable` de Spring Data. Prohibido devolver la colección completa y paginar en el cliente.
+
+### 1.0 Migración V2 (CR-01)
+
+`V2__cr01_solicitud_acceso_whatsapp.sql` — cambios sobre el esquema validado:
+
+```sql
+-- D-17/D-18: teléfono y cambio obligatorio de contraseña
+ALTER TABLE labgarcias.usuario ADD COLUMN telefono VARCHAR(30);
+ALTER TABLE labgarcias.usuario ADD COLUMN debe_cambiar_password BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- D-17: solicitudes de acceso
+CREATE TABLE labgarcias.solicitud_acceso (
+    id              BIGSERIAL    PRIMARY KEY,
+    nombre_completo VARCHAR(150) NOT NULL,
+    correo          VARCHAR(255) NOT NULL,
+    direccion       VARCHAR(255) NOT NULL,
+    telefono        VARCHAR(30)  NOT NULL,
+    estado          VARCHAR(15)  NOT NULL DEFAULT 'PENDIENTE',
+    fecha_creacion  TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    fecha_resolucion TIMESTAMPTZ,
+    CONSTRAINT chk_solicitud_estado CHECK (estado IN ('PENDIENTE','APROBADA','RECHAZADA'))
+);
+
+-- D-20: WhatsApp como canal
+ALTER TABLE labgarcias.notificacion_envio DROP CONSTRAINT chk_envio_canal;
+ALTER TABLE labgarcias.notificacion_envio ADD CONSTRAINT chk_envio_canal
+    CHECK (canal IN ('APP','CORREO','TELEGRAM','WHATSAPP'));
+
+-- Nuevos eventos
+ALTER TABLE labgarcias.notificacion DROP CONSTRAINT chk_notificacion_evento;
+ALTER TABLE labgarcias.notificacion ADD CONSTRAINT chk_notificacion_evento
+    CHECK (tipo_evento IN ('CUENTA_CREADA','NUEVA_ORDEN','ORDEN_URGENTE','CAMBIO_ESTADO',
+                           'SOLICITUD_ACCESO','CREDENCIALES_CREADAS'));
+
+-- P-18: canal WhatsApp configurable (estructura para el futuro; D-21)
+ALTER TABLE labgarcias.configuracion_notificacion
+    ADD COLUMN canal_whatsapp_activo BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- D-21: vinculación de Telegram por usuario (el bot no puede iniciar
+-- conversaciones: cada usuario se vincula una vez y se captura su chat_id)
+ALTER TABLE labgarcias.usuario ADD COLUMN telegram_chat_id VARCHAR(100);
+ALTER TABLE labgarcias.usuario ADD COLUMN telegram_vinculado BOOLEAN NOT NULL DEFAULT FALSE;
+CREATE TABLE labgarcias.telegram_token_vinculacion (
+    id             BIGSERIAL    PRIMARY KEY,
+    usuario_id     BIGINT       NOT NULL REFERENCES labgarcias.usuario(id) ON DELETE CASCADE,
+    token          VARCHAR(64)  NOT NULL UNIQUE,
+    fecha_emision  TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    fecha_uso      TIMESTAMPTZ
+);
+```
+
+`google_subject_id` y `token_verificacion` **no se eliminan** (sin migraciones destructivas), pero dejan de usarse: sin endpoints de Google ni de verificación.
+
+**Nota sobre `configuracion_notificacion.telegram_chat_id`:** esa columna (V1) era la configuración del laboratorio. Con D-21 el destino de Telegram de **cada usuario** vive en `usuario.telegram_chat_id`, poblado por el flujo de vinculación (§6.5). La columna de V1 queda como configuración del admin.
 
 ### 1.1 Documentación de la API — Swagger
 
@@ -124,9 +197,43 @@ El recargo por urgencia (200) y el estado inicial **no son constantes**: se leen
 
 ## 3. Módulo Seguridad
 
-### 3.1 Registro de odontólogo — CU-18
+### 3.1 Solicitud de acceso — D-17 (reemplaza el auto-registro CU-18)
 
-`POST /api/v1/auth/registro` · público
+`POST /api/v1/auth/solicitud-acceso` · público
+
+**Request**
+```json
+{
+  "nombreCompleto": "Dr. Juan Pérez",
+  "correo": "juan@mail.com",
+  "direccion": "Av. 18 de Julio 1234",
+  "telefono": "+59891234567"
+}
+```
+
+**Validaciones**
+- Todos los campos obligatorios. Correo con formato válido; teléfono con formato internacional.
+- Si ya existe un usuario con ese correo → `409 CORREO_YA_REGISTRADO`.
+- Si ya existe una solicitud PENDIENTE con ese correo → `409 SOLICITUD_YA_EXISTENTE`.
+
+**Comportamiento**
+- Crea `solicitud_acceso` en estado `PENDIENTE`.
+- Publica `SolicitudAccesoEvent` → notificación al ADMIN (`SOLICITUD_ACCESO`) por sus canales activos: campana, correo y los demás configurados. **No se crea ningún usuario.**
+
+**Respuesta** `201` — `{ "mensaje": "Solicitud enviada. El laboratorio se pondrá en contacto." }`
+
+**Frontend:** el botón "Solicitar acceso" del login (mockup) abre el formulario. Sin captcha en esta versión.
+
+**Criterios de aceptación**
+1. La solicitud no crea usuario ni permite login.
+2. El admin recibe la notificación por campana y correo.
+3. Un correo con solicitud pendiente no puede duplicarla.
+
+---
+
+### 3.1.b Alta de odontólogo por el administrador — D-18
+
+`POST /api/v1/odontologos` · rol `ADMIN`, `SUPERADMIN`
 
 **Request**
 ```json
@@ -134,52 +241,44 @@ El recargo por urgencia (200) y el estado inicial **no son constantes**: se leen
   "nombreCompleto": "Dr. Juan Pérez",
   "correo": "juan@mail.com",
   "nombreUsuario": "jperez",
-  "password": "*38Op5)l6",
-  "direccion": "Av. 18 de Julio 1234"
+  "direccion": "Av. 18 de Julio 1234",
+  "telefono": "+59891234567",
+  "solicitudId": 12
 }
 ```
-
-**Validaciones**
-- Todos los campos obligatorios (RN-16).
-- `correo` con formato válido y no registrado → `409 CORREO_YA_REGISTRADO`.
-- `nombreUsuario` no registrado → `409 USUARIO_YA_REGISTRADO`.
-- `password` cumple RN-15: mínimo 9 caracteres, al menos una mayúscula, una minúscula, un número y un carácter especial → `400 PASSWORD_INVALIDA` indicando los requisitos.
+`solicitudId` es opcional: si viene, la solicitud pasa a `APROBADA` y sella `fecha_resolucion`.
 
 **Comportamiento**
-- Crea `usuario` con `rol = ODONTOLOGO`, `proveedor_auth = LOCAL`, `estado_cuenta = PENDIENTE_VERIFICACION`, `correo_verificado = false`.
-- Hash con BCrypt.
-- Genera token de verificación y dispara CU-19.
+1. Valida correo y nombre de usuario únicos (mismos `409` de siempre).
+2. **Genera la contraseña**: aleatoria, cumpliendo RN-15 (mínimo 9, mayúsculas, minúsculas, números, especiales). Se genera con `SecureRandom`. **Nunca se persiste en claro ni se loguea**: solo el hash BCrypt.
+3. Crea el usuario: rol `ODONTOLOGO`, `estado_cuenta = ACTIVA`, `correo_verificado = true` (no hay verificación: el admin es la verificación), **`debe_cambiar_password = true`**.
+4. Publica `CredencialesCreadasEvent` → notificación `CREDENCIALES_CREADAS` al odontólogo por **correo** (canal garantizado: en este momento el odontólogo aún no vinculó Telegram). El texto incluye nombre de usuario, la contraseña temporal y la indicación de que **deberá cambiarla al ingresar**.
 
-**Respuesta** `201` — `{ "mensaje": "Cuenta creada. Revisá tu correo para confirmarla." }`
-**Nunca** devuelve el token ni datos del usuario.
+**Tratamiento de la contraseña temporal — decisión del desarrollador (18/08/2026).** El outbox persiste `notificacion.mensaje`, así que enviar la contraseña por el flujo normal la dejaría en claro en la base. Se resuelve de forma híbrida:
 
-**Criterios de aceptación**
-1. Contraseña que no cumple RN-15 → rechazada con detalle.
-2. La cuenta creada no puede iniciar sesión hasta verificarse.
-3. La contraseña nunca aparece en logs ni en la respuesta.
+- `notificacion.mensaje` guarda un **texto genérico sin la contraseña**: *"Se creó tu cuenta en Lab. Garcia's Connect. Revisá tu correo por las credenciales de acceso."*
+- El correo con nombre de usuario y contraseña temporal **se compone y envía directamente en el listener** `@TransactionalEventListener(AFTER_COMMIT)`. La contraseña viaja **solo en memoria**, dentro del evento. Nunca se persiste ni se loguea.
+- El `notificacion_envio` de canal `CORREO` se registra igual y se marca `ENVIADO` o `FALLIDO` según el resultado (criterio 3 de esta sección).
 
----
+> **Limitación aceptada:** si ese envío falla, **no es reintentable desde el outbox** — la contraseña ya no existe en ningún lado. El remedio operativo es que el admin vuelva a crear las credenciales. **No implementar** ningún endpoint de "regenerar credenciales": no está en esta especificación.
 
-### 3.2 Verificación de cuenta — CU-19 / D-02
-
-`GET /api/v1/auth/verificar?token={token}` · público
-
-**Comportamiento**
-- Busca en `token_verificacion`. Debe existir, no estar usado (`fecha_uso IS NULL`) y no estar vencido.
-- Válido → marca `fecha_uso`, pone `usuario.estado_cuenta = ACTIVA` y `correo_verificado = true`.
-- Vencido o usado → `400 TOKEN_INVALIDO`.
-
-`POST /api/v1/auth/reenviar-verificacion` · público · body `{ "correo": "..." }`
-- Invalida tokens previos y emite uno nuevo. Responde `200` genérico **siempre**, exista o no el correo (no revelar cuentas).
-
-**Frontend:** página `/verificar` que consume el enlace y muestra éxito o error con opción de reenvío.
+**Cambio obligatorio en el primer login**
+- Mientras `debe_cambiar_password = true`, el login responde `200` con `{ "debeCambiarPassword": true }` y un token **restringido**: solo habilita `POST /api/v1/auth/cambiar-password`.
+- `POST /api/v1/auth/cambiar-password` · body `{ "passwordActual", "passwordNueva" }` · valida RN-15, apaga la bandera y emite el token normal.
 
 **Criterios de aceptación**
-1. El token funciona una sola vez.
-2. Un token de más de 24 h es rechazado.
-3. La respuesta de reenvío es idéntica exista o no la cuenta.
+1. La contraseña generada cumple RN-15 y no aparece en ningún log.
+2. Hasta cambiar la contraseña, ningún otro endpoint es accesible con ese token.
+3. El correo de credenciales llega y queda registrado en el outbox.
+4. Al crear desde una solicitud, esta queda `APROBADA`.
 
----
+**Gestión de solicitudes**
+- `GET /api/v1/solicitudes-acceso?estado=PENDIENTE&page=&size=` · ADMIN — listado paginado (convención §8.1).
+- `PATCH /api/v1/solicitudes-acceso/{id}/rechazar` · ADMIN.
+
+### 3.2 ~~Verificación de cuenta~~ — ELIMINADO por CR-01 (D-18)
+
+Las cuentas las crea el administrador ya activas; no hay verificación por correo. La tabla `token_verificacion` queda sin uso (se conserva para una eventual recuperación de contraseña, hoy fuera de alcance). **No implementar** los endpoints de verificación ni reenvío; si existen, se eliminan.
 
 ### 3.3 Login — CU-01
 
@@ -187,37 +286,26 @@ El recargo por urgencia (200) y el estado inicial **no son constantes**: se leen
 
 **Comportamiento**
 - Valida credenciales. Falla → `401 CREDENCIALES_INVALIDAS` (mensaje genérico, sin distinguir si el correo existe).
-- `estado_cuenta != ACTIVA` → `403 CUENTA_NO_VERIFICADA`.
+- `estado_cuenta != ACTIVA` → `403 CUENTA_INACTIVA`. (Renombrado desde `CUENTA_NO_VERIFICADA`: con D-18 las cuentas nacen `ACTIVA` y no hay verificación, así que el único caso real es una cuenta dada de baja por el SuperAdmin.)
 - Emite JWT con `sub` (id de usuario), `rol` y expiración.
 
 **Respuesta**
 ```json
-{ "token": "...", "usuario": { "id": 1, "nombreCompleto": "...", "rol": "ODONTOLOGO" } }
+{ "token": "...", "debeCambiarPassword": false,
+  "usuario": { "id": 1, "nombreCompleto": "...", "rol": "ODONTOLOGO" } }
 ```
+Si `debeCambiarPassword` es `true`, el token solo habilita el cambio de contraseña (§3.1.b).
 
 **Criterios de aceptación**
 1. Correo inexistente y contraseña incorrecta devuelven el mismo mensaje.
-2. Cuenta sin verificar no obtiene token.
+2. Una cuenta `INACTIVA` no obtiene token.
 3. El JWT contiene el rol y se valida en cada request.
 
 ---
 
-### 3.4 Autenticación con Google — RN-16
+### 3.4 ~~Autenticación con Google~~ — ELIMINADO por CR-01 (D-17)
 
-`POST /api/v1/auth/google` · público · body `{ "idToken": "..." }`
-
-**Comportamiento**
-- Valida el token con Google y obtiene `sub`, correo y nombre.
-- Si existe usuario con ese `google_subject_id` → login.
-- Si no existe → crea `usuario` con `proveedor_auth = GOOGLE`, `google_subject_id`, `estado_cuenta = ACTIVA` y `correo_verificado = true` (CU-19 A2: el proveedor ya verificó el correo), `password_hash = null`.
-- `direccion` queda vacía; el odontólogo la completa en su perfil.
-
-**Criterios de aceptación**
-1. Un usuario Google no requiere verificación por correo.
-2. No se crea contraseña para usuarios Google.
-3. Un correo ya registrado como LOCAL no se duplica → `409 CORREO_YA_REGISTRADO`.
-
----
+Se retira por pedido de la clienta: el acceso queda controlado por el flujo de solicitud + alta manual, que garantiza que quien entra es un odontólogo real. **Eliminar** el endpoint `/auth/google`, su servicio y el botón del frontend si ya existen. La columna `google_subject_id` permanece en la base sin uso.
 
 ### 3.5 Autorización — RN-14
 
@@ -259,11 +347,17 @@ Filtro que se ejecuta antes de cualquier endpoint de negocio y consulta `v_licen
 
 | Método | Ruta | Rol |
 |---|---|---|
-| GET | `/api/v1/tipos-trabajo` | autenticado (solo activos) |
-| GET | `/api/v1/tipos-trabajo/todos` | ADMIN, SUPERADMIN |
+| GET | `/api/v1/tipos-trabajo/activos` | autenticado — **sin paginar** |
+| GET | `/api/v1/tipos-trabajo` | ADMIN, SUPERADMIN — **paginado** |
 | POST | `/api/v1/tipos-trabajo` | ADMIN, SUPERADMIN |
 | PUT | `/api/v1/tipos-trabajo/{id}` | ADMIN, SUPERADMIN |
 | PATCH | `/api/v1/tipos-trabajo/{id}/estado` | ADMIN, SUPERADMIN |
+
+`GET /api/v1/tipos-trabajo?page=0&size=10&sort=nombre,asc&activo=&busqueda=`
+
+Filtros opcionales: `activo` (true/false) y `busqueda` (coincidencia parcial del nombre, sin distinguir mayúsculas ni acentos).
+
+> **Excepción deliberada:** la exención de paginado aplica a los endpoints que alimentan **selectores donde se necesita el catálogo completo** — hoy `/tipos-trabajo/activos` (§5.1) y `/odontologos/activos` (§5.1, D-19). *(Alcance ampliado el 23/08/2026 por el desarrollador: antes la exención nombraba solo al primero. Paginar un selector no es una limitación sino un defecto — con 31 odontólogos el administrador no podría registrar la orden del último —, y acumular páginas en el cliente lo prohíbe `Agente.md` §6.2. El fundamento es idéntico al del catálogo de trabajos.)*
 
 **Request (POST/PUT)**
 ```json
@@ -280,7 +374,9 @@ Filtro que se ejecuta antes de cualquier endpoint de negocio y consulta `v_licen
 **Criterios de aceptación**
 1. Un tipo con 6 días o precio 249 es rechazado.
 2. Al desactivar un tipo usado, las órdenes existentes siguen mostrándolo correctamente.
-3. Un odontólogo solo ve tipos activos.
+3. Un odontólogo solo ve tipos activos, y los recibe completos desde `/activos`.
+4. `GET /tipos-trabajo?size=15` es rechazado con `400`.
+5. Con 45 tipos y `size=10`, la respuesta trae `totalPaginas: 5` y 10 elementos.
 
 ---
 
@@ -288,7 +384,7 @@ Filtro que se ejecuta antes de cualquier endpoint de negocio y consulta `v_licen
 
 | Método | Ruta | Rol |
 |---|---|---|
-| GET | `/api/v1/estados` | autenticado |
+| GET | `/api/v1/estados` | autenticado (sin paginar: catálogo cerrado de 7) |
 | PUT | `/api/v1/estados/{id}` | ADMIN, SUPERADMIN |
 
 Solo se permite editar `nombre` y `descripcion`. **Prohibido** modificar `codigo`, `orden_secuencia`, `es_terminal` o `es_productivo`, ni crear o eliminar estados: el flujo lineal de RN-04 depende de ellos.
@@ -307,11 +403,12 @@ Devuelve `codigo`, `nombre` y `recargoMonto`. No hay endpoints de escritura: el 
 
 ### 5.1 Crear orden — CU-09
 
-`POST /api/v1/ordenes` · rol `ODONTOLOGO`
+`POST /api/v1/ordenes` · rol `ADMIN`, `SUPERADMIN` — **D-19: por ahora las órdenes las registra el laboratorio** (el odontólogo la envía en papel o por teléfono, como en CU-05 del análisis original)
 
 **Request**
 ```json
 {
+  "odontologoId": 3,
   "pacienteNombre": "Martín Pérez",
   "fechaIngreso": "2026-08-06",
   "tipoTrabajoId": 16,
@@ -321,7 +418,8 @@ Devuelve `codigo`, `nombre` y `recargoMonto`. No hay endpoints de escritura: el 
 ```
 
 **Validaciones**
-- `pacienteNombre`, `fechaIngreso`, `tipoTrabajoId`, `tipoOrdenCodigo` obligatorios. `descripcion` opcional.
+- `odontologoId`, `pacienteNombre`, `fechaIngreso`, `tipoTrabajoId`, `tipoOrdenCodigo` obligatorios. `descripcion` opcional.
+- `odontologoId` debe ser un usuario ODONTOLOGO activo → `422 ODONTOLOGO_INVALIDO`.
 - Tipo de trabajo existente y activo → `422 TIPO_TRABAJO_INACTIVO`.
 - `tipoOrdenCodigo` ∈ {`NORMAL`, `URGENTE`}.
 
@@ -337,7 +435,9 @@ Devuelve `codigo`, `nombre` y `recargoMonto`. No hay endpoints de escritura: el 
 8. `fecha_estimada_entrega` = `fecha_ingreso` + `dias_estimados_aplicados` **días hábiles**, excluyendo sábados y domingos. RN-18.
    > Feriados **no** se contemplan (S-05 sin resolver). No implementar tabla de feriados.
 9. Inserta el registro inicial en `orden_historial_estado` con `usuario_id = null` (asignado por el sistema).
-10. Publica evento `OrdenCreadaEvent` → notificación al laboratorio (RN-19). Si `tipo_orden.notifica_admin` es `true`, además notificación de urgencia al ADMIN (RN-11).
+10. Publica evento `OrdenCreadaEvent` → notificación al **odontólogo dueño** de que su orden fue registrada (correo + Telegram, D-20/D-21). La notificación al admin por nueva orden (RN-19) pierde sentido cuando el creador es el propio admin: se emite solo si el creador no es el destinatario (previsto para cuando P-19 reabra la creación por el odontólogo).
+
+> **D-19 / P-19:** la pantalla "Nueva orden" del odontólogo se retira de la navegación y el endpoint no acepta el rol ODONTOLOGO. El flujo documentado del CU-09 original se conserva como referencia para cuando la clienta decida reabrirlo.
 
 **Respuesta** `201` con la orden creada en formato público (sin `pacienteNombre`).
 
@@ -352,7 +452,7 @@ Devuelve `codigo`, `nombre` y `recargoMonto`. No hay endpoints de escritura: el 
 
 ### 5.2 Adjuntar archivos — RN-13
 
-`POST /api/v1/ordenes/{id}/archivos` · rol `ODONTOLOGO` (propietario) · `multipart/form-data`
+`POST /api/v1/ordenes/{id}/archivos` · rol `ADMIN`, `SUPERADMIN` u `ODONTOLOGO` propietario · `multipart/form-data` (D-19: hoy los adjuntos los carga el laboratorio al registrar la orden)
 
 **Validaciones (backend, obligatorias)**
 - Imagen: `image/jpeg` o `image/png`, ≤ 5 MB.
@@ -364,10 +464,23 @@ Devuelve `codigo`, `nombre` y `recargoMonto`. No hay endpoints de escritura: el 
 
 `GET /api/v1/ordenes/{id}/archivos` — listado. `GET /api/v1/archivos/{id}` — descarga con verificación de propiedad.
 
+**Eliminación de un adjunto — decisión del desarrollador (19/08/2026)**
+
+`DELETE /api/v1/archivos/{id}` · rol `ADMIN`, `SUPERADMIN`
+
+Resuelve el caso operativo de un archivo cargado por error. **El odontólogo no puede borrar adjuntos**, ni siquiera de sus propias órdenes: recibe `403`. No es un caso de RN-01 —no se le niega por ser ajena, sino por su rol— así que acá **no aplica** la regla de responder `404`.
+
+- Borrado **definitivo**: se elimina el registro de `orden_archivo` y el binario del almacenamiento. No hay baja lógica; la tabla no tiene columna para eso y no se agrega.
+- Archivo inexistente → `404 ARCHIVO_NO_ENCONTRADO`.
+- Respuesta `204` sin cuerpo.
+
+> **Fuera de alcance:** no se registra traza de quién borró ni cuándo. El modelo no tiene dónde guardarla y auditoría de borrados no está documentada.
+
 **Criterios de aceptación**
 1. Un JPG de 6 MB es rechazado por el backend aunque el frontend lo permita.
 2. Un GIF es rechazado.
 3. Un odontólogo no puede descargar el archivo de una orden ajena.
+4. El admin borra un adjunto y desaparecen tanto el registro como el binario; un odontólogo que intenta borrar recibe `403`, incluso sobre una orden propia.
 
 ---
 
@@ -488,12 +601,15 @@ RECIBIDO → EN_EVALUACION → EN_PRODUCCION → CONTROL_CALIDAD → LISTO → E
 
 ### 6.2 Eventos y destinatarios
 
-| Evento | `tipo_evento` | Destinatario | Regla |
-|---|---|---|---|
-| Cuenta creada | `CUENTA_CREADA` | Odontólogo | RN-16, CU-19 |
-| Orden creada | `NUEVA_ORDEN` | Administrador | RN-19 |
-| Orden urgente creada | `ORDEN_URGENTE` | Administrador | RN-11 |
-| Cambio de estado | `CAMBIO_ESTADO` | Odontólogo dueño | RN-05, CU-07 |
+| Evento | `tipo_evento` | Destinatario | Canales | Regla |
+|---|---|---|---|---|
+| Solicitud de acceso | `SOLICITUD_ACCESO` | Administrador | app + correo + Telegram | D-17 |
+| Credenciales creadas | `CREDENCIALES_CREADAS` | Odontólogo | correo | D-18 |
+| Orden registrada | `NUEVA_ORDEN` | Odontólogo dueño (ver §5.1 paso 10) | correo + Telegram | D-19 |
+| Orden urgente creada | `ORDEN_URGENTE` | Administrador | app + correo + Telegram | RN-11 |
+| Cambio de estado | `CAMBIO_ESTADO` | Odontólogo dueño | app + **correo + Telegram** | RN-05, CU-07, **D-20/D-21** |
+
+`CUENTA_CREADA` queda sin uso (era del auto-registro).
 
 **Texto de `CAMBIO_ESTADO`** (formato documentado en CU-07):
 > `El trabajo del paciente Código {paciente_codigo} pasó a la etapa de {estado}.`
@@ -508,9 +624,10 @@ Puerto `CanalNotificacion` con `soporta(canal)` y `enviar(notificacion)`.
 |---|---|
 | `CanalApp` | Implementado — solo marca `ENVIADO` (la notificación ya está en base para la campana) |
 | `CanalCorreo` | Implementado — SMTP configurable por properties |
-| `CanalTelegram` | **Estructura únicamente.** Sin credenciales, marca `FALLIDO` con "canal no configurado". No implementar la integración. |
+| `CanalTelegram` | **IMPLEMENTADO (D-21).** Bot API oficial de Telegram: `POST https://api.telegram.org/bot{token}/sendMessage` con `chat_id` y `text`. El token del bot va en properties (`telegram.bot.token`), nunca en el código. Si el destinatario no tiene `telegram_chat_id` (no se vinculó), el envío se marca `FALLIDO` con "Telegram no vinculado" — no es un error del sistema. |
+| `CanalWhatsApp` | **Estructura únicamente** (P-18, D-21): implementa el puerto, valida `telefono`, marca `FALLIDO` con "canal no configurado". Activable a futuro con Meta Cloud API o Twilio sin tocar el resto. |
 
-Los canales activos salen de `configuracion_notificacion` del destinatario (RN-19). Sin configuración, el valor por defecto es app + correo.
+Los canales activos salen de `configuracion_notificacion` del destinatario (RN-19). Sin configuración: **app + correo + Telegram** para todos (D-20/D-21). El envío Telegram solo se intenta si el usuario está vinculado; si no, se registra `FALLIDO` con "Telegram no vinculado" (visible para diagnóstico, sin reintentos automáticos hasta la vinculación).
 
 ### 6.4 Endpoints
 
@@ -527,11 +644,29 @@ Los canales activos salen de `configuracion_notificacion` del destinatario (RN-1
 
 **Validación (CU-21):** si `canalTelegramActivo = true`, `telegramChatId` es obligatorio → `422 TELEGRAM_SIN_DESTINO`.
 
-**Criterios de aceptación**
+**Criterios de aceptación de §6** (los criterios 1 y 2 los verifica T-21; los criterios 3 y 4, T-22)
 1. Un cambio de estado genera exactamente una notificación con envío por cada canal activo.
 2. Si el correo falla, el envío queda `FALLIDO` y la notificación sigue visible en la app.
 3. Un usuario solo ve sus propias notificaciones.
 4. Activar Telegram sin `chatId` es rechazado.
+
+### 6.5 Vinculación de Telegram — D-21
+
+Un bot de Telegram **no puede iniciar** una conversación: el usuario debe escribirle primero. El flujo de vinculación, de un solo paso para el usuario:
+
+1. En su perfil, el usuario ve el estado ("Telegram: no vinculado") y un botón **"Conectar Telegram"**.
+2. `POST /api/v1/telegram/vinculacion` (autenticado) genera un token corto de un solo uso (`telegram_token_vinculacion`) y devuelve el enlace profundo: `https://t.me/{nombre_del_bot}?start={token}`.
+3. El usuario abre el enlace y toca **Iniciar**: Telegram envía al bot `/start {token}`.
+4. El backend recibe la actualización (**polling con `getUpdates` mediante `@Scheduled`** — no usar webhook: exige HTTPS público y complica la instalación por laboratorio, D-16), busca el token, y si es válido y no usado: guarda el `chat_id` en `usuario.telegram_chat_id`, marca `telegram_vinculado = true`, sella `fecha_uso` y responde por el bot "✅ Cuenta vinculada. Vas a recibir las notificaciones del laboratorio por acá."
+5. El perfil pasa a mostrar "Telegram: vinculado ✅" con opción de desvincular (`DELETE /api/v1/telegram/vinculacion` → limpia `chat_id` y bandera).
+
+**Configuración requerida (P-20, tarea del desarrollador):** crear el bot con @BotFather y setear `telegram.bot.token` y `telegram.bot.username` en las properties del ambiente. **El agente no inventa tokens**: sin configuración, el canal y la vinculación quedan deshabilitados con mensaje claro.
+
+**Criterios de aceptación**
+1. Un usuario vinculado recibe por Telegram cada notificación que le corresponda, en segundos.
+2. Un token de vinculación usado o inexistente no vincula y el bot responde el error.
+3. Desvincular detiene los envíos (quedan `FALLIDO` con "Telegram no vinculado") sin afectar correo ni campana.
+4. El token del bot no aparece en el código ni en los logs.
 
 ---
 
@@ -554,16 +689,17 @@ En `/perfil` el usuario edita `nombreCompleto` y `direccion`. **No** puede cambi
 | Pantalla | Ruta | Rol | Caso de uso |
 |---|---|---|---|
 | Login | `/login` | público | CU-01 |
-| Registro | `/registro` | público | CU-18 |
-| Verificación | `/verificar` | público | CU-19 |
+| Solicitud de acceso | `/solicitar-acceso` | público | D-17 |
+| Cambio de contraseña obligatorio | `/cambiar-password` | autenticado (bandera) | D-18 |
 | Panel odontólogo | `/inicio` | ODONTOLOGO | CU-02 |
 | Mis órdenes | `/ordenes` | ODONTOLOGO | CU-03 |
 | Detalle y seguimiento | `/ordenes/:id` | ODONTOLOGO | CU-04 |
-| Nueva orden | `/ordenes/nueva` | ODONTOLOGO | CU-09 |
 | Historial | `/historial` | ODONTOLOGO | CU-12 |
 | Perfil | `/perfil` | autenticado | — |
 | Dashboard admin | `/admin` | ADMIN | CU-10 |
 | Órdenes (admin) | `/admin/ordenes` | ADMIN | CU-06 |
+| Nueva orden (admin) | `/admin/ordenes/nueva` | ADMIN | CU-05 / D-19 |
+| Solicitudes de acceso | `/admin/solicitudes` | ADMIN | D-17 |
 | Odontólogos | `/admin/odontologos` | ADMIN | CU-11 |
 | Tipos de trabajo | `/admin/tipos-trabajo` | ADMIN | CU-16 |
 | Configuración | `/admin/configuracion` | ADMIN | CU-21 |
@@ -572,10 +708,10 @@ En `/perfil` el usuario edita `nombreCompleto` y `direccion`. **No** puede cambi
 
 **Referencia visual:** los mockups del PDF original (login, panel odontólogo, seguimiento, dashboard admin). Respetar la estructura de navegación; el detalle visual queda a criterio del desarrollador.
 
-**Menú odontólogo:** Inicio · Mis trabajos · Nueva orden · Historial · Perfil.
+**Menú odontólogo:** Inicio · Mis trabajos · Historial · Perfil. ("Nueva orden" retirada por D-19; ver P-19.)
 **El ítem "Mensajes" NO se incluye** (D-11, pospuesto).
 
-**Menú admin:** Dashboard · Trabajos · Odontólogos · Tipos de trabajo · Configuración.
+**Menú admin:** Dashboard · Trabajos · Odontólogos · Solicitudes · Tipos de trabajo · Configuración.
 **No incluir** Pacientes (S-03 sin resolver), Calendario, Mensajes, Reportes ni Facturación (P-08).
 
 **Reglas transversales del frontend**
@@ -583,6 +719,64 @@ En `/perfil` el usuario edita `nombreCompleto` y `direccion`. **No** puede cambi
 - Ninguna pantalla muestra el nombre completo del paciente al odontólogo (RN-22).
 - Ningún cálculo de negocio en el cliente: precios, fechas y transiciones vienen del backend.
 - La línea de tiempo del seguimiento se arma con el historial que devuelve la API.
+
+### 8.1 Convención obligatoria para toda vista CRUD
+
+**Aplica a TODAS las pantallas de administración con alta, edición y listado**, sin excepción: tipos de trabajo, estados, odontólogos, usuarios, licencias y cualquier CRUD futuro. El objetivo es que todas se vean y se operen igual.
+
+#### Regla 1 — Listado y formulario en vistas separadas
+
+**Prohibido el formulario embebido sobre la tabla.** Cada recurso tiene tres rutas:
+
+| Ruta | Propósito |
+|---|---|
+| `/admin/{recurso}` | Listado paginado. **Sin formulario.** |
+| `/admin/{recurso}/nuevo` | Formulario de alta |
+| `/admin/{recurso}/{id}/editar` | Formulario de edición |
+
+- En el listado, un botón **"Nuevo"** arriba a la derecha navega a `/nuevo`.
+- La acción **"Editar"** de cada fila navega a `/{id}/editar`.
+- Alta y edición usan **el mismo componente de formulario**, parametrizado por modo. No duplicar.
+- Al guardar con éxito: volver al listado y mostrar confirmación. Al cancelar: volver sin guardar.
+- El formulario muestra las reglas aplicables como texto de ayuda bajo cada campo (ej.: "RN-12: mínimo 7 días hábiles").
+
+#### Regla 2 — Paginación controlada por el backend
+
+- Controles **debajo de la tabla**: página actual y total, anterior/siguiente, y selector de cantidad con **10, 20 y 30**.
+- El estado de paginación vive en la **URL** (`?page=0&size=10`), para que la vista sea compartible y sobreviva a un refresco.
+- Cambiar el tamaño de página vuelve a `page=0`.
+- **Prohibido** traer toda la colección y paginar con `slice` en el cliente.
+- Se consume con TanStack Query, manteniendo los datos previos visibles mientras carga la página siguiente (sin parpadeo).
+
+#### Regla 3 — Estados de la tabla
+
+Toda tabla contempla explícitamente: **cargando** (esqueleto o indicador, sin salto de layout), **vacío** (mensaje claro y acceso a "Nuevo"), y **error** (mensaje con opción de reintentar). Un listado que solo contempla el caso feliz está incompleto.
+
+#### Regla 4 — Componentes compartidos
+
+Para que la uniformidad no dependa de la disciplina, estos componentes viven en `shared/` y se reutilizan:
+
+| Componente | Responsabilidad |
+|---|---|
+| `TablaPaginada` | Tabla + controles de paginación + estados de carga, vacío y error |
+| `ControlesPaginacion` | Navegación y selector de tamaño (10/20/30) |
+| `LayoutFormulario` | Encabezado, cuerpo, botones Guardar y Cancelar |
+| `CampoFormulario` | Etiqueta, control, texto de ayuda y mensaje de error |
+| `usePaginacion` | Hook que sincroniza `page` y `size` con la URL |
+
+Una pantalla CRUD nueva se arma componiendo estos elementos. **Si una vista necesita algo que estos componentes no cubren, se extiende el componente compartido — no se resuelve con una solución propia de esa pantalla.**
+
+#### Regla 5 — Uniformidad visual
+
+Misma disposición en todas: título, botón "Nuevo" a la derecha, filtros si corresponde, tabla, paginación. Columna de acciones siempre al final. Mismos textos: "Nuevo", "Editar", "Desactivar", "Guardar", "Cancelar".
+
+#### Criterios de aceptación
+
+1. Ninguna vista de listado contiene un formulario de alta o edición.
+2. El listado muestra 10 registros por defecto y permite cambiar a 20 o 30.
+3. Recargar el navegador en `?page=2&size=20` mantiene la misma página.
+4. La cantidad de registros que llega por la red coincide con el tamaño de página (verificable en la pestaña Red).
+5. Las tablas de dos recursos distintos son visualmente indistinguibles en estructura.
 
 ---
 
@@ -593,13 +787,13 @@ En `/perfil` el usuario edita `nombreCompleto` y `direccion`. **No** puede cambi
 | RN-01 | Filtro por usuario autenticado en todas las consultas de órdenes; 404 ante orden ajena |
 | RN-03 / RN-22 | `pacienteIdentificacion` en toda respuesta al odontólogo |
 | RN-04 | Transiciones lineales en el servicio de órdenes (State) |
-| RN-05 | Evento + outbox + canales app y correo |
+| RN-05 | Evento + outbox + canales app, correo y Telegram (D-20/D-21) |
 | RN-11 | `tipo_orden`: estado inicial, `notifica_admin`, `recargo_monto` |
 | RN-12 | Validación `diasEstimados >= 7` |
 | RN-13 | Validación de formato y tamaño en el backend |
 | RN-14 | `@PreAuthorize` en cada endpoint |
-| RN-15 | Validador de contraseña en el registro |
-| RN-16 | Registro local + Google + verificación por correo |
+| RN-15 | Validador de contraseña en el alta por el admin y en el cambio obligatorio (§3.1.b) |
+| RN-16 | **Reemplazada por D-17/D-18:** solicitud de acceso pública (§3.1) + alta por el administrador con contraseña autogenerada y cambio obligatorio (§3.1.b). Sin auto-registro, sin Google, sin verificación por correo |
 | RN-17 | Ausencia de endpoint de edición |
 | RN-18 | Cálculo de días hábiles al crear la orden |
 | RN-19 | `configuracion_notificacion` + selección de canales |

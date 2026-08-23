@@ -10,13 +10,71 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+  servlet:
+    multipart:
+      # RN-13: el tope real (5 MB imagen / 8 MB documento) lo aplica el backend por categoría.
+      # Acá se deja margen sobre el mayor de los dos para que el archivo llegue al validador
+      # y el rechazo salga con ARCHIVO_NO_PERMITIDO y no como un error del contenedor.
+      max-file-size: 10MB
+      max-request-size: 12MB
+  mail:
+    # §6.3: el canal correo se configura por properties. Sin servidor configurado el envío
+    # queda FALLIDO con su motivo y la notificación se sigue viendo en la campana (§6 criterio 2):
+    # el sistema no depende de que el SMTP exista.
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_AUTH:false}
+          starttls:
+            enable: ${MAIL_STARTTLS:false}
+          # Sin esto, un servidor inalcanzable bloquea el hilo del despachador hasta el
+          # timeout del sistema operativo.
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+  http:
+    client:
+      # §6.3: mismo motivo que los timeouts del SMTP. La Bot API de Telegram es un servidor
+      # externo y el despachador la llama desde un hilo programado: sin tope, una API que no
+      # responde bloquea el despacho de todos los demás canales.
+      connect-timeout: 5s
+      read-timeout: 5s
+
+# §6.3 y §6.5 (P-20): el token del bot lo crea el desarrollador con @BotFather y llega por
+# variable de entorno. Nunca va en el código ni en los logs. Vacío por defecto a propósito:
+# sin token el canal se deshabilita solo y la aplicación arranca igual (§6.5), con los envíos
+# de Telegram en FALLIDO y el motivo a la vista.
+telegram:
+  bot:
+    token: ${TELEGRAM_BOT_TOKEN:}
+    # §6.5: nombre del bot (sin @). Es lo que arma el enlace profundo https://t.me/{bot}?start=...
+    # Sin él la vinculación queda deshabilitada, aunque el envío siga funcionando.
+    username: ${TELEGRAM_BOT_USERNAME:}
+  # §6.5 paso 4: cada cuánto se le preguntan al bot las novedades (`getUpdates`), medido desde que
+  # termina la consulta anterior. La spec no fija un valor; el criterio 1 pide que el usuario se
+  # vincule "en segundos", y 5 s lo cumple sin consultar de forma continua.
+  polling-ms: ${TELEGRAM_POLLING_MS:5000}
 
 app:
+  almacenamiento:
+    # RN-13: el binario vive fuera de la base; orden_archivo solo guarda ruta y metadatos.
+    directorio: ${ALMACENAMIENTO_DIRECTORIO:./archivos}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
   jwt:
     secret: ${JWT_SECRET}
     # CU-01: 8 horas de sesión (confirmado con el desarrollador; no está en spec.md).
     expiracion-minutos: ${JWT_EXPIRACION_MINUTOS:480}
-  google:
-    client-id: ${GOOGLE_CLIENT_ID}
+  notificaciones:
+    correo:
+      remitente: ${MAIL_REMITENTE:no-responder@labgarcias.local}
+    # §6.1 paso 4: cada cuánto el despachador toma los envíos pendientes, medido desde que
+    # termina la corrida anterior. La spec no fija un valor; 15 s deja el aviso a tiempo real
+    # para el usuario sin castigar a la base con consultas continuas.
+    despacho-ms: ${NOTIFICACIONES_DESPACHO_MS:15000}
+    # Tope de envíos por corrida: acota cuánto puede durar una transacción del despachador.
+    tamano-lote: ${NOTIFICACIONES_TAMANO_LOTE:50}

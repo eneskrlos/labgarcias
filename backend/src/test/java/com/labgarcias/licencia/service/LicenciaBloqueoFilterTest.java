@@ -77,7 +77,26 @@ class LicenciaBloqueoFilterTest {
 
         verify(filterChain, never()).doFilter(request, response);
         assertThat(response.getStatus()).isEqualTo(423);
-        assertThat(response.getContentType()).isEqualTo("application/json");
+        // El Content-Type incluye ahora ";charset=UTF-8": es lo que hace legibles los acentos.
+        assertThat(response.getContentType()).startsWith("application/json");
         assertThat(response.getContentAsString()).contains("LICENCIA_VENCIDA");
+    }
+
+    /**
+     * El mensaje se escribe fuera del @RestControllerAdvice, así que el charset hay que fijarlo a
+     * mano. Sin eso, `getWriter()` usa ISO-8859-1 y "está vencida" llega ilegible al cliente.
+     */
+    @Test
+    void elMensajeLlegaEnUtf8ConLosAcentosIntactos() throws Exception {
+        when(licenciaRepository.existeLicenciaVigente()).thenReturn(false);
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/ordenes");
+        request.setRequestURI("/api/v1/ordenes");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        construirFiltro().doFilterInternal(request, response, filterChain);
+
+        assertThat(response.getCharacterEncoding()).isEqualToIgnoringCase("UTF-8");
+        assertThat(response.getContentAsString(java.nio.charset.StandardCharsets.UTF_8))
+                .contains("La licencia del sistema está vencida. Contactá al SuperAdmin.");
     }
 }

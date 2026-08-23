@@ -1,0 +1,42 @@
+.controles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaciado-md);
+  padding: var(--espaciado-md) 0;
+}
+
+.navegacion {
+  display: flex;
+  align-items: center;
+  gap: var(--espaciado-sm);
+}
+
+.navegacion button {
+  padding: var(--espaciado-sm) var(--espaciado-md);
+  background: transparent;
+  color: var(--color-texto);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-borde);
+  cursor: pointer;
+}
+
+.navegacion button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.selector {
+  display: flex;
+  align-items: center;
+  gap: var(--espaciado-xs);
+  font-size: 0.9rem;
+  color: var(--color-texto-tenue);
+}
+
+.selector select {
+  padding: 4px var(--espaciado-sm);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-borde);
+}

@@ -55,6 +55,30 @@ public class Usuario {
     @Column(name = "correo_verificado", nullable = false)
     private boolean correoVerificado;
 
+    /** D-17/D-18: teléfono de contacto, agregado por V2. Llega en el alta y en la solicitud. */
+    @Column(name = "telefono", length = 30)
+    private String telefono;
+
+    /**
+     * §3.1.b: mientras esté en true, el token que emite el login solo habilita el cambio de
+     * contraseña. Se apaga al cambiarla.
+     */
+    @Column(name = "debe_cambiar_password", nullable = false)
+    private boolean debeCambiarPassword;
+
+    /**
+     * D-21/§6.3: destino de Telegram **de este usuario**, no del laboratorio. Un bot no puede
+     * iniciar la conversación, así que este valor solo existe si el usuario se vinculó por el
+     * flujo de §6.5. Sin él, el envío por Telegram queda FALLIDO con "Telegram no vinculado".
+     *
+     * Columnas de V2. Las escribe la vinculación de §6.5 y las lee `CanalTelegram`.
+     */
+    @Column(name = "telegram_chat_id", length = 100)
+    private String telegramChatId;
+
+    @Column(name = "telegram_vinculado", nullable = false)
+    private boolean telegramVinculado;
+
     @Column(name = "fecha_creacion", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime fechaCreacion;
 
@@ -146,6 +170,42 @@ public class Usuario {
 
     public void setCorreoVerificado(boolean correoVerificado) {
         this.correoVerificado = correoVerificado;
+    }
+
+    public String getTelefono() {
+        return telefono;
+    }
+
+    public void setTelefono(String telefono) {
+        this.telefono = telefono;
+    }
+
+    public boolean isDebeCambiarPassword() {
+        return debeCambiarPassword;
+    }
+
+    public void setDebeCambiarPassword(boolean debeCambiarPassword) {
+        this.debeCambiarPassword = debeCambiarPassword;
+    }
+
+    public String getTelegramChatId() {
+        return telegramChatId;
+    }
+
+    public boolean isTelegramVinculado() {
+        return telegramVinculado;
+    }
+
+    /** §6.5 paso 4: el chat lo aporta el bot al recibir el `/start` con un token válido. */
+    public void vincularTelegram(String telegramChatId) {
+        this.telegramChatId = telegramChatId;
+        this.telegramVinculado = true;
+    }
+
+    /** §6.5 paso 5: se limpian las dos, para que no quede un destino sin bandera que lo respalde. */
+    public void desvincularTelegram() {
+        this.telegramChatId = null;
+        this.telegramVinculado = false;
     }
 
     public OffsetDateTime getFechaCreacion() {
