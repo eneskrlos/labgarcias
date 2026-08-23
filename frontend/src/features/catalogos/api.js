@@ -5,6 +5,11 @@ export function listarActivos() {
   return apiFetch('/tipos-trabajo/activos');
 }
 
+/** RN-04/CU-15: las etapas del flujo, en orden. Alimentan el filtro de estado de CU-03. */
+export function listarEstados() {
+  return apiFetch('/estados');
+}
+
 /** RN-11/§5.1: NORMAL y URGENTE, con su recargo. Solo lectura: es configuración del sistema. */
 export function listarTiposOrden() {
   return apiFetch('/tipos-orden');

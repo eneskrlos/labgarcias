@@ -674,13 +674,16 @@ Un bot de Telegram **no puede iniciar** una conversación: el usuario debe escri
 
 | Método | Ruta | Rol | Caso de uso |
 |---|---|---|---|
-| GET | `/api/v1/odontologos` | ADMIN, SUPERADMIN | CU-11 |
+| GET | `/api/v1/odontologos` | ADMIN, SUPERADMIN — **paginado** | CU-11 |
+| GET | `/api/v1/odontologos/activos` | ADMIN, SUPERADMIN — **sin paginar** | §5.1 (D-19) |
 | GET | `/api/v1/usuarios` | SUPERADMIN | CU-17 |
 | PATCH | `/api/v1/usuarios/{id}/estado` | SUPERADMIN | CU-17 |
 | GET | `/api/v1/perfil` | autenticado | — |
 | PUT | `/api/v1/perfil` | autenticado | — |
 
 En `/perfil` el usuario edita `nombreCompleto` y `direccion`. **No** puede cambiar su rol ni su correo.
+
+> **Los dos listados de odontólogos son distintos y conviven.** `/odontologos` es la tabla administrable de CU-11: paginada (§8.1 Regla 2), con los datos de cada cuenta y acciones sobre ella. `/odontologos/activos` alimenta el **selector** de odontólogo al registrar una orden (§5.1, D-19): sin paginar —por la exención de §4—, solo cuentas `ACTIVA`, y devuelve únicamente `id` y `nombreCompleto`, que es lo único que un selector necesita.
 
 ---
 
