@@ -357,7 +357,7 @@ Filtro que se ejecuta antes de cualquier endpoint de negocio y consulta `v_licen
 
 Filtros opcionales: `activo` (true/false) y `busqueda` (coincidencia parcial del nombre, sin distinguir mayúsculas ni acentos).
 
-> **Excepción deliberada:** `/tipos-trabajo/activos` **no se pagina**. Alimenta el selector de tipo de trabajo al crear una orden (§5.1), donde el odontólogo necesita el catálogo completo. Es el único endpoint de listado exento.
+> **Excepción deliberada:** la exención de paginado aplica a los endpoints que alimentan **selectores donde se necesita el catálogo completo** — hoy `/tipos-trabajo/activos` (§5.1) y `/odontologos/activos` (§5.1, D-19). *(Alcance ampliado el 23/08/2026 por el desarrollador: antes la exención nombraba solo al primero. Paginar un selector no es una limitación sino un defecto — con 31 odontólogos el administrador no podría registrar la orden del último —, y acumular páginas en el cliente lo prohíbe `Agente.md` §6.2. El fundamento es idéntico al del catálogo de trabajos.)*
 
 **Request (POST/PUT)**
 ```json

@@ -402,11 +402,13 @@ Estas tareas aplican las decisiones D-17 a D-21 de `spec.md`. **No se ejecutan d
 **Terminado cuando:**
 - `POST /ordenes` exige rol ADMIN o SUPERADMIN y `odontologoId` válido (`422 ODONTOLOGO_INVALIDO`).
 
-#### T-33b · Pantalla y notificación
+#### T-33b · Pantalla y notificación — ✅ TERMINADA (23/08/2026)
 **Depende de:** T-33a, T-31 *(el selector de odontólogo necesita las cuentas creadas por el admin)*, T-21 *(la notificación necesita el outbox)*
 **Terminado cuando:**
 - Pantalla `/admin/ordenes/nueva` con selector de odontólogo.
 - "Nueva orden" retirada del menú y rutas del odontólogo (el flujo queda documentado por P-19).
+
+> **Decisión del desarrollador (23/08/2026):** el selector se alimenta de **`GET /api/v1/odontologos/activos`**, sin paginar, ADMIN y SUPERADMIN, devolviendo solo `id` y `nombreCompleto`. La exención de paginado de §4 quedó reescrita para cubrir los endpoints que alimentan selectores. **T-28 no hereda menos por esto:** sigue implementando `GET /api/v1/odontologos` paginado (§7, CU-11) y la pantalla `/admin/odontologos` con §8.1 Regla 2 — son dos endpoints con propósitos distintos, uno alimenta un selector y el otro una tabla administrable.
 
 > **§5.1 paso 10 ya quedó cubierto en T-21 (20/08/2026).** `OrdenCreadaEvent` viaja con `odontologoId` y el aviso `NUEVA_ORDEN` llega al odontólogo dueño. La otra mitad del paso —no avisar al admin cuando el creador es el propio destinatario— **no requiere código**: §6.2 ya redirigió `NUEVA_ORDEN` al odontólogo y el paso deja el aviso al admin *previsto para cuando P-19 reabra la creación por el odontólogo*. Esta tarea es solo la pantalla.
 

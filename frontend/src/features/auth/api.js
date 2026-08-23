@@ -43,6 +43,14 @@ export function crearOdontologo(datos) {
   return apiFetch('/odontologos', { method: 'POST', body: JSON.stringify(datos) });
 }
 
+/**
+ * §5.1/D-19: alimenta el selector de odontólogo al registrar una orden. Sin paginar y con solo
+ * id y nombre; el listado administrable de CU-11 es otro endpoint y es de T-28.
+ */
+export function listarOdontologosActivos() {
+  return apiFetch('/odontologos/activos');
+}
+
 /** §3.1.b: cambio obligatorio del primer ingreso. Devuelve un token nuevo, ya sin restricción. */
 export function cambiarPassword(datos) {
   return apiFetch('/auth/cambiar-password', { method: 'POST', body: JSON.stringify(datos) });

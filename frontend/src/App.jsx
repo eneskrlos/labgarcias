@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { SesionProvider, useSesion } from './shared/hooks/useSesion';
 import { RutaProtegida } from './shared/components/RutaProtegida';
 import { LayoutAutenticado } from './shared/components/LayoutAutenticado';
@@ -13,6 +13,7 @@ import CambiarPassword from './features/auth/CambiarPassword';
 import OdontologoFormulario from './features/auth/OdontologoFormulario';
 import Campana from './features/notificaciones/Campana';
 import Perfil from './features/perfil/Perfil';
+import OrdenFormulario from './features/ordenes/OrdenFormulario';
 import TiposTrabajoListado from './features/catalogos/TiposTrabajoListado';
 import TipoTrabajoFormulario from './features/catalogos/TipoTrabajoFormulario';
 
@@ -34,6 +35,7 @@ function PantallaAutenticada({ rolesPermitidos, children }) {
 function Inicio() {
   const { usuario, cerrarSesion } = useSesion();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const salir = async () => {
     try {
@@ -48,6 +50,9 @@ function Inicio() {
   return (
     <div className="contenedor">
       <h1>Inicio</h1>
+      {/* §8.1 Regla 1: los formularios vuelven acá con su confirmación mientras no exista el
+          listado al que deberían volver. */}
+      {location.state?.mensaje && <p role="status">{location.state.mensaje}</p>}
       <p>
         Hola, {usuario.nombreCompleto} ({usuario.rol})
       </p>
@@ -57,6 +62,8 @@ function Inicio() {
       </p>
       {ROLES_ADMIN.includes(usuario.rol) && (
         <p>
+          {/* D-19: registrar órdenes es del laboratorio; el odontólogo no tiene esta entrada. */}
+          <Link to="/admin/ordenes/nueva">Nueva orden</Link> ·{' '}
           <Link to="/admin/solicitudes">Solicitudes de acceso</Link> ·{' '}
           <Link to="/admin/tipos-trabajo">Tipos de trabajo</Link>
         </p>
@@ -99,6 +106,15 @@ function App() {
               element={
                 <PantallaAutenticada>
                   <Perfil />
+                </PantallaAutenticada>
+              }
+            />
+            {/* §5.1 con D-19: la registra el laboratorio, no el odontólogo. */}
+            <Route
+              path="/admin/ordenes/nueva"
+              element={
+                <PantallaAutenticada rolesPermitidos={ROLES_ADMIN}>
+                  <OrdenFormulario />
                 </PantallaAutenticada>
               }
             />
