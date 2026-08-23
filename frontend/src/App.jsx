@@ -14,20 +14,32 @@ import OdontologoFormulario from './features/auth/OdontologoFormulario';
 import Campana from './features/notificaciones/Campana';
 import Perfil from './features/perfil/Perfil';
 import OrdenFormulario from './features/ordenes/OrdenFormulario';
+import MisOrdenes from './features/ordenes/MisOrdenes';
+import OrdenDetalle from './features/ordenes/OrdenDetalle';
+import MenuOdontologo from './features/ordenes/MenuOdontologo';
 import TiposTrabajoListado from './features/catalogos/TiposTrabajoListado';
 import TipoTrabajoFormulario from './features/catalogos/TipoTrabajoFormulario';
 
 const queryClient = new QueryClient();
 const ROLES_ADMIN = ['ADMIN', 'SUPERADMIN'];
+const ROL_ODONTOLOGO = 'ODONTOLOGO';
 
 /**
  * Toda ruta con sesión iniciada comparte el encabezado, y la campana vive ahí (§6.4): montarla
  * en una sola pantalla la dejaría invisible en el resto.
+ *
+ * §8 define **dos menús distintos**, uno por rol. T-25 monta el del odontólogo, que es el único
+ * cuyos destinos existen; el del admin lo arman T-26 y T-27 junto con sus pantallas.
  */
 function PantallaAutenticada({ rolesPermitidos, children }) {
+  const { usuario } = useSesion();
+  const navegacion = usuario?.rol === ROL_ODONTOLOGO ? <MenuOdontologo /> : null;
+
   return (
     <RutaProtegida rolesPermitidos={rolesPermitidos}>
-      <LayoutAutenticado acciones={<Campana />}>{children}</LayoutAutenticado>
+      <LayoutAutenticado acciones={<Campana />} navegacion={navegacion}>
+        {children}
+      </LayoutAutenticado>
     </RutaProtegida>
   );
 }
@@ -106,6 +118,23 @@ function App() {
               element={
                 <PantallaAutenticada>
                   <Perfil />
+                </PantallaAutenticada>
+              }
+            />
+            {/* CU-03 y CU-04: las órdenes propias del odontólogo. RN-01 lo resuelve el backend. */}
+            <Route
+              path="/ordenes"
+              element={
+                <PantallaAutenticada rolesPermitidos={[ROL_ODONTOLOGO]}>
+                  <MisOrdenes />
+                </PantallaAutenticada>
+              }
+            />
+            <Route
+              path="/ordenes/:id"
+              element={
+                <PantallaAutenticada rolesPermitidos={[ROL_ODONTOLOGO]}>
+                  <OrdenDetalle />
                 </PantallaAutenticada>
               }
             />

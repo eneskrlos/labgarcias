@@ -3,13 +3,14 @@ import estilos from './LayoutAutenticado.module.css';
 /**
  * Encabezado común de las pantallas con sesión iniciada.
  *
- * `acciones` es el hueco donde el consumidor monta la campana (§6.4): así este componente no
- * importa nada de `features/`, coherente con la regla de acoplamiento de Agente.md §5.4.3.
+ * `acciones` y `navegacion` son huecos: por ahí entran la campana (§6.4) y el menú de §8, que
+ * viven en `features/`. Así este componente no importa nada de `features/`, coherente con la
+ * regla de acoplamiento de Agente.md §5.4.3.
  *
- * Sin menú de navegación a propósito: el menú de §8 lo arma la tarea que cree sus destinos
- * (T-25, T-26, T-33b). Hoy enlazaría a rutas que todavía no existen.
+ * `navegacion` es opcional a propósito: el menú de §8 lo monta la tarea que crea sus destinos.
+ * T-25 arma el del odontólogo; el del admin lo arman T-26 y T-27, cuando existan sus pantallas.
  */
-export function LayoutAutenticado({ acciones, children }) {
+export function LayoutAutenticado({ acciones, navegacion, children }) {
   return (
     <div className={estilos.layout}>
       <header className={estilos.encabezado}>
@@ -17,6 +18,7 @@ export function LayoutAutenticado({ acciones, children }) {
           <span className={estilos.marca}>Lab. Garcia&apos;s Connect</span>
           {acciones}
         </div>
+        {navegacion && <nav className={estilos.navegacion}>{navegacion}</nav>}
       </header>
 
       <main className={estilos.contenido}>{children}</main>

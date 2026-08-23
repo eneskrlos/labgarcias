@@ -262,7 +262,7 @@ T-29 → T-18 → T-19 → T-20 → [T-33a] → T-21 → T-22 → T-23
 
 Sus criterios eran el front de CU-09 para el **odontólogo**, que D-19 retira de la navegación. La pantalla de alta de orden pasa a ser `/admin/ordenes/nueva` y la cubre **T-33b**; el endpoint ya lo cubrió **T-33a**. Si P-19 reabre la creación por el odontólogo, esta tarea vuelve al plan.
 
-### T-25 · Mis órdenes y seguimiento (frontend)
+### T-25 · Mis órdenes y seguimiento (frontend) — ✅ TERMINADA (23/08/2026)
 **Objetivo:** front de CU-03, CU-04 y CU-20.
 **Depende de:** T-19, T-33b *(el menú del odontólogo pierde "Nueva orden" en T-33b)*
 **Spec:** §5.3, §5.4, §5.6, §8
@@ -270,6 +270,8 @@ Sus criterios eran el front de CU-09 para el **odontólogo**, que D-19 retira de
 - Listado con identificación por iniciales + código, **nunca** el nombre completo.
 - Detalle con línea de tiempo fechada, datos, archivos y botón de cancelación.
 - **Sin sección de mensajes** (D-11).
+
+> **Decisiones del desarrollador (23/08/2026):** el menú del odontólogo se monta acá por primera vez —**Inicio · Mis trabajos · Historial · Perfil**, exactamente §8—, con "Historial" apuntando a la pantalla que construye **T-27**; el menú del admin lo arman T-26 y T-27 junto con sus destinos. El `ordenId` de la campana pasa a ser enlace a `/ordenes/:id` **solo para el ODONTOLOGO**: esa pantalla es suya según §8 y muestra el botón de cancelar, que §5.6 reserva al propietario. **T-26 debe enlazarlo al detalle del admin cuando esa pantalla exista.**
 
 ### T-26 · Gestión de órdenes (admin)
 **Objetivo:** CU-10 completo (backend + pantalla) y front de CU-06.
