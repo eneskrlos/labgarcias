@@ -1,7 +1,7 @@
 # ESTADO.md — Punto de retomada
 
 **Proyecto:** Lab. Garcia's Connect
-**Actualizado:** 21/08/2026 · rama `feature/T-32_TelegramImplementado_Whatsapp`
+**Actualizado:** 22/08/2026 · rama `feature/T-32b_VisualizacionTelegramDesdePerfil`
 
 Este archivo existe para retomar el trabajo sin releer toda la conversación. No reemplaza a
 `spec.md`, `Plan.md` ni `Agente.md`: ante cualquier diferencia, **mandan esos tres**. Acá solo
@@ -30,15 +30,15 @@ va el estado de avance y lo que se acordó de palabra y no quedó escrito en ell
 | **T-30** | Solicitud de acceso: `POST /auth/solicitud-acceso` público, listado y rechazo para administración, aviso `SOLICITUD_ACCESO` al admin, pantallas `/solicitar-acceso` y `/admin/solicitudes` | `5c69a0d` → `20dbe98` (PR #32) |
 | **T-31** | Alta de odontólogo (D-18): contraseña `SecureRandom` enviada por correo fuera del outbox, token restringido con su filtro, `POST /auth/cambiar-password`, pantalla `/cambiar-password`, formulario `/admin/odontologos/nuevo` y "Crear cuenta" desde una solicitud | `b07cb66` → `852e569` (PR #33) |
 | **—** | `EscritorErrorHttp`: los errores escritos fuera del `@RestControllerAdvice` salen en UTF-8 (ver puntos abiertos) | `783793c` |
-| **T-32** | Canal Telegram real por la Bot API (`sendMessage`) con el token en properties, `usuario.telegram_chat_id` mapeado, WhatsApp confirmado como estructura con validación de teléfono | rama `feature/T-32_TelegramImplementado_Whatsapp` |
+| **T-32** | Canal Telegram real por la Bot API (`sendMessage`) con el token en properties, `usuario.telegram_chat_id` mapeado, WhatsApp confirmado como estructura con validación de teléfono | `8bee928` → `c0f5c18` (PR #34) |
+| **T-32b** | Vinculación de §6.5: `POST`/`DELETE /telegram/vinculacion`, token de un solo uso con 15 minutos de vigencia, consumo de `getUpdates` por `@Scheduled`, `GET /perfil` y pantalla `/perfil` con la sección de Telegram | rama `feature/T-32b_VisualizacionTelegramDesdePerfil` |
 
 > **Sobre la columna "Commit":** desde que rige el paso 7 de `Agente.md`, este archivo se actualiza
 > *dentro* del commit de la tarea, así que ese commit no puede citar su propio hash. La tarea en
 > curso se identifica por su rama; el hash o el merge se completan al integrarla a `develop`.
 
-**Verificación al día de hoy:** `mvn -o test` en `backend/` → **352 tests, 0 fallos**.
-`npm test` en `frontend/` → **156 tests, 0 fallos** (T-32 no tocó el frontend). `npm run lint` y
-`npm run build` limpios.
+**Verificación al día de hoy:** `mvn -o test` en `backend/` → **377 tests, 0 fallos**.
+`npm test` en `frontend/` → **167 tests, 0 fallos**. `npm run lint` y `npm run build` limpios.
 
 T-30, T-31 y T-32 se probaron además de punta a punta con el backend levantado en `dev` contra la
 base real. De T-31, con un SMTP de prueba: el correo de credenciales llegó completo y la contraseña
@@ -50,37 +50,44 @@ canales se despacharon por separado, el usuario vinculado llegó hasta `api.tele
 token no aparece **ninguna vez** ni en el log ni en `detalle_error`. Levantado sin
 `TELEGRAM_BOT_TOKEN`, arranca igual y los envíos quedan `FALLIDO` con el motivo.
 
+De T-32b, **contra el bot real** (`labgarcias_connect_bot`, creado por el desarrollador): `GET /perfil`
+devuelve el usuario con `telegramVinculado`, `POST /telegram/vinculacion` devuelve el enlace profundo
+con el nombre real del bot y deja el token en la tabla, `DELETE` responde 204, el `getUpdates`
+programado corre sin un solo aviso en el log, el token del bot no aparece en el log, y sin
+`TELEGRAM_BOT_USERNAME` la aplicación arranca igual y la vinculación responde `422
+TELEGRAM_NO_CONFIGURADO`. **Falta un paso que necesita una cuenta de Telegram** —abrir el enlace y
+tocar Iniciar—, así que la captura del `chat_id` y el corte de envíos al desvincular están cubiertos
+por tests y no por una corrida real: ver puntos abiertos.
+
 **Datos de prueba deliberados en la base de desarrollo** (se conservan para mostrarle el flujo a la
 clienta): dos solicitudes de `juan.prueba@mail.com` —una `RECHAZADA` y otra `APROBADA`—, el
 odontólogo `jperez` (id 17, contraseña ya cambiada) y las notificaciones de ambos flujos.
-La verificación de T-32, en cambio, **no dejó residuo**: sus dos solicitudes de prueba, sus
-notificaciones y el `telegram_chat_id` falso que se cargó para probar el envío se borraron al
-terminar, porque un chat inexistente haría fallar los envíos de la demostración.
+Las verificaciones de T-32 y T-32b, en cambio, **no dejaron residuo**: las solicitudes de prueba, sus
+notificaciones, el `telegram_chat_id` falso que se cargó para probar el envío y el token de
+vinculación emitido se borraron al terminar. Hoy **ningún usuario tiene Telegram vinculado** y la
+tabla `telegram_token_vinculacion` está vacía: es el estado del que parte la primera vinculación real.
 
 ---
 
 ## (b) Próxima tarea
 
-### T-32b · Vinculación de Telegram desde el perfil
+### T-33b · Pantalla de alta de órdenes por el admin y su notificación
 
-**Spec:** §6.5 · **Depende de:** T-32 ✅
-**Terminado cuando:** se cumplen los cuatro criterios de §6.5 — el perfil muestra el estado y los
-botones de conectar/desvincular, `POST /api/v1/telegram/vinculacion` devuelve el enlace profundo
-`https://t.me/{bot}?start={token}`, el consumo de `getUpdates` corre por `@Scheduled` (**sin
-webhook**, D-16) y `DELETE` desvincula.
+**Spec:** §5.1 · **Depende de:** T-33a ✅, T-31 ✅, T-21 ✅
+**Terminado cuando:** existe la pantalla `/admin/ordenes/nueva` con **selector de odontólogo**, y
+"Nueva orden" queda retirada del menú y de las rutas del odontólogo (D-19; el flujo del odontólogo
+queda documentado por P-19).
 
 Lo que ya está y no hay que rehacer:
 
-- **El canal de envío ya es real** (T-32): `CanalTelegram` llama a la Bot API y lee
-  `usuario.telegram_chat_id`. T-32b solo tiene que **poblar** esa columna.
-- **`usuario.telegram_chat_id` y `telegram_vinculado` ya están mapeados** en la entidad `Usuario`,
-  **pero sin setter**: los escribe esta tarea, que es la que los necesita.
-- **`telegram_token_vinculacion` la creó `V2`** (T-29), con `fecha_uso`. Sin migración.
-- **`telegram.bot.token` ya está declarado** en `application.yml`, `application-prod.yml.example` y
-  `.env.example`. Falta **`telegram.bot.username`**, que es de esta tarea: lo usa el enlace profundo
-  y no se declaró antes para no dejar una property sin uso.
-- **P-20:** el bot y el token los crea el desarrollador. El agente no inventa tokens ni los pone en
-  el código, y ninguno puede terminar en un log (§6.5 criterio 4).
+- **`POST /ordenes` ya exige ADMIN/SUPERADMIN** con `odontologoId` validado (T-33a).
+- **El aviso `NUEVA_ORDEN` ya sale** hacia el odontólogo dueño (T-21); §5.1 paso 10 quedó cubierto
+  ahí. Esta tarea es **solo la pantalla**.
+- **El odontólogo hoy no tiene pantalla de órdenes**: la que hay que revisar para que no ofrezca
+  "Nueva orden" es la de T-25 en adelante. Hasta entonces, no hay nada que retirar de un menú que
+  todavía no existe (`LayoutAutenticado` no tiene navegación, decisión de T-23).
+- **El selector necesita el listado de odontólogos**, que es `GET /api/v1/odontologos` (CU-11) y
+  pertenece a **T-28**. Si T-33b lo necesita antes, es un punto a decidir con el desarrollador.
 
 ---
 
@@ -318,6 +325,45 @@ desarrollador a la clienta.
    integrarse —WhatsApp— con el mismo criterio de antes; los tests de Telegram se mudaron a
    `CanalTelegramTest`, que usa `MockRestServiceServer`.
 
+### 13. Las decisiones de T-32b (22/08/2026)
+
+**Las decisiones de alcance, tomadas por el desarrollador antes de implementar:**
+
+- **La pantalla `/perfil` la crea T-32b, con la sección de Telegram, y también `GET /api/v1/perfil`
+  (§7).** El `GET` no es ampliación: sin una lectura del estado, "el perfil muestra si está
+  vinculado" no es verificable. **`PUT /perfil` y la edición de nombre y dirección quedan en T-28**,
+  que **extiende** esta pantalla en lugar de crearla — `Plan.md` T-28 quedó anotado con eso.
+- **El token de vinculación vence a los 15 minutos**, calculados sobre `fecha_emision`, sin
+  migración. La constante es `TelegramTokenVinculacion.MINUTOS_VIGENCIA_TOKEN_TELEGRAM`. Un token
+  vencido no vincula y el bot responde el mismo error que uno usado o inexistente (§6.5 criterio 2).
+
+**Las decisiones de implementación:**
+
+1. **`ClienteTelegram` concentra todo el trato con la Bot API** —`sendMessage` y `getUpdates`—, y
+   `CanalTelegram` pasó a delegarle. Las dos llamadas comparten el token y la regla de que ningún
+   mensaje de la librería HTTP se propaga; duplicarlo era duplicar la única vía de fuga del secreto.
+2. **La vinculación vive en `notificaciones`, no en `seguridad`.** §6.5 es una subsección del módulo
+   de notificaciones y ahí está el bot. La escritura de `usuario.telegram_chat_id` se delega a
+   `UsuarioService`, que es el dueño de la entidad (Agente.md 5.4); al revés habría creado el ciclo
+   entre módulos que esa misma regla prohíbe.
+3. **El `offset` de `getUpdates` vive en memoria.** Pedir las novedades con un offset las **confirma**
+   contra Telegram, que es lo que hace que no se vuelvan a entregar: persistirlo sería una columna
+   nueva —una migración— para un dato que Telegram ya retiene. Tras un reinicio se releen las no
+   confirmadas, y no pasa nada: el token es de un solo uso.
+4. **El offset avanza también con las novedades que no son mensajes de texto.** Si se filtraran antes
+   de contarlas, Telegram las devolvería en cada corrida para siempre.
+5. **Token de 32 caracteres**, 24 bytes de `SecureRandom` en base64 URL-safe: entra en el
+   `VARCHAR(64)` de V2 y en el límite del parámetro `start` del enlace profundo.
+6. **El bot ignora en silencio todo lo que no sea `/start {token}`.** §6.5 no define ninguna otra
+   conversación e inventarle respuestas sería inventar alcance.
+7. **El texto de éxito del bot es el de §6.5, palabra por palabra**; el de error no está documentado
+   y se calcó del formato, como ya se hizo en `TextosNotificacion`.
+8. **`spring.http.client` con 5 s de timeout** ya estaba desde T-32 y ahora también acota el
+   `getUpdates`: el polling corre en un hilo programado.
+9. **Mientras hay un enlace pedido y la cuenta sigue sin vincular, el perfil vuelve a consultarse
+   cada 5 s.** El chat lo captura el backend cuando el usuario toca Iniciar, así que la pantalla no
+   se entera sola; sin esto habría que refrescar a mano y el criterio 1 ("en segundos") no se vería.
+
 ### Puntos abiertos (no son decisiones, son deudas)
 
 - **T-25 tiene que convertir el `ordenId` de la campana en un enlace a `/ordenes/:id`.** Queda
@@ -329,9 +375,9 @@ desarrollador a la clienta.
   sensible llega por variable de entorno y las que no tienen default hacen fallar el arranque a
   propósito. Sigue en `.gitignore` (línea 18), así que la copia de referencia versionada es
   **`application-prod.yml.example`**, y las variables nuevas quedaron documentadas en `.env.example`.
-  - **`telegram.bot.token` ya está declarado** (P-20) en los tres archivos, con valor vacío por
-    defecto en `dev` para que el canal se deshabilite solo. **Falta `telegram.bot.username`**, que
-    usa el enlace profundo de §6.5: lo declara **T-32b**, la tarea que lo necesita.
+  - ~~**Falta `telegram.bot.username`**~~ — **resuelto por T-32b**: `telegram.bot.token` y
+    `telegram.bot.username` están declarados en los tres archivos, vacíos por defecto en `dev` para
+    que el canal y la vinculación se deshabiliten solos sin romper el arranque (P-20).
   - **El criterio 2 de §1.1 no está cubierto por ningún test automático** (que `/swagger-ui.html`
     dé 404 con perfil `prod`). Un test así dependería de un archivo que no está versionado y
     fallaría en un clon limpio. Se verifica a mano en el servidor. Si se prefiere automatizarlo,
@@ -356,6 +402,17 @@ desarrollador a la clienta.
   sigue sin integrarse; Telegram pasó a `CanalTelegramTest`. El criterio sigue vigente para lo que
   quedó: el día que exista un proveedor de WhatsApp, ese test tiene que fallar.
 
+- **Dos "Conectar Telegram" seguidos dejan dos tokens vigentes.** §6.5 no dice qué hacer, así que se
+  implementó lo literal: cada `POST` emite un token y todos valen hasta usarse o vencer (15 min).
+  **Si conviene invalidar los anteriores al emitir uno nuevo, es una decisión a tomar, no un
+  arreglo:** no resolver por cuenta propia.
+
+- **El último paso de §6.5 no se probó contra Telegram**: abrir el enlace y tocar Iniciar necesita
+  una cuenta de Telegram, que el agente no tiene. Lo que queda cubierto solo por tests es la captura
+  del `chat_id` al recibir el `/start` (criterio 1) y que desvincular corte los envíos (criterio 3).
+  **Lo cierra el desarrollador en una corrida**: entrar a `/perfil`, tocar "Conectar Telegram", abrir
+  el enlace, tocar Iniciar, y confirmar que el bot responde y que el perfil pasa a "vinculado ✅".
+
 - **Deuda de spec (T-32):** §6.4 valida CU-21 contra `configuracion_notificacion.telegram_chat_id`
   (chat del laboratorio), mientras que el envío real usa `usuario.telegram_chat_id` (D-21, §6.3).
   Un ADMIN puede activar el canal cargando un chat en la configuración y aun así recibir todos sus
@@ -372,7 +429,7 @@ desarrollador a la clienta.
 
 ```
 T-29 ✅ → T-18 ✅ → T-19 ✅ → T-20 ✅ → T-33a ✅ → T-21 ✅ → T-22 ✅ → T-23 ✅
-     → T-30 ✅ → T-31 ✅ → T-32 ✅ → [T-32b] → T-33b
+     → T-30 ✅ → T-31 ✅ → T-32 ✅ → T-32b ✅ → [T-33b]
      → T-25 → T-26 → T-27 → T-28
 ```
 

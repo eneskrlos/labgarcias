@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
 /**
- * Guarda estructural de §6.4, no test de comportamiento.
+ * Guarda estructural de §6.4 y §6.5, no test de comportamiento.
  *
  * Protege dos cosas que ningún test funcional detectaría si se rompieran: que todo endpoint
  * declare su autorización (RN-14), y sobre todo que **ninguno acepte un id de usuario**. El
@@ -22,8 +22,8 @@ import org.springframework.web.bind.annotation.RequestParam;
  */
 class NotificacionRutasTest {
 
-    private static final List<Class<?>> CONTROLLERS =
-            List.of(NotificacionController.class, ConfiguracionNotificacionController.class);
+    private static final List<Class<?>> CONTROLLERS = List.of(NotificacionController.class,
+            ConfiguracionNotificacionController.class, TelegramVinculacionController.class);
 
     private static List<Method> endpointsDe(Class<?> controller) {
         return Arrays.stream(controller.getDeclaredMethods())
@@ -46,7 +46,8 @@ class NotificacionRutasTest {
 
     /**
      * §6 criterio 3. El único @PathVariable de todo el módulo es el id de la notificación en
-     * `/{id}/leer`, y ese va acompañado del destinatario del token en la consulta.
+     * `/{id}/leer`, y ese va acompañado del destinatario del token en la consulta. Vale igual
+     * para §6.5: vincular el Telegram de otro sería pasar a recibir sus notificaciones.
      */
     @Test
     void criterio3NingunEndpointRecibeUnIdDeUsuario() {

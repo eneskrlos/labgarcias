@@ -42,6 +42,8 @@ spring:
 telegram:
   bot:
     token: ${TELEGRAM_BOT_TOKEN}
+    # §6.5: nombre del bot, sin @. Sin él no se puede armar el enlace de vinculación.
+    username: ${TELEGRAM_BOT_USERNAME}
 
 app:
   almacenamiento:

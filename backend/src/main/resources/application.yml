@@ -51,6 +51,13 @@ spring:
 telegram:
   bot:
     token: ${TELEGRAM_BOT_TOKEN:}
+    # §6.5: nombre del bot (sin @). Es lo que arma el enlace profundo https://t.me/{bot}?start=...
+    # Sin él la vinculación queda deshabilitada, aunque el envío siga funcionando.
+    username: ${TELEGRAM_BOT_USERNAME:}
+  # §6.5 paso 4: cada cuánto se le preguntan al bot las novedades (`getUpdates`), medido desde que
+  # termina la consulta anterior. La spec no fija un valor; el criterio 1 pide que el usuario se
+  # vincule "en segundos", y 5 s lo cumple sin consultar de forma continua.
+  polling-ms: ${TELEGRAM_POLLING_MS:5000}
 
 app:
   almacenamiento:

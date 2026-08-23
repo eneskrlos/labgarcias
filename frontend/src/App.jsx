@@ -12,6 +12,7 @@ import SolicitudesListado from './features/auth/SolicitudesListado';
 import CambiarPassword from './features/auth/CambiarPassword';
 import OdontologoFormulario from './features/auth/OdontologoFormulario';
 import Campana from './features/notificaciones/Campana';
+import Perfil from './features/perfil/Perfil';
 import TiposTrabajoListado from './features/catalogos/TiposTrabajoListado';
 import TipoTrabajoFormulario from './features/catalogos/TipoTrabajoFormulario';
 
@@ -50,6 +51,10 @@ function Inicio() {
       <p>
         Hola, {usuario.nombreCompleto} ({usuario.rol})
       </p>
+      {/* §6.5: la vinculación de Telegram vive en el perfil, y es de cualquier usuario. */}
+      <p>
+        <Link to="/perfil">Mi perfil</Link>
+      </p>
       {ROLES_ADMIN.includes(usuario.rol) && (
         <p>
           <Link to="/admin/solicitudes">Solicitudes de acceso</Link> ·{' '}
@@ -86,6 +91,15 @@ function App() {
                 <RutaProtegida permitidaConCambioPendiente>
                   <CambiarPassword />
                 </RutaProtegida>
+              }
+            />
+            {/* §7 y §6.5: perfil propio de cualquier usuario autenticado. */}
+            <Route
+              path="/perfil"
+              element={
+                <PantallaAutenticada>
+                  <Perfil />
+                </PantallaAutenticada>
               }
             />
             <Route
