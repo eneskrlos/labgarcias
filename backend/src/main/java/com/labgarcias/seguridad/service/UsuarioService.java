@@ -8,7 +8,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.labgarcias.seguridad.domain.EstadoCuenta;
 import com.labgarcias.seguridad.domain.RolCodigo;
 import com.labgarcias.seguridad.domain.Usuario;
+import com.labgarcias.seguridad.dto.PerfilResponse;
 import com.labgarcias.seguridad.repository.UsuarioRepository;
+import com.labgarcias.shared.excepcion.RecursoNoEncontradoException;
 import com.labgarcias.shared.excepcion.ReglaNegocioException;
 
 @Service
@@ -37,6 +39,43 @@ public class UsuarioService {
                 .filter(usuario -> usuario.getEstadoCuenta() == EstadoCuenta.ACTIVA)
                 .orElseThrow(() -> new ReglaNegocioException("ODONTOLOGO_INVALIDO",
                         "El odontólogo indicado no existe o no está activo.", "odontologoId"));
+    }
+
+    /**
+     * §7: los datos del usuario autenticado, para el perfil.
+     *
+     * Devuelve dominio (no DTO) porque Agente.md 5.4 prohíbe importar el dto de otro módulo.
+     */
+    @Transactional(readOnly = true)
+    public Usuario obtenerPorId(Long id) {
+        return usuarioRepository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException(
+                        "USUARIO_NO_ENCONTRADO", "No existe el usuario solicitado."));
+    }
+
+    /**
+     * §7: el perfil del usuario autenticado. Se arma acá y no en el controller porque el rol es
+     * una relación perezosa: fuera de la transacción, leerlo falla.
+     */
+    @Transactional(readOnly = true)
+    public PerfilResponse obtenerPerfil(Long id) {
+        return PerfilResponse.de(obtenerPorId(id));
+    }
+
+    /**
+     * §6.5 paso 4: el chat de Telegram es una columna de `usuario`, así que la escribe su propio
+     * módulo. El módulo de notificaciones, que es el que recibe el `/start` del bot, llega hasta
+     * acá por servicio y nunca por el repositorio (Agente.md 5.4).
+     */
+    @Transactional
+    public void vincularTelegram(Long id, String chatId) {
+        obtenerPorId(id).vincularTelegram(chatId);
+    }
+
+    /** §6.5 paso 5. Desvincular dos veces no es un error: el estado final es el mismo. */
+    @Transactional
+    public void desvincularTelegram(Long id) {
+        obtenerPorId(id).desvincularTelegram();
     }
 
     /**

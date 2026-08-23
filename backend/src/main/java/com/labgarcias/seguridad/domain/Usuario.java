@@ -71,8 +71,7 @@ public class Usuario {
      * iniciar la conversación, así que este valor solo existe si el usuario se vinculó por el
      * flujo de §6.5. Sin él, el envío por Telegram queda FALLIDO con "Telegram no vinculado".
      *
-     * Columnas de V2. Las escribe la vinculación (T-32b); T-32 solo necesita leerlas, así que
-     * todavía no llevan setter.
+     * Columnas de V2. Las escribe la vinculación de §6.5 y las lee `CanalTelegram`.
      */
     @Column(name = "telegram_chat_id", length = 100)
     private String telegramChatId;
@@ -195,6 +194,18 @@ public class Usuario {
 
     public boolean isTelegramVinculado() {
         return telegramVinculado;
+    }
+
+    /** §6.5 paso 4: el chat lo aporta el bot al recibir el `/start` con un token válido. */
+    public void vincularTelegram(String telegramChatId) {
+        this.telegramChatId = telegramChatId;
+        this.telegramVinculado = true;
+    }
+
+    /** §6.5 paso 5: se limpian las dos, para que no quede un destino sin bandera que lo respalde. */
+    public void desvincularTelegram() {
+        this.telegramChatId = null;
+        this.telegramVinculado = false;
     }
 
     public OffsetDateTime getFechaCreacion() {

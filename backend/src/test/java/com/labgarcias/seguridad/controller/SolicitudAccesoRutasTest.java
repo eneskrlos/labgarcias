@@ -32,7 +32,8 @@ class SolicitudAccesoRutasTest {
     @Test
     void rn14TodosLosEndpointsDeclaranSuAutorizacion() {
         List<String> sinAutorizacion = Arrays
-                .asList(SolicitudAccesoController.class, AuthController.class, OdontologoController.class).stream()
+                .asList(SolicitudAccesoController.class, AuthController.class,
+                        OdontologoController.class, PerfilController.class).stream()
                 .flatMap(controller -> endpointsDe(controller).stream())
                 .filter(metodo -> !metodo.isAnnotationPresent(PreAuthorize.class))
                 .map(Method::getName)

@@ -302,7 +302,7 @@ Sus criterios eran el front de CU-09 para el **odontólogo**, que D-19 retira de
 **Depende de:** T-27
 **Spec:** §7, §9
 **Terminado cuando:**
-- Perfil editable (nombre y dirección; **no** rol ni correo).
+- Perfil editable (nombre y dirección; **no** rol ni correo). *La pantalla `/perfil` y `GET /api/v1/perfil` ya existen desde T-32b: T-28 agrega `PUT` y el formulario, no vuelve a crearla.*
 - Listado de odontólogos para el admin; gestión de usuarios para el SuperAdmin.
 - Repaso de la tabla de trazabilidad de `spec.md` §9: cada regla tiene su implementación verificable.
 - Repaso de que ningún punto fuera de alcance (`Agente.md` 3.3) quedó implementado.
@@ -383,11 +383,13 @@ Estas tareas aplican las decisiones D-17 a D-21 de `spec.md`. **No se ejecutan d
 
 > **Decisión del desarrollador (21/08/2026):** el envío usa **`usuario.telegram_chat_id`** (V2, D-21, §6.3). **CU-21 queda tal como lo entregó T-22**: §6.4 y su endpoint no se tocan, aunque valide contra `configuracion_notificacion.telegram_chat_id`. La incoherencia entre las dos columnas la eleva el desarrollador a la clienta; no se resuelve dentro de T-32 (deuda de spec anotada en `ESTADO.md`).
 
-### T-32b · Vinculación de Telegram desde el perfil
+### T-32b · Vinculación de Telegram desde el perfil — ✅ TERMINADA (22/08/2026)
 **Objetivo:** flujo de §6.5 completo.
 **Depende de:** T-32
 **Spec:** §6.5
 **Terminado cuando:** se cumplen los 4 criterios de §6.5; el perfil muestra el estado y los botones de conectar/desvincular; el consumo de `getUpdates` corre por `@Scheduled` (sin webhook).
+
+> **Alcance acordado el 22/08/2026 con el desarrollador:** T-32b crea la pantalla `/perfil` con la sección de Telegram e implementa **`GET /api/v1/perfil`** (§7), porque sin una lectura del estado el criterio de §6.5 no es verificable. **`PUT /perfil` y la edición de nombre y dirección siguen siendo de T-28**, que *extiende* esta pantalla en lugar de crearla. El token de vinculación vence a los **15 minutos** sobre `fecha_emision`, sin migración.
 
 ### T-33 · Órdenes registradas por el admin
 **Objetivo:** D-19 aplicado.

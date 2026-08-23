@@ -19,7 +19,9 @@ import com.labgarcias.seguridad.domain.EstadoCuenta;
 import com.labgarcias.seguridad.domain.Rol;
 import com.labgarcias.seguridad.domain.RolCodigo;
 import com.labgarcias.seguridad.domain.Usuario;
+import com.labgarcias.seguridad.dto.PerfilResponse;
 import com.labgarcias.seguridad.repository.UsuarioRepository;
+import com.labgarcias.shared.excepcion.RecursoNoEncontradoException;
 import com.labgarcias.shared.excepcion.ReglaNegocioException;
 
 @ExtendWith(MockitoExtension.class)
@@ -76,6 +78,68 @@ class UsuarioServiceTest {
         assertThatThrownBy(() -> usuarioService.obtenerOdontologoActivoParaOrden(ID))
                 .isInstanceOf(ReglaNegocioException.class)
                 .satisfies(ex -> assertThat(((ReglaNegocioException) ex).getCodigo()).isEqualTo("ODONTOLOGO_INVALIDO"));
+    }
+
+    /** §7: el perfil sale del usuario del token, con el estado de Telegram que pide §6.5. */
+    @Test
+    void elPerfilLlevaLosDatosPropiosYElEstadoDeTelegram() {
+        Usuario encontrado = new Usuario();
+        Rol rol = mock(Rol.class);
+        when(rol.getCodigo()).thenReturn(RolCodigo.ODONTOLOGO);
+        encontrado.setRol(rol);
+        encontrado.setNombreCompleto("Dr. Juan Pérez");
+        encontrado.setCorreo("juan@mail.com");
+        encontrado.vincularTelegram("987654321");
+        when(usuarioRepository.findById(ID)).thenReturn(Optional.of(encontrado));
+
+        PerfilResponse perfil = usuarioService.obtenerPerfil(ID);
+
+        assertThat(perfil.nombreCompleto()).isEqualTo("Dr. Juan Pérez");
+        assertThat(perfil.rol()).isEqualTo("ODONTOLOGO");
+        assertThat(perfil.telegramVinculado()).isTrue();
+    }
+
+    /** §6.5: el chat es el destino de las notificaciones; no tiene por qué salir en la respuesta. */
+    @Test
+    void elPerfilNoExponeElChatDeTelegram() {
+        assertThat(PerfilResponse.class.getRecordComponents())
+                .extracting(java.lang.reflect.RecordComponent::getName)
+                .doesNotContain("telegramChatId");
+    }
+
+    /** §6.5 paso 4: la columna es de `usuario`, así que la escribe este servicio y nadie más. */
+    @Test
+    void vincularGuardaElChatYPrendeLaBandera() {
+        Usuario encontrado = new Usuario();
+        when(usuarioRepository.findById(ID)).thenReturn(Optional.of(encontrado));
+
+        usuarioService.vincularTelegram(ID, "987654321");
+
+        assertThat(encontrado.getTelegramChatId()).isEqualTo("987654321");
+        assertThat(encontrado.isTelegramVinculado()).isTrue();
+    }
+
+    /** §6.5 criterio 3: desvincular limpia las dos columnas, para que no quede un destino huérfano. */
+    @Test
+    void desvincularLimpiaElChatYLaBandera() {
+        Usuario encontrado = new Usuario();
+        encontrado.vincularTelegram("987654321");
+        when(usuarioRepository.findById(ID)).thenReturn(Optional.of(encontrado));
+
+        usuarioService.desvincularTelegram(ID);
+
+        assertThat(encontrado.getTelegramChatId()).isNull();
+        assertThat(encontrado.isTelegramVinculado()).isFalse();
+    }
+
+    @Test
+    void unUsuarioInexistenteNoTienePerfil() {
+        when(usuarioRepository.findById(ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> usuarioService.obtenerPerfil(ID))
+                .isInstanceOf(RecursoNoEncontradoException.class)
+                .satisfies(ex -> assertThat(((RecursoNoEncontradoException) ex).getCodigo())
+                        .isEqualTo("USUARIO_NO_ENCONTRADO"));
     }
 
     /**

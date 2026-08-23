@@ -23,7 +23,8 @@ import com.labgarcias.seguridad.domain.Usuario;
 class CanalesDeEstructuraTest {
 
     private final CanalWhatsApp canalWhatsApp = new CanalWhatsApp();
-    private final CanalTelegram canalTelegram = new CanalTelegram(RestClient.builder(), "");
+    private final CanalTelegram canalTelegram =
+            new CanalTelegram(new ClienteTelegram(RestClient.builder(), "", ""));
 
     private Notificacion notificacionCon(String telefono) {
         Usuario destinatario = new Usuario();
