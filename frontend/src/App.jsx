@@ -12,6 +12,7 @@ import CambiarPassword from './features/auth/CambiarPassword';
 import BotonCerrarSesion from './features/auth/BotonCerrarSesion';
 import OdontologoFormulario from './features/auth/OdontologoFormulario';
 import Campana from './features/notificaciones/Campana';
+import ConfiguracionNotificaciones from './features/notificaciones/ConfiguracionNotificaciones';
 import Perfil from './features/perfil/Perfil';
 import OrdenFormulario from './features/ordenes/OrdenFormulario';
 import MisOrdenes from './features/ordenes/MisOrdenes';
@@ -192,15 +193,12 @@ function App() {
                 </PantallaAutenticada>
               }
             />
-            {/* CU-21: la configuración de canales es de T-34; sus endpoints ya existen. */}
+            {/* CU-21/§6.4: por qué canales recibe sus notificaciones el administrador. */}
             <Route
               path="/admin/configuracion"
               element={
                 <PantallaAutenticada rolesPermitidos={ROLES_ADMIN}>
-                  <PantallaPendiente
-                    titulo="Configuración"
-                    detalle="Vas a poder elegir acá por qué canales recibís las notificaciones."
-                  />
+                  <ConfiguracionNotificaciones />
                 </PantallaAutenticada>
               }
             />

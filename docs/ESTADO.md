@@ -1,7 +1,7 @@
 # ESTADO.md — Punto de retomada
 
 **Proyecto:** Lab. Garcia's Connect
-**Actualizado:** 23/08/2026 · rama `feature/T-27_Dashboard`
+**Actualizado:** 24/08/2026 · rama `feature/T-34_pantalla_config_notification`
 
 Este archivo existe para retomar el trabajo sin releer toda la conversación. No reemplaza a
 `spec.md`, `Plan.md` ni `Agente.md`: ante cualquier diferencia, **mandan esos tres**. Acá solo
@@ -37,14 +37,15 @@ va el estado de avance y lo que se acordó de palabra y no quedó escrito en ell
 | **T-25** | Pantallas del odontólogo: `/ordenes` paginado con filtro por estado, `/ordenes/:id` con línea de tiempo, adjuntos y cancelación, menú de §8 y el `ordenId` de la campana convertido en enlace | `b1b1dbc` → `1ca14fb` (PR #38) |
 | **—** | `PantallaPendiente`: destino de los ítems de menú cuya pantalla llega después | `fbe6beb` |
 | **T-26** | Gestión de órdenes del laboratorio: `GET /admin/ordenes` con los tres filtros de §5.7, `siguienteEstado` en el detalle, pantallas `/admin/ordenes` y `/admin/ordenes/:id` con el avance de estado, y el menú del admin de §8 | `73af666` (falta el merge) |
-| **T-27** | Dashboards: `GET /admin/dashboard` y `GET /dashboard` (nuevo, CU-02), filtro `?historico` en `GET /ordenes` (CU-12), pantallas `/inicio`, `/admin` y `/historial`, `/` redirige por rol, y la zona horaria del laboratorio en properties | `25606ef` (código) + este commit (docs) |
+| **T-27** | Dashboards: `GET /admin/dashboard` y `GET /dashboard` (nuevo, CU-02), filtro `?historico` en `GET /ordenes` (CU-12), pantallas `/inicio`, `/admin` y `/historial`, `/` redirige por rol, y la zona horaria del laboratorio en properties | `25606ef` + `7b8bb42` (docs) |
+| **T-34** | Pantalla `/admin/configuracion` (CU-21): ve y edita los canales del administrador con el `GET` y el `PUT` de T-22, el `422 TELEGRAM_SIN_DESTINO` en su campo y WhatsApp deshabilitado (P-18). **Sin endpoints nuevos** | rama `feature/T-34_pantalla_config_notification` |
 
 > **Sobre la columna "Commit":** desde que rige el paso 7 de `Agente.md`, este archivo se actualiza
 > *dentro* del commit de la tarea, así que ese commit no puede citar su propio hash. La tarea en
 > curso se identifica por su rama; el hash o el merge se completan al integrarla a `develop`.
 
 **Verificación al día de hoy:** `mvn -o test` en `backend/` → **406 tests, 0 fallos**.
-`npm test` en `frontend/` → **252 tests, 0 fallos**. `npm run lint` y `npm run build` limpios.
+`npm test` en `frontend/` → **266 tests, 0 fallos**. `npm run lint` y `npm run build` limpios.
 
 T-30, T-31 y T-32 se probaron además de punta a punta con el backend levantado en `dev` contra la
 base real. De T-31, con un SMTP de prueba: el correo de credenciales llegó completo y la contraseña
@@ -107,6 +108,16 @@ misma base con `LAB_ZONA_HORARIA=UTC`, `entregadasEstaSemana` pasó de **1 a 0**
 domingo se escapa de la semana— y con `America/Montevideo` volvió a contar. **La verificación no
 dejó residuo:** no se insertó, modificó ni borró ninguna fila.
 
+De T-34, contra la base real: `GET /configuracion-notificaciones` sin configuración previa devolvió
+los canales por defecto de §6.3 —app, correo y Telegram— con `fechaActualizacion` nula, no un 404.
+El `422 TELEGRAM_SIN_DESTINO` llega con **`campo: "telegramChatId"`**, que es lo que hace que la
+pantalla lo pinte en el campo correcto, tanto con el chat vacío como con espacios en blanco. Un
+guardado válido apagó el correo y devolvió la configuración con su fecha. **P-18 verificado del
+lado del backend:** mandando `canalWhatsappActivo: true` a mano, la respuesta vuelve en `false`.
+Con rol ODONTOLOGO, `GET` y `PUT` dan **403**; sin token, **401**. **La verificación no dejó
+residuo:** la tabla `configuracion_notificacion` estaba vacía, el `PUT` creó una fila y se borró al
+terminar — volvió a **0 filas**, verificado.
+
 **Datos de prueba deliberados en la base de desarrollo** (se conservan para mostrarle el flujo a la
 clienta): dos solicitudes de `juan.prueba@mail.com` —una `RECHAZADA` y otra `APROBADA`—, el
 odontólogo `jperez` (id 17, contraseña ya cambiada) y las notificaciones de ambos flujos.
@@ -137,27 +148,60 @@ corrida del propio desarrollador. No es dato de prueba: es el estado que dejó e
 
 ## (b) Próxima tarea
 
-### T-34 · Pantalla de configuración de notificaciones
+### T-28 · Perfil, odontólogos y repaso final — **última tarea del plan**
 
-**Spec:** §6.4, §8, §8.1 · **Depende de:** T-22 ✅, T-26 ✅
-**Terminado cuando:** `/admin/configuracion` permite ver y editar los canales activos del
-administrador consumiendo `GET` y `PUT /configuracion-notificaciones`; activar Telegram sin
-`chatId` es rechazado y el mensaje de `422 TELEGRAM_SIN_DESTINO` se muestra en el campo
-correspondiente; usa `LayoutFormulario` y `CampoFormulario` de `shared/`.
+**Spec:** §7, §9 · **Depende de:** T-27 ✅
+**Terminado cuando:**
+- **Perfil editable**: `PUT /api/v1/perfil` y el formulario, con `nombreCompleto` y `direccion`.
+  **No** rol ni correo. *La pantalla `/perfil` y `GET /api/v1/perfil` ya existen desde T-32b:
+  T-28 la **extiende**, no la crea.*
+- **Listado de odontólogos** para el admin (CU-11) y **gestión de usuarios** para el SuperAdmin
+  (CU-17): `GET /api/v1/odontologos` **paginado**, `GET /api/v1/usuarios` y
+  `PATCH /api/v1/usuarios/{id}/estado`.
+- **Repaso de la tabla de trazabilidad de §9**: cada regla con su implementación verificable.
+- **Repaso de que ningún punto fuera de alcance (`Agente.md` §3.3) quedó implementado.**
 
-Lo que hay que tener presente antes de empezar:
+#### Los tres pendientes que hereda
 
-- **Los seis endpoints de §6.4 ya existen desde T-22.** Esta tarea es solo la pantalla.
-- **No es un CRUD con listado y alta**, así que **§8.1 Regla 1 no aplica**: es un formulario único
-  de edición sobre un registro existente, sin rutas `/nuevo` ni `/{id}/editar`. Aplican las
-  Reglas 3, 4 y 5.
-- **`/admin/configuracion` es hoy una `PantallaPendiente`** puesta por T-26, y el ítem del menú del
-  admin ya existe.
-- **`canalWhatsappActivo` se informa pero no se puede activar** (decisión 1 de T-22): el request del
-  PUT no lo incluye.
-- **Arrastra la deuda de spec de T-32** sobre `configuracion_notificacion.telegram_chat_id` (chat
-  del laboratorio) frente a `usuario.telegram_chat_id` (destino real del envío). **No resolverla en
-  esta tarea.**
+1. **`/admin/odontologos` es hoy una `PantallaPendiente`** puesta por T-26 — es el **último**
+   destino del menú del admin sin su pantalla. La reemplaza el listado de CU-11, con §8.1 **Regla 1
+   completa** (es un CRUD de verdad) y el botón "Nuevo" apuntando a `/admin/odontologos/nuevo`, que
+   **ya existe** desde T-31.
+2. **Mover el destino del alta de odontólogo de `/admin` a `/admin/odontologos`.** Hoy
+   `OdontologoFormulario` vuelve al dashboard con su confirmación en `location.state`
+   (`DESTINO_POR_DEFECTO`), que es un destino intermedio: §8.1 Regla 1 pide volver **al listado**.
+   Cuando exista, hay que cambiar esa constante y mostrar el mensaje ahí, como ya hacen
+   `/admin/ordenes` y `/admin/tipos-trabajo`. **El dashboard deja de necesitar su `role="status"`.**
+3. **`GET /api/v1/odontologos` paginado no existe todavía.** Lo que hay es `/odontologos/activos`,
+   que alimenta un **selector** y devuelve solo `id` y `nombreCompleto` (decisión 14). **Son dos
+   endpoints con propósitos distintos y conviven** — §7 lo dice explícitamente.
+
+#### Para el repaso de §9: lo que se agregó o cambió durante CR-01
+
+La tabla de §9 se escribió antes de estas ocho incorporaciones, así que **el repaso tiene que
+contemplarlas** o va a dar por completo algo que no lo está. Todas están documentadas en `spec.md`
+—ninguna vive solo acá— y cada una tiene su decisión en la sección (c):
+
+| Qué | Dónde está en `spec.md` | Decisión |
+|---|---|---|
+| `GET /odontologos/activos` (sin paginar, selector de D-19) | §7, §5.1 | 14 (T-33b) |
+| `GET /dashboard` del odontólogo (CU-02) | §5.7, §7 | 18 (T-27) |
+| `siguienteEstado` en el detalle de la orden (RN-04 desde el backend) | §5.4 | 16 (T-26) |
+| `?historico=true` en `GET /ordenes` (CU-12) | §5.3 | 18 (T-27) |
+| `GET /perfil` | §7, §6.5 | 13 (T-32b) |
+| Exención de paginado ampliada a los endpoints que alimentan selectores | §4 (nota tras §4.1) | 14 (T-33b) |
+| `CUENTA_INACTIVA`, renombrado desde `CUENTA_NO_VERIFICADA` por D-18 | §3.3 | CR-01 / T-29 |
+| `app.laboratorio.zona-horaria` / `LAB_ZONA_HORARIA`, obligatoria en `prod` | **§1.2** (sección nueva) | 18 (T-27) |
+
+**Además, para el repaso de `Agente.md` §3.3** (nada fuera de alcance implementado), los tres
+puntos donde es más fácil equivocarse: **P-14** (la columna `cargo_cancelacion` existe y queda en
+`null`, sin lógica de cálculo), **P-18** (WhatsApp es estructura: puerto y validación de teléfono,
+sin integración) y **D-11** (la tabla de mensajes existe y **no hay** entidad, servicio, endpoint,
+pantalla ni contador — el de CU-02 se omitió a propósito).
+
+> **Los dos puntos que se elevan a la clienta no los resuelve T-28**: la deuda de spec de T-32 y el
+> punto abierto de T-34 sobre `canal_app_activo`. Los dos están en "Puntos abiertos" y son la misma
+> pregunta sobre qué significa "canal activo".
 
 ---
 
@@ -602,6 +646,43 @@ contrato quedaron en `spec.md`**, no solo acá:
 9. **La barra de la distribución es proporcional al mayor valor de la serie.** Es presentación: la
    cifra se muestra al lado tal como la devolvió el backend, sin recomponer.
 
+### 19. Las decisiones de T-34 (24/08/2026)
+
+**Las dos decisiones de comportamiento, tomadas por el desarrollador antes de implementar.** §8.1
+Regla 1 no aplica a esta pantalla —no hay listado, alta ni edición por id— y nada más definía estos
+dos puntos:
+
+1. **Guardar deja al usuario en la pantalla**, con la confirmación en un `role="status"`, y
+   **Cancelar vuelve a `/admin`**, que es de donde se llega por el menú. Es una pantalla de ajustes
+   que se toca varias veces seguidas, no un alta que se completa y se cierra: expulsar al usuario
+   al dashboard tras tildar una casilla lo obligaría a volver a entrar para ver cómo quedó. Mismo
+   criterio con el que T-31 decidió que `/cambiar-password` no tuviera "Cancelar": el destino se
+   define por dónde tiene sentido dejar al usuario, no copiando la regla de otro tipo de pantalla.
+2. **La ayuda del campo del chat dice solo la regla documentada** (*"CU-21: obligatorio si activás
+   Telegram."*) y **no menciona la vinculación de §6.5**. Explicar ahí que los envíos usan la
+   cuenta vinculada desde el perfil sería **resolver la deuda de spec de T-32 por la vía del
+   texto**, describiendo en la interfaz un comportamiento que §6.4 no define.
+
+**Las decisiones de implementación:**
+
+1. **El formulario se refresca con lo que devolvió el `PUT`, no con lo que se mandó.** Es la
+   respuesta del backend la que dice cómo quedó la configuración —por ejemplo, `canalWhatsappActivo`
+   vuelve en `false` aunque se hubiera mandado en `true`—, y mostrar el estado local sería mostrar
+   lo que el usuario quiso, no lo que quedó guardado.
+2. **La pantalla no adelanta el rechazo de CU-21.** Con Telegram tildado y el chat vacío, manda
+   igual y pinta el `422` que devuelve el backend en el campo del chat. Reimplementar la validación
+   en el cliente duplicaría una regla de negocio (`Agente.md` §6.1); hay un test que lo fija.
+3. **Las tres banderas viajan siempre en el `PUT`, también las apagadas**, porque reemplaza la
+   configuración entera (decisión 2 de T-22). **`canalWhatsappActivo` no se manda nunca**: P-18, y
+   el request del backend ni siquiera lo acepta.
+4. **`mutationFn` va envuelta** (`(payload) => guardar(payload)`) y no pasada directo: TanStack
+   Query agrega un segundo argumento con su contexto interno y el cliente de API no tiene por qué
+   recibirlo. Es el patrón que ya usaban `OdontologoFormulario` y `TipoTrabajoFormulario`.
+5. **La ayuda de RN-19 va una sola vez**, bajo la primera casilla, y no repetida en las cuatro: es
+   la misma regla para todo el grupo.
+6. **`MenuAdmin` solo cambió de comentario.** El `NavLink` ya apuntaba a `/admin/configuracion`
+   desde T-26; lo único desactualizado era la nota de cuántos destinos seguían pendientes.
+
 ### Puntos abiertos (no son decisiones, son deudas)
 
 - ~~**El `ordenId` de la campana es enlace solo para ODONTOLOGO.**~~ — **cerrado el 23/08/2026 por
@@ -635,13 +716,13 @@ contrato quedaron en `spec.md`**, no solo acá:
 
 - ~~**`/historial` es hoy una `PantallaPendiente`**~~ — **resuelto el 23/08/2026 por T-27**: la
   ruta es el historial de CU-12, con `?historico=true` y filtro entre entregadas y canceladas. El
-  componente `shared/components/PantallaPendiente` sigue en pie para los dos ítems de menú cuya
-  pantalla llega después (`/admin/odontologos` y `/admin/configuracion`).
+  componente `shared/components/PantallaPendiente` sigue en pie para el único ítem de menú cuya
+  pantalla llega después: `/admin/odontologos` (T-28).
 
 - ~~**El menú del admin de §8 todavía no se montó.**~~ — **montado el 23/08/2026 por T-26**, con los
-  seis ítems. **Dashboard** (`/admin`) lo reemplazó T-27; quedan **dos** destinos en
-  `PantallaPendiente`: **Odontólogos** (`/admin/odontologos`, T-28) y **Configuración**
-  (`/admin/configuracion`, **T-34**).
+  seis ítems. **Dashboard** (`/admin`) lo reemplazó T-27 y **Configuración**
+  (`/admin/configuracion`) T-34; queda **un solo** destino en `PantallaPendiente`: **Odontólogos**
+  (`/admin/odontologos`, **T-28**).
 - **`/admin/odontologos/nuevo` solo es alcanzable desde una solicitud.** No se le agregó enlace en
   el inicio: el botón "Nuevo" pertenece al listado de CU-11, que construye **T-28**. Hasta entonces,
   el alta sin solicitud previa —el "o directamente" de D-17— solo se puede hacer escribiendo la URL.
@@ -678,6 +759,20 @@ contrato quedaron en `spec.md`**, no solo acá:
   Regla 1) y **T-28 tiene que hacer lo mismo con `/admin/odontologos`** cuando lo construya,
   mostrando ahí el mensaje que hoy se ve en el dashboard.
 
+- **Punto abierto (T-34): destildar `canal_app_activo` no apaga la campana.** `canal_app_activo`
+  solo recorta las filas de `notificacion_envio`; la campana lee `notificacion` directamente
+  (decisión 5 de T-21 y decisión 5 de T-22). El administrador que apague ese canal seguirá viendo
+  sus avisos en la campana. Resolverlo implica cambiar el filtrado de la campana, alcance de
+  T-21/T-22. **Se eleva a la clienta junto con la deuda de T-32: ambas son la misma pregunta sobre
+  qué significa "canal activo".**
+  > **No es del mismo tipo que la deuda de T-32**, aunque se eleven juntas. En aquella el admin
+  > **configura algo que no surte efecto**; en esta el admin **apaga un canal y el canal sigue
+  > funcionando**: la interfaz ofrece un control que no controla lo que dice controlar. Eso es un
+  > **defecto de comportamiento**, no solo una incoherencia de documentación.
+  >
+  > Verificado en el código al implementar T-34, no deducido: las cinco consultas de
+  > `NotificacionRepository` son sobre `Notificacion` y **ninguna** toca `NotificacionEnvio`.
+
 - **Deuda de spec (T-32):** §6.4 valida CU-21 contra `configuracion_notificacion.telegram_chat_id`
   (chat del laboratorio), mientras que el envío real usa `usuario.telegram_chat_id` (D-21, §6.3).
   Un ADMIN puede activar el canal cargando un chat en la configuración y aun así recibir todos sus
@@ -695,7 +790,7 @@ contrato quedaron en `spec.md`**, no solo acá:
 ```
 T-29 ✅ → T-18 ✅ → T-19 ✅ → T-20 ✅ → T-33a ✅ → T-21 ✅ → T-22 ✅ → T-23 ✅
      → T-30 ✅ → T-31 ✅ → T-32 ✅ → T-32b ✅ → T-33b ✅
-     → T-25 ✅ → T-26 ✅ → T-27 ✅ → [T-34] → T-28
+     → T-25 ✅ → T-26 ✅ → T-27 ✅ → T-34 ✅ → [T-28]
 ```
 
 Es el orden de `Plan.md`, que **no** sigue la numeración de los bloques. `T-24` fue eliminada
