@@ -8,9 +8,9 @@ import estilos from './Menu.module.css';
  * **No incluye** Pacientes (S-03 sin resolver), Calendario, Mensajes (D-11), Reportes ni
  * Facturación (P-08).
  *
- * Tres destinos todavía no tienen su pantalla y muestran una `PantallaPendiente`: Dashboard
- * (CU-10, T-27), Odontólogos (CU-11, T-28) y Configuración (CU-21, T-34). El menú se monta
- * completo igual: es lo que fija §8, y cada tarea reemplaza su ruta.
+ * El menú se monta completo desde T-26 aunque sus destinos lleguen después, porque es lo que fija
+ * §8, y cada tarea reemplaza su ruta: T-27 puso el Dashboard (CU-10) y T-34 la Configuración
+ * (CU-21). **Queda uno solo en `PantallaPendiente`**: Odontólogos (CU-11, T-28).
  */
 export default function MenuAdmin() {
   const clase = ({ isActive }) => (isActive ? `${estilos.enlace} ${estilos.activo}` : estilos.enlace);
