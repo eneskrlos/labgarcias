@@ -36,7 +36,7 @@ va el estado de avance y lo que se acordó de palabra y no quedó escrito en ell
 | **—** | `/odontologos/activos` documentado en la tabla de endpoints de `spec.md` §7 (deuda de T-33b) | `675f4b9` |
 | **T-25** | Pantallas del odontólogo: `/ordenes` paginado con filtro por estado, `/ordenes/:id` con línea de tiempo, adjuntos y cancelación, menú de §8 y el `ordenId` de la campana convertido en enlace | `b1b1dbc` → `1ca14fb` (PR #38) |
 | **—** | `PantallaPendiente`: destino de los ítems de menú cuya pantalla llega después | `fbe6beb` |
-| **T-26** | Gestión de órdenes del laboratorio: `GET /admin/ordenes` con los tres filtros de §5.7, `siguienteEstado` en el detalle, pantallas `/admin/ordenes` y `/admin/ordenes/:id` con el avance de estado, y el menú del admin de §8 | rama `feature/T-26_gestion_ordenes` |
+| **T-26** | Gestión de órdenes del laboratorio: `GET /admin/ordenes` con los tres filtros de §5.7, `siguienteEstado` en el detalle, pantallas `/admin/ordenes` y `/admin/ordenes/:id` con el avance de estado, y el menú del admin de §8 | `73af666` (falta el merge) |
 
 > **Sobre la columna "Commit":** desde que rige el paso 7 de `Agente.md`, este archivo se actualiza
 > *dentro* del commit de la tarea, así que ese commit no puede citar su propio hash. La tarea en
@@ -576,6 +576,13 @@ dashboard, y dejarlo en una nota interna garantizaría que se redescubra.
   corrida del desarrollador: `erneskrlos` quedó vinculado y recibió por Telegram la notificación
   `ORDEN_URGENTE` de una orden real. Sigue sin probarse en una corrida el **desvincular** (criterio 3
   de §6.5), que está cubierto por tests.
+
+- **`/inicio` de §8 no existe: hoy la ruta es `/`, un inicio genérico para cualquier rol.** §8 le
+  asigna `/inicio` al **panel del odontólogo** (CU-02), pero lo que hay en `/` es una pantalla que
+  saluda por nombre y rol y sirve de destino para las confirmaciones. **Definirlo es de T-27**, que
+  construye ese panel, y la decisión arrastra tres cosas: a dónde apunta el ítem "Inicio" del menú
+  del odontólogo, qué ve el administrador en `/`, y a dónde vuelven los formularios que hoy caen
+  ahí. **No resolverlo por partes:** o `/` pasa a ser el panel por rol, o `/inicio` se crea aparte.
 
 - **El alta de odontólogo todavía vuelve a `/` con su confirmación.** El alta de orden ya vuelve al
   listado (T-26, §8.1 Regla 1); **T-28 tiene que hacer lo mismo con `/admin/odontologos`** cuando
