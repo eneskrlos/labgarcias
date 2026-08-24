@@ -60,6 +60,12 @@ telegram:
   polling-ms: ${TELEGRAM_POLLING_MS:5000}
 
 app:
+  laboratorio:
+    # CU-02/CU-10: huso con el que se corta "entregadas esta semana". `orden_historial_estado.fecha_hora`
+    # es TIMESTAMPTZ, así que con el corte en UTC un trabajo entregado el domingo a las 21:00 en
+    # Montevideo caería en la semana siguiente. D-16 (una instalación por laboratorio) hace que un
+    # solo valor alcance; nunca va escrito en el código.
+    zona-horaria: ${LAB_ZONA_HORARIA:America/Montevideo}
   almacenamiento:
     # RN-13: el binario vive fuera de la base; orden_archivo solo guarda ruta y metadatos.
     directorio: ${ALMACENAMIENTO_DIRECTORIO:./archivos}

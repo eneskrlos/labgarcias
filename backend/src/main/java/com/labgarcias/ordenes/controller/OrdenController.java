@@ -73,11 +73,14 @@ public class OrdenController {
     @GetMapping
     @PreAuthorize("hasRole('ODONTOLOGO')")
     @Operation(
-            summary = "Listar mis órdenes (CU-03)",
+            summary = "Listar mis órdenes (CU-03) e historial (CU-12)",
             description = "RN-01: devuelve siempre y únicamente las órdenes del odontólogo autenticado. "
                     + "El id del dueño se toma del token; el endpoint no acepta un id de odontólogo por "
                     + "parámetro, así que no hay manera de pedir las de otro. "
                     + "RN-22: cada ítem identifica al paciente por iniciales y código, nunca por su nombre. "
+                    + "CU-12: con `historico=true` quedan solo las órdenes cerradas, que son las de estado "
+                    + "terminal según `estado.es_terminal` (hoy ENTREGADO y CANCELADO). Los dos filtros se "
+                    + "combinan: `historico=true&estado=CANCELADO` deja las canceladas. "
                     + "size solo admite 10, 20 o 30. Ordenado por fecha de ingreso descendente."
     )
     @ApiResponses({
@@ -89,8 +92,12 @@ public class OrdenController {
             @Parameter(description = "Código del estado (RECIBIDO, EN_EVALUACION, EN_PRODUCCION, "
                     + "CONTROL_CALIDAD, LISTO, ENTREGADO, CANCELADO). Un código inexistente devuelve página vacía.")
             @RequestParam(required = false) String estado,
+            @Parameter(description = "CU-12: true deja solo las órdenes ya cerradas (estado terminal). "
+                    + "Omitirlo trae todas, que es el listado de CU-03.")
+            @RequestParam(required = false, defaultValue = "false") boolean historico,
             Authentication authentication) {
-        return ResponseEntity.ok(ordenService.listarMisOrdenes(usuarioId(authentication), estado, pageable));
+        return ResponseEntity.ok(
+                ordenService.listarMisOrdenes(usuarioId(authentication), estado, historico, pageable));
     }
 
     @GetMapping("/{id}")

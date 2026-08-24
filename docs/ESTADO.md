@@ -1,7 +1,7 @@
 # ESTADO.md — Punto de retomada
 
 **Proyecto:** Lab. Garcia's Connect
-**Actualizado:** 23/08/2026 · rama `feature/T-26_gestion_ordenes`
+**Actualizado:** 23/08/2026 · rama `feature/T-27_Dashboard`
 
 Este archivo existe para retomar el trabajo sin releer toda la conversación. No reemplaza a
 `spec.md`, `Plan.md` ni `Agente.md`: ante cualquier diferencia, **mandan esos tres**. Acá solo
@@ -37,13 +37,14 @@ va el estado de avance y lo que se acordó de palabra y no quedó escrito en ell
 | **T-25** | Pantallas del odontólogo: `/ordenes` paginado con filtro por estado, `/ordenes/:id` con línea de tiempo, adjuntos y cancelación, menú de §8 y el `ordenId` de la campana convertido en enlace | `b1b1dbc` → `1ca14fb` (PR #38) |
 | **—** | `PantallaPendiente`: destino de los ítems de menú cuya pantalla llega después | `fbe6beb` |
 | **T-26** | Gestión de órdenes del laboratorio: `GET /admin/ordenes` con los tres filtros de §5.7, `siguienteEstado` en el detalle, pantallas `/admin/ordenes` y `/admin/ordenes/:id` con el avance de estado, y el menú del admin de §8 | `73af666` (falta el merge) |
+| **T-27** | Dashboards: `GET /admin/dashboard` y `GET /dashboard` (nuevo, CU-02), filtro `?historico` en `GET /ordenes` (CU-12), pantallas `/inicio`, `/admin` y `/historial`, `/` redirige por rol, y la zona horaria del laboratorio en properties | `25606ef` (código) + este commit (docs) |
 
 > **Sobre la columna "Commit":** desde que rige el paso 7 de `Agente.md`, este archivo se actualiza
 > *dentro* del commit de la tarea, así que ese commit no puede citar su propio hash. La tarea en
 > curso se identifica por su rama; el hash o el merge se completan al integrarla a `develop`.
 
-**Verificación al día de hoy:** `mvn -o test` en `backend/` → **388 tests, 0 fallos**.
-`npm test` en `frontend/` → **223 tests, 0 fallos**. `npm run lint` y `npm run build` limpios.
+**Verificación al día de hoy:** `mvn -o test` en `backend/` → **406 tests, 0 fallos**.
+`npm test` en `frontend/` → **252 tests, 0 fallos**. `npm run lint` y `npm run build` limpios.
 
 T-30, T-31 y T-32 se probaron además de punta a punta con el backend levantado en `dev` contra la
 base real. De T-31, con un SMTP de prueba: el correo de credenciales llegó completo y la contraseña
@@ -91,6 +92,21 @@ trae `CONTROL_CALIDAD` para una orden en producción y **`null`** para la entreg
 Desde el administrador, saltear etapas, retroceder, cancelar y tocar una orden entregada devuelven
 los cuatro `409` de §5.5, y **ninguna de las cinco órdenes cambió de estado ni sumó etapas**.
 
+De T-27, contra la base real y con las cinco órdenes de demostración intactas: el panel del
+odontólogo 3 devolvió `1 / 0 / 1` con sus dos órdenes y el del 17 `2 / 0 / 0` con las suyas tres
+—la cancelada no cuenta como en curso—; agregar `?odontologoId=17` al panel del 3 **no cambió
+nada** (RN-01). El dashboard del laboratorio devolvió `3 / 0 / 1 / 1`, las **siete** etapas de la
+distribución con las que están en cero incluidas y en orden de `orden_secuencia`, las próximas a
+entregar por fecha estimada ascendente y una sola urgente. Un `grep pacienteNombre` sobre las dos
+respuestas completas dio **0 ocurrencias** (RN-22), incluida la urgente, cuya vista sí lo trae.
+Rol cruzado: odontólogo → `/admin/dashboard` **403**, admin → `/dashboard` **403**, sin token
+**401**. De CU-12, `historico=true` dejó solo la cancelada del odontólogo 17 y solo la entregada
+del 3, `historico=true&estado=ENTREGADO` devolvió vacío para el 17, y sin el parámetro el listado
+de CU-03 siguió trayendo las mismas tres. **La zona horaria se probó cambiándola**: levantada la
+misma base con `LAB_ZONA_HORARIA=UTC`, `entregadasEstaSemana` pasó de **1 a 0** —la entrega del
+domingo se escapa de la semana— y con `America/Montevideo` volvió a contar. **La verificación no
+dejó residuo:** no se insertó, modificó ni borró ninguna fila.
+
 **Datos de prueba deliberados en la base de desarrollo** (se conservan para mostrarle el flujo a la
 clienta): dos solicitudes de `juan.prueba@mail.com` —una `RECHAZADA` y otra `APROBADA`—, el
 odontólogo `jperez` (id 17, contraseña ya cambiada) y las notificaciones de ambos flujos.
@@ -121,23 +137,27 @@ corrida del propio desarrollador. No es dato de prueba: es el estado que dejó e
 
 ## (b) Próxima tarea
 
-### T-27 · Dashboards
+### T-34 · Pantalla de configuración de notificaciones
 
-**Spec:** §5.7, §8 · **Depende de:** T-26 ✅
-**Terminado cuando:** existe `GET /api/v1/admin/dashboard` con lo que enumera §5.7 —contadores,
-distribución por estado (`v_ordenes_por_estado`), próximas a entregar y órdenes recientes—, el panel
-del odontólogo (CU-02), el dashboard del admin (CU-10) y el historial del odontólogo (CU-12).
+**Spec:** §6.4, §8, §8.1 · **Depende de:** T-22 ✅, T-26 ✅
+**Terminado cuando:** `/admin/configuracion` permite ver y editar los canales activos del
+administrador consumiendo `GET` y `PUT /configuracion-notificaciones`; activar Telegram sin
+`chatId` es rechazado y el mensaje de `422 TELEGRAM_SIN_DESTINO` se muestra en el campo
+correspondiente; usa `LayoutFormulario` y `CampoFormulario` de `shared/`.
 
 Lo que hay que tener presente antes de empezar:
 
-- **Tres rutas son hoy `PantallaPendiente` y las reemplaza esta tarea**: `/admin` (Dashboard, CU-10),
-  `/historial` (CU-12) y —la que falta— el panel del odontólogo, que §8 pone en `/inicio` mientras
-  la ruta `/` sigue siendo un inicio genérico. **Definir eso es parte de T-27**, y arrastra el
-  destino al que vuelven los formularios de administración (ver puntos abiertos).
-- **Las dos vistas de la base ya existen** desde V1: `v_ordenes_por_estado` y `v_ordenes_urgentes`.
-- **`siguienteEstado` ya está en el detalle** (§5.4, T-26): si el dashboard necesita mostrar qué
-  sigue, no hay que recalcularlo.
-- **Sin reportes ni estadísticas** más allá de esos contadores: CU-13 es Fase 4.
+- **Los seis endpoints de §6.4 ya existen desde T-22.** Esta tarea es solo la pantalla.
+- **No es un CRUD con listado y alta**, así que **§8.1 Regla 1 no aplica**: es un formulario único
+  de edición sobre un registro existente, sin rutas `/nuevo` ni `/{id}/editar`. Aplican las
+  Reglas 3, 4 y 5.
+- **`/admin/configuracion` es hoy una `PantallaPendiente`** puesta por T-26, y el ítem del menú del
+  admin ya existe.
+- **`canalWhatsappActivo` se informa pero no se puede activar** (decisión 1 de T-22): el request del
+  PUT no lo incluye.
+- **Arrastra la deuda de spec de T-32** sobre `configuracion_notificacion.telegram_chat_id` (chat
+  del laboratorio) frente a `usuario.telegram_chat_id` (destino real del envío). **No resolverla en
+  esta tarea.**
 
 ---
 
@@ -510,6 +530,78 @@ dashboard, y dejarlo en una nota interna garantizaría que se redescubra.
 6. **Los enlaces sueltos del inicio se retiraron.** La navegación es el menú de §8, uno por rol;
    mantener dos listas de enlaces las desincroniza.
 
+### 17. `/inicio` es del odontólogo y `/` redirige por rol (23/08/2026)
+
+**Decisión del desarrollador, tomada antes de implementar T-27.** Cierra el punto abierto que había
+dejado T-26 y que la ficha de T-27 arrastraba:
+
+- **`/inicio` es la ruta del panel del odontólogo (CU-02)**, como manda §8. Se crea aparte, no se
+  reusa `/`.
+- **`/` deja de ser un inicio genérico y redirige según el rol:** `ODONTOLOGO` → `/inicio`,
+  `ADMIN` y `SUPERADMIN` → `/admin`.
+- **Ningún usuario queda en una pantalla compartida.** La pantalla `Inicio` que hoy vive en `App.jsx`
+  —saludo por nombre y rol— desaparece; su función de destino de las confirmaciones la heredan las
+  dos pantallas por rol.
+
+Arrastra el ítem "Inicio" del menú del odontólogo (`/` → `/inicio`) y el destino de los formularios
+de administración que hoy vuelven a `/` con su mensaje en `location.state`.
+
+### 18. Las decisiones de T-27 (23/08/2026)
+
+**Las decisiones de alcance y contrato, tomadas por el desarrollador antes de implementar.** T-27
+llegaba con cinco puntos que ninguna fuente definía; se resolvieron así y **los tres cambios de
+contrato quedaron en `spec.md`**, no solo acá:
+
+1. **`GET /api/v1/dashboard` (ODONTOLOGO) es nuevo y no estaba en la spec.** §5.7 solo definía el
+   del laboratorio. Sin una lectura del backend, "el panel muestra sus contadores" no era
+   verificable, porque §8 prohíbe calcularlos en el cliente. Mismo criterio que `GET /perfil` en
+   T-32b y `/odontologos/activos` en T-33b. **Documentado en §5.7 y en la tabla de §7.**
+2. **"Entregadas esta semana" se cuenta por el pasaje a `ENTREGADO` del historial**, porque `orden`
+   no tiene fecha de entrega real, con la semana calendario de lunes a domingo y rango semiabierto.
+   **El corte va en la zona horaria del laboratorio, no en UTC** (ver decisión 4 de abajo).
+3. **"En curso" excluye `LISTO`.** Los cuatro contadores **no son una partición** —"urgentes
+   activas" ya se solapa con cualquier definición de en curso, y "entregadas esta semana" es
+   histórico, no un estado—, así que no hay ningún total que preservar. Lo decisivo es la lectura:
+   CU-02 pone "en curso" y "listos para retirar" uno al lado del otro, y si un trabajo listo
+   apareciera en los dos, quien lee "3 en curso, 1 listo" no sabría si tiene 3 o 4 trabajos
+   abiertos. **Terminal se lee de `es_terminal` y `LISTO` de su código**, ambos de la tabla.
+4. **Los bloques de resumen traen 5 filas**, en una constante con su referencia. No son listados
+   paginados de §8.1.
+5. **CU-12 es el mismo endpoint con `?historico=true`**, no uno nuevo: es el mismo listado del
+   mismo dueño con una condición más, y duplicar la ruta duplicaría RN-01. **El filtro entre
+   ENTREGADO y CANCELADO reutiliza el `estado` que ya existía**; no se inventó un parámetro.
+   Terminal sale de `es_terminal`. **Documentado en §5.3.**
+
+**Las decisiones de implementación:**
+
+1. **`DashboardController` y `AdminDashboardController` van separados.** Mismo criterio que fijó
+   T-26 entre `OrdenController` y `AdminOrdenController`: dos vistas con reglas opuestas, cada una
+   con su ruta y su autorización, que es lo que hace evidente cuál es cuál.
+2. **Las vistas se leen con consulta nativa y proyección de interfaz, sin `@Entity`.** Mapearlas
+   como entidad las volvería escribibles y pondría a `ddl-auto: validate` a vigilar una tabla que
+   no existe. **Los alias van entrecomillados** (`AS "estadoCodigo"`): PostgreSQL pasa a minúsculas
+   los que no lo estén y la proyección dejaría de mapear en silencio.
+3. **`MapeadorOrden` se extrajo de `OrdenService`.** Lo necesitan dos services del módulo, y
+   `identificacionPaciente` es el único punto donde se aplica RN-22 a un listado: duplicarlo era
+   duplicar esa regla. De paso `OrdenService` bajó de 237 a 213 líneas.
+4. **La zona horaria vive en `app.laboratorio.zona-horaria` / `LAB_ZONA_HORARIA`**, aislada en
+   `SemanaLaboratorio`. **Obligatoria en `prod`, sin default**, y documentada en la **§1.2 nueva**
+   de `spec.md` junto a las properties de Telegram: es configuración de instalación que setea el
+   desarrollador, no el agente, igual que P-20.
+5. **`TablaPaginada` se extendió en vez de crear una tabla propia de los paneles** (§8.1 Regla 4,
+   `Agente.md` §6.2): sin `onCambiarPagina` no dibuja controles. Los bloques de resumen son 5 filas
+   cerradas, y una paginación de una sola página sería un control que no lleva a ningún lado.
+6. **"Cerrar sesión" subió al encabezado compartido** (`BotonCerrarSesion`). Vivía solo en la
+   pantalla `Inicio` de `/`, que esta tarea retira; sin moverlo, **CU-14 se quedaba sin interfaz**
+   salvo en la pantalla de cambio de contraseña obligatorio. Mismo razonamiento con el que T-23
+   puso ahí la campana.
+7. **El alta de odontólogo vuelve a `/admin`**, no a `/`: el `location.state` con la confirmación
+   no sobrevive a un redirect. Es un destino intermedio (ver puntos abiertos).
+8. **El selector del historial se alimenta de `esTerminal` del catálogo**, la misma fuente que usa
+   el backend. Si mañana otra etapa se marca terminal, aparece sola.
+9. **La barra de la distribución es proporcional al mayor valor de la serie.** Es presentación: la
+   cifra se muestra al lado tal como la devolvió el backend, sin recomponer.
+
 ### Puntos abiertos (no son decisiones, son deudas)
 
 - ~~**El `ordenId` de la campana es enlace solo para ODONTOLOGO.**~~ — **cerrado el 23/08/2026 por
@@ -541,14 +633,14 @@ dashboard, y dejarlo en una nota interna garantizaría que se redescubra.
   odontólogo se montó con los cuatro ítems de §8 y **sin "Nueva orden"**; el alta vive solo en
   `/admin/ordenes/nueva`, con enlace únicamente para las cuentas de administración.
 
-- **`/historial` es hoy una `PantallaPendiente`**, no la pantalla de CU-12: dice "Disponible
-  próximamente" y no tiene ninguna funcionalidad. **T-27 la reemplaza por el historial del
-  odontólogo.** El componente `shared/components/PantallaPendiente` está para el mismo caso en
-  cualquier otro ítem de menú cuya pantalla llegue después.
+- ~~**`/historial` es hoy una `PantallaPendiente`**~~ — **resuelto el 23/08/2026 por T-27**: la
+  ruta es el historial de CU-12, con `?historico=true` y filtro entre entregadas y canceladas. El
+  componente `shared/components/PantallaPendiente` sigue en pie para los dos ítems de menú cuya
+  pantalla llega después (`/admin/odontologos` y `/admin/configuracion`).
 
 - ~~**El menú del admin de §8 todavía no se montó.**~~ — **montado el 23/08/2026 por T-26**, con los
-  seis ítems. **Tres de sus destinos siguen siendo `PantallaPendiente`** y hay que reemplazarlos:
-  **Dashboard** (`/admin`, T-27), **Odontólogos** (`/admin/odontologos`, T-28) y **Configuración**
+  seis ítems. **Dashboard** (`/admin`) lo reemplazó T-27; quedan **dos** destinos en
+  `PantallaPendiente`: **Odontólogos** (`/admin/odontologos`, T-28) y **Configuración**
   (`/admin/configuracion`, **T-34**).
 - **`/admin/odontologos/nuevo` solo es alcanzable desde una solicitud.** No se le agregó enlace en
   el inicio: el botón "Nuevo" pertenece al listado de CU-11, que construye **T-28**. Hasta entonces,
@@ -577,16 +669,14 @@ dashboard, y dejarlo en una nota interna garantizaría que se redescubra.
   `ORDEN_URGENTE` de una orden real. Sigue sin probarse en una corrida el **desvincular** (criterio 3
   de §6.5), que está cubierto por tests.
 
-- **`/inicio` de §8 no existe: hoy la ruta es `/`, un inicio genérico para cualquier rol.** §8 le
-  asigna `/inicio` al **panel del odontólogo** (CU-02), pero lo que hay en `/` es una pantalla que
-  saluda por nombre y rol y sirve de destino para las confirmaciones. **Definirlo es de T-27**, que
-  construye ese panel, y la decisión arrastra tres cosas: a dónde apunta el ítem "Inicio" del menú
-  del odontólogo, qué ve el administrador en `/`, y a dónde vuelven los formularios que hoy caen
-  ahí. **No resolverlo por partes:** o `/` pasa a ser el panel por rol, o `/inicio` se crea aparte.
+- ~~**`/inicio` de §8 no existe: hoy la ruta es `/`, un inicio genérico para cualquier rol.**~~ —
+  **decidido por el desarrollador el 23/08/2026, antes de implementar T-27** (ver decisión 17).
 
-- **El alta de odontólogo todavía vuelve a `/` con su confirmación.** El alta de orden ya vuelve al
-  listado (T-26, §8.1 Regla 1); **T-28 tiene que hacer lo mismo con `/admin/odontologos`** cuando
-  construya ese listado, y mostrar ahí el mensaje que hoy se ve en el inicio.
+- **El alta de odontólogo vuelve a `/admin` con su confirmación**, que la muestra el dashboard.
+  Cambió de `/` a `/admin` en T-27 porque el `location.state` no sobrevive al redirect por rol, pero
+  **sigue siendo un destino intermedio**: el alta de orden ya vuelve a su listado (T-26, §8.1
+  Regla 1) y **T-28 tiene que hacer lo mismo con `/admin/odontologos`** cuando lo construya,
+  mostrando ahí el mensaje que hoy se ve en el dashboard.
 
 - **Deuda de spec (T-32):** §6.4 valida CU-21 contra `configuracion_notificacion.telegram_chat_id`
   (chat del laboratorio), mientras que el envío real usa `usuario.telegram_chat_id` (D-21, §6.3).
@@ -605,7 +695,7 @@ dashboard, y dejarlo en una nota interna garantizaría que se redescubra.
 ```
 T-29 ✅ → T-18 ✅ → T-19 ✅ → T-20 ✅ → T-33a ✅ → T-21 ✅ → T-22 ✅ → T-23 ✅
      → T-30 ✅ → T-31 ✅ → T-32 ✅ → T-32b ✅ → T-33b ✅
-     → T-25 ✅ → T-26 ✅ → [T-27] → T-34 → T-28
+     → T-25 ✅ → T-26 ✅ → T-27 ✅ → [T-34] → T-28
 ```
 
 Es el orden de `Plan.md`, que **no** sigue la numeración de los bloques. `T-24` fue eliminada

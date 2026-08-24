@@ -8,15 +8,15 @@ import estilos from './Menu.module.css';
  *   CU-09 original queda documentado por P-19, no eliminado del análisis.
  * - **Sin "Mensajes"**: D-11 pospuso la mensajería.
  *
- * `Inicio` apunta a `/`, que hoy es un inicio genérico; el panel del odontólogo (CU-02) e
- * `Historial` (CU-12) son pantallas de T-27, y el ítem las espera.
+ * `Inicio` apunta a `/inicio`, que es la ruta que §8 le asigna al panel del odontólogo (CU-02).
+ * Apuntaba a `/` mientras esa pantalla no existía; desde T-27, `/` solo redirige según el rol.
  */
 export default function MenuOdontologo() {
   const clase = ({ isActive }) => (isActive ? `${estilos.enlace} ${estilos.activo}` : estilos.enlace);
 
   return (
     <>
-      <NavLink to="/" end className={clase}>
+      <NavLink to="/inicio" className={clase}>
         Inicio
       </NavLink>
       <NavLink to="/ordenes" className={clase}>

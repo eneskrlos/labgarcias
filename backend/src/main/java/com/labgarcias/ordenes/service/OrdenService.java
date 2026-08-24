@@ -47,6 +47,7 @@ public class OrdenService {
     private final FabricaOrden fabricaOrden;
     private final OrdenArchivoService ordenArchivoService;
     private final UsuarioService usuarioService;
+    private final MapeadorOrden mapeadorOrden;
     private final ApplicationEventPublisher eventos;
 
     public OrdenService(OrdenRepository ordenRepository,
@@ -57,6 +58,7 @@ public class OrdenService {
                         FabricaOrden fabricaOrden,
                         OrdenArchivoService ordenArchivoService,
                         UsuarioService usuarioService,
+                        MapeadorOrden mapeadorOrden,
                         ApplicationEventPublisher eventos) {
         this.ordenRepository = ordenRepository;
         this.historialRepository = historialRepository;
@@ -66,6 +68,7 @@ public class OrdenService {
         this.fabricaOrden = fabricaOrden;
         this.ordenArchivoService = ordenArchivoService;
         this.usuarioService = usuarioService;
+        this.mapeadorOrden = mapeadorOrden;
         this.eventos = eventos;
     }
 
@@ -92,12 +95,19 @@ public class OrdenService {
      * CU-03/§5.3: las órdenes del odontólogo autenticado. El id del dueño llega como argumento
      * desde el token, nunca como parámetro de la petición (RN-01): no hay forma de pedir las
      * órdenes de otro. El filtro por estado es opcional y compara contra estado.codigo.
+     *
+     * CU-12: `historico` acota el listado a las órdenes ya cerradas —las de estado terminal—, que
+     * es lo que muestra la pantalla de historial. No es un endpoint aparte porque es el mismo
+     * recurso con un filtro más, y el filtro entre ENTREGADO y CANCELADO lo hace el `estado` que
+     * ya existía.
      */
     @Transactional(readOnly = true)
-    public PaginaResponse<OrdenListadoResponse> listarMisOrdenes(Long odontologoId, String estado, Pageable pageable) {
+    public PaginaResponse<OrdenListadoResponse> listarMisOrdenes(Long odontologoId, String estado,
+                                                                 boolean historico, Pageable pageable) {
         ValidadorPaginacion.validarTamano(pageable.getPageSize());
-        return PaginaResponse.de(
-                ordenRepository.buscarDelOdontologo(odontologoId, estado, pageable).map(this::aItemDeListado));
+        return PaginaResponse.de(ordenRepository
+                .buscarDelOdontologo(odontologoId, estado, historico, pageable)
+                .map(mapeadorOrden::aItemDeListado));
     }
 
     /**
@@ -118,7 +128,7 @@ public class OrdenService {
         ValidadorPaginacion.validarTamano(pageable.getPageSize());
         return PaginaResponse.de(ordenRepository
                 .buscarParaAdministracion(estado, tipoOrdenDe(tipoOrden), odontologoId, pageable)
-                .map(this::aItemDeListado));
+                .map(mapeadorOrden::aItemDeListado));
     }
 
     /**
@@ -159,7 +169,7 @@ public class OrdenService {
         return new OrdenDetalleResponse(
                 orden.getId(),
                 orden.getCodigo(),
-                identificacionPaciente(orden),
+                mapeadorOrden.identificacionPaciente(orden),
                 // RN-22: el nombre del paciente solo viaja al laboratorio, que lo necesita para operar.
                 esAdministrador ? orden.getPacienteNombre() : null,
                 orden.getTipoTrabajo().getNombre(),
@@ -187,19 +197,6 @@ public class OrdenService {
                 .orElse(null);
     }
 
-    private OrdenListadoResponse aItemDeListado(Orden orden) {
-        return new OrdenListadoResponse(
-                orden.getId(),
-                orden.getCodigo(),
-                identificacionPaciente(orden),
-                orden.getTipoTrabajo().getNombre(),
-                orden.getTipoOrden().getNombre(),
-                orden.getEstado().getNombre(),
-                orden.getFechaIngreso(),
-                orden.getFechaEstimadaEntrega(),
-                orden.getPrecioTotal());
-    }
-
     private EtapaSeguimientoResponse aEtapa(OrdenHistorialEstado etapa) {
         Usuario autor = etapa.getUsuario();
         return new EtapaSeguimientoResponse(
@@ -207,11 +204,6 @@ public class OrdenService {
                 etapa.getFechaHora(),
                 // §5.1 paso 9: el registro inicial lo asigna el sistema y no tiene autor.
                 autor == null ? null : autor.getNombreCompleto());
-    }
-
-    /** RN-03/RN-22: al paciente se lo identifica por iniciales y código, nunca por su nombre. */
-    private String identificacionPaciente(Orden orden) {
-        return orden.getPacienteIniciales() + " - Caso #" + orden.getPacienteCodigo();
     }
 
     private RecursoNoEncontradoException ordenNoEncontrada() {
@@ -223,7 +215,7 @@ public class OrdenService {
         return new OrdenResponse(
                 orden.getId(),
                 orden.getCodigo(),
-                identificacionPaciente(orden),
+                mapeadorOrden.identificacionPaciente(orden),
                 orden.getTipoTrabajo().getNombre(),
                 orden.getTipoOrden().getNombre(),
                 orden.getEstado().getNombre(),

@@ -4,13 +4,20 @@ import { apiFetch, apiFetchArchivo } from '../../shared/api/cliente';
  * CU-03/§5.3: las órdenes **del usuario autenticado**. El backend filtra por el token: acá no
  * hay ni puede haber un id de odontólogo (RN-01). `estado` es opcional y también lo resuelve el
  * backend; nunca se filtra sobre una colección ya traída (Agente.md 6.2).
+ *
+ * CU-12: con `historico` el backend deja solo las órdenes cerradas —las de estado terminal—, que
+ * es lo que consume la pantalla de historial. Es el mismo endpoint con un filtro más, así que se
+ * consume con la misma función.
  */
-export function listarMisOrdenes({ pagina, tamano, estado }) {
+export function listarMisOrdenes({ pagina, tamano, estado, historico = false }) {
   const parametros = new URLSearchParams();
   parametros.set('page', String(pagina));
   parametros.set('size', String(tamano));
   if (estado) {
     parametros.set('estado', estado);
+  }
+  if (historico) {
+    parametros.set('historico', 'true');
   }
   return apiFetch(`/ordenes?${parametros.toString()}`);
 }

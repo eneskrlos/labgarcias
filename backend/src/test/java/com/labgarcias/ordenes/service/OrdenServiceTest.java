@@ -3,6 +3,7 @@ package com.labgarcias.ordenes.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -71,6 +72,8 @@ class OrdenServiceTest {
     private OrdenArchivoService ordenArchivoService;
     @Mock
     private UsuarioService usuarioService;
+    @Spy
+    private MapeadorOrden mapeadorOrden = new MapeadorOrden();
     @Mock
     private ApplicationEventPublisher eventos;
 
@@ -399,11 +402,11 @@ class OrdenServiceTest {
     void rn01ElListadoConsultaSiempreConElIdDelOdontologoAutenticado() {
         Pageable pagina = PageRequest.of(0, 10);
         PageImpl<Orden> resultado = new PageImpl<>(List.of(ordenCompleta()), pagina, 1);
-        when(ordenRepository.buscarDelOdontologo(ID_DUENO, null, pagina)).thenReturn(resultado);
+        when(ordenRepository.buscarDelOdontologo(ID_DUENO, null, false, pagina)).thenReturn(resultado);
 
-        PaginaResponse<OrdenListadoResponse> respuesta = ordenService.listarMisOrdenes(ID_DUENO, null, pagina);
+        PaginaResponse<OrdenListadoResponse> respuesta = ordenService.listarMisOrdenes(ID_DUENO, null, false, pagina);
 
-        verify(ordenRepository).buscarDelOdontologo(ID_DUENO, null, pagina);
+        verify(ordenRepository).buscarDelOdontologo(ID_DUENO, null, false, pagina);
         assertThat(respuesta.total()).isEqualTo(1);
         assertThat(respuesta.contenido()).hasSize(1);
     }
@@ -413,9 +416,9 @@ class OrdenServiceTest {
     void elListadoIdentificaAlPacientePorInicialesYCodigo() {
         Pageable pagina = PageRequest.of(0, 10);
         PageImpl<Orden> resultado = new PageImpl<>(List.of(ordenCompleta()), pagina, 1);
-        when(ordenRepository.buscarDelOdontologo(ID_DUENO, null, pagina)).thenReturn(resultado);
+        when(ordenRepository.buscarDelOdontologo(ID_DUENO, null, false, pagina)).thenReturn(resultado);
 
-        OrdenListadoResponse item = ordenService.listarMisOrdenes(ID_DUENO, null, pagina).contenido().get(0);
+        OrdenListadoResponse item = ordenService.listarMisOrdenes(ID_DUENO, null, false, pagina).contenido().get(0);
 
         assertThat(item.pacienteIdentificacion()).isEqualTo("M.P. - Caso #1000");
         assertThat(item.toString()).doesNotContain("Martín Pérez");
@@ -428,12 +431,37 @@ class OrdenServiceTest {
     @Test
     void elFiltroPorEstadoSePasaAlRepositorio() {
         Pageable pagina = PageRequest.of(0, 20);
-        when(ordenRepository.buscarDelOdontologo(ID_DUENO, "EN_PRODUCCION", pagina))
+        when(ordenRepository.buscarDelOdontologo(ID_DUENO, "EN_PRODUCCION", false, pagina))
                 .thenReturn(new PageImpl<>(List.of(), pagina, 0));
 
-        ordenService.listarMisOrdenes(ID_DUENO, "EN_PRODUCCION", pagina);
+        ordenService.listarMisOrdenes(ID_DUENO, "EN_PRODUCCION", false, pagina);
 
-        verify(ordenRepository).buscarDelOdontologo(ID_DUENO, "EN_PRODUCCION", pagina);
+        verify(ordenRepository).buscarDelOdontologo(ID_DUENO, "EN_PRODUCCION", false, pagina);
+    }
+
+    /** CU-12: el historial es el mismo listado con `historico`; la regla de qué es terminal la aplica la consulta. */
+    @Test
+    void cu12ElHistoricoViajaAlRepositorioJuntoConElEstado() {
+        Pageable pagina = PageRequest.of(0, 10);
+        when(ordenRepository.buscarDelOdontologo(ID_DUENO, "CANCELADO", true, pagina))
+                .thenReturn(new PageImpl<>(List.of(), pagina, 0));
+
+        ordenService.listarMisOrdenes(ID_DUENO, "CANCELADO", true, pagina);
+
+        verify(ordenRepository).buscarDelOdontologo(ID_DUENO, "CANCELADO", true, pagina);
+    }
+
+    /** CU-12/RN-01: el historial también sale del token; no hay id de odontólogo por parámetro. */
+    @Test
+    void rn01ElHistorialConsultaConElIdDelOdontologoAutenticado() {
+        Pageable pagina = PageRequest.of(0, 10);
+        PageImpl<Orden> resultado = new PageImpl<>(List.of(ordenCompleta()), pagina, 1);
+        when(ordenRepository.buscarDelOdontologo(ID_DUENO, null, true, pagina)).thenReturn(resultado);
+
+        PaginaResponse<OrdenListadoResponse> respuesta = ordenService.listarMisOrdenes(ID_DUENO, null, true, pagina);
+
+        verify(ordenRepository).buscarDelOdontologo(ID_DUENO, null, true, pagina);
+        assertThat(respuesta.contenido().get(0).pacienteIdentificacion()).isEqualTo("M.P. - Caso #1000");
     }
 
     /** spec.md §1: size solo admite 10, 20 o 30. */
@@ -441,11 +469,11 @@ class OrdenServiceTest {
     void unTamanoDePaginaNoPermitidoEsRechazado() {
         Pageable pagina = PageRequest.of(0, 15);
 
-        assertThatThrownBy(() -> ordenService.listarMisOrdenes(ID_DUENO, null, pagina))
+        assertThatThrownBy(() -> ordenService.listarMisOrdenes(ID_DUENO, null, false, pagina))
                 .isInstanceOf(ValidacionException.class)
                 .satisfies(ex -> assertThat(((ValidacionException) ex).getCodigo()).isEqualTo("TAMANO_PAGINA_INVALIDO"));
 
-        verify(ordenRepository, never()).buscarDelOdontologo(any(), any(), any());
+        verify(ordenRepository, never()).buscarDelOdontologo(any(), any(), anyBoolean(), any());
     }
 
     /** §5.7/CU-06: los tres filtros del laboratorio viajan tal cual al repositorio. */

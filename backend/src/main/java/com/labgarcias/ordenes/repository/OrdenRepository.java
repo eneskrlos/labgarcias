@@ -21,13 +21,20 @@ public interface OrdenRepository extends JpaRepository<Orden, Long> {
      * EN_PRODUCCION, ...), que es el identificador estable; el nombre es texto de pantalla.
      * El grafo trae las tres relaciones que el listado convierte a texto, para no disparar
      * tres consultas por fila.
+     *
+     * CU-12: con `historico` en true quedan solo las órdenes cerradas. Qué es "cerrada" lo dice
+     * `estado.es_terminal`, que es donde RN-04 lo define; en el código no hay ninguna lista de
+     * estados terminales. Los dos filtros se combinan: `historico=true&estado=CANCELADO` deja
+     * las canceladas. Por defecto va en false, así que "Mis trabajos" (§5.3) no cambia.
      */
     @EntityGraph(attributePaths = { "tipoTrabajo", "tipoOrden", "estado" })
     @Query("SELECT o FROM Orden o "
             + "WHERE o.odontologo.id = :odontologoId "
-            + "AND (:estado IS NULL OR o.estado.codigo = :estado)")
+            + "AND (:estado IS NULL OR o.estado.codigo = :estado) "
+            + "AND (:historico = false OR o.estado.esTerminal = true)")
     Page<Orden> buscarDelOdontologo(@Param("odontologoId") Long odontologoId,
                                     @Param("estado") String estado,
+                                    @Param("historico") boolean historico,
                                     Pageable pageable);
 
     /**

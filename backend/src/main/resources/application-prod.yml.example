@@ -46,6 +46,10 @@ telegram:
     username: ${TELEGRAM_BOT_USERNAME}
 
 app:
+  laboratorio:
+    # CU-02/CU-10: huso del laboratorio, con el que se corta "entregadas esta semana". Sin default
+    # a propósito: en producción el huso es un dato del laboratorio y no se adivina.
+    zona-horaria: ${LAB_ZONA_HORARIA}
   almacenamiento:
     # RN-13: ruta absoluta y fuera del directorio de la aplicación, para que un redespliegue
     # no se lleve puestos los adjuntos.
