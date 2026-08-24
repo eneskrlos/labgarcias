@@ -1,0 +1,36 @@
+.fila {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--espaciado-md);
+  margin-bottom: var(--espaciado-lg);
+}
+
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaciado-xs);
+  padding: var(--espaciado-md);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-borde);
+  background: var(--color-fondo-tarjeta, #fff);
+}
+
+.valor {
+  font-size: 2rem;
+  line-height: 1.1;
+  color: var(--color-primario);
+}
+
+.etiqueta {
+  font-size: 0.85rem;
+  color: var(--color-texto-tenue);
+}
+
+/* §8.1 Regla 3: el hueco ocupa lo mismo que el número, para que no salte el layout. */
+.esqueleto {
+  display: block;
+  height: 2rem;
+  width: 2.5rem;
+  border-radius: var(--radio-borde);
+  background: var(--color-borde);
+}

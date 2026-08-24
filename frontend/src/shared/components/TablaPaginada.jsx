@@ -6,6 +6,12 @@ import estilos from './TablaPaginada.module.css';
  * (cargando, vacío, error) más los controles de paginación. `cargando` debe reflejar
  * solo la carga inicial (sin datos previos); mientras se trae la página siguiente con
  * datos previos visibles, usar `actualizando` para no producir salto de layout.
+ *
+ * **Sin `onCambiarPagina` no se dibujan los controles.** Los bloques de resumen de los paneles
+ * (CU-02, CU-10) son una lista corta y cerrada —hasta 5 filas que decide el backend—, no un
+ * listado navegable: mostrarles una paginación de una sola página sería ofrecer un control que no
+ * lleva a ningún lado. Se resolvió extendiendo este componente y no con una tabla propia de esos
+ * paneles, que es lo que manda §8.1 Regla 4.
  */
 export function TablaPaginada({
   columnas,
@@ -86,13 +92,15 @@ export function TablaPaginada({
 
       {actualizando && <p className={estilos.actualizando}>Actualizando...</p>}
 
-      <ControlesPaginacion
-        pagina={pagina}
-        tamano={tamano}
-        totalPaginas={totalPaginas}
-        onCambiarPagina={onCambiarPagina}
-        onCambiarTamano={onCambiarTamano}
-      />
+      {onCambiarPagina && (
+        <ControlesPaginacion
+          pagina={pagina}
+          tamano={tamano}
+          totalPaginas={totalPaginas}
+          onCambiarPagina={onCambiarPagina}
+          onCambiarTamano={onCambiarTamano}
+        />
+      )}
     </div>
   );
 }

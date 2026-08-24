@@ -8,8 +8,12 @@ import { crearOdontologo } from './api';
 const VALORES_INICIALES = { nombreCompleto: '', correo: '', nombreUsuario: '', direccion: '', telefono: '' };
 const CAMPOS_CONOCIDOS = ['nombreCompleto', 'correo', 'nombreUsuario', 'direccion', 'telefono'];
 
-/** Sin listado de odontólogos todavía (CU-11 es de otra tarea): el alta directa vuelve al inicio. */
-const DESTINO_POR_DEFECTO = '/';
+/**
+ * Sin listado de odontólogos todavía (CU-11 es de T-28): el alta directa vuelve al dashboard, que
+ * es donde se muestra la confirmación. Apuntaba a `/` hasta que T-27 convirtió esa ruta en un
+ * redirect por rol: el `location.state` con el mensaje no sobrevive a un redirect.
+ */
+const DESTINO_POR_DEFECTO = '/admin';
 
 /**
  * D-18/§3.1.b: el administrador da de alta la cuenta de un odontólogo.

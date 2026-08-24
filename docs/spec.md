@@ -486,9 +486,21 @@ Resuelve el caso operativo de un archivo cargado por error. **El odontólogo no 
 
 ### 5.3 Listar mis órdenes — CU-03 / RN-01
 
-`GET /api/v1/ordenes?estado=&page=&size=` · rol `ODONTOLOGO`
+`GET /api/v1/ordenes?estado=&historico=&page=&size=` · rol `ODONTOLOGO`
 
 **Filtra siempre por el usuario autenticado.** El id de odontólogo **no** se acepta como parámetro.
+
+**`historico`** *(agregado el 23/08/2026 por el desarrollador, con T-27)* — `true` deja solo las
+órdenes ya cerradas, que es lo que consume el historial de CU-12 (§8). Por defecto es `false` y el
+listado se comporta como siempre.
+
+- **"Cerrada" es lo que dice `estado.es_terminal`**, que es donde RN-04 define el fin del flujo —
+  hoy `ENTREGADO` y `CANCELADO`. No hay ninguna lista de estados terminales escrita en el código:
+  si el catálogo marca otra etapa como terminal, el historial la incluye sola.
+- **El filtro entre entregadas y canceladas es el `estado` que ya existía**, no un parámetro nuevo:
+  `?historico=true&estado=CANCELADO` deja las canceladas. Los dos filtros se combinan.
+- Va como filtro del mismo endpoint y no como recurso aparte porque es **el mismo listado del mismo
+  dueño** con una condición más; duplicar la ruta duplicaría también RN-01.
 
 **Respuesta por ítem** — nunca `pacienteNombre`:
 ```json
@@ -593,6 +605,58 @@ RECIBIDO → EN_EVALUACION → EN_PRODUCCION → CONTROL_CALIDAD → LISTO → E
 
 **Órdenes urgentes:** vista `v_ordenes_urgentes`.
 
+**RN-22 en el bloque de urgentes:** `v_ordenes_urgentes` **incluye `paciente_nombre`** y la
+respuesta **no lo expone**, igual que ningún otro listado (`Agente.md` §8.2). La consulta ni
+siquiera lo selecciona. El laboratorio ve ese dato solo en el detalle de la orden (§5.4).
+
+#### Panel del odontólogo — CU-02
+
+*(Agregado el 23/08/2026 por el desarrollador, con T-27.)*
+
+`GET /api/v1/dashboard` · rol `ODONTOLOGO` devuelve:
+- Contadores: en curso, listas para retirar, entregadas esta semana.
+- Órdenes recientes.
+
+**RN-01:** el dueño sale del token y el endpoint **no acepta ningún parámetro**, así que no hay
+forma de pedir el panel de otro. **RN-22:** las órdenes recientes identifican al paciente por
+iniciales y código.
+
+**No devuelve el contador de "mensajes nuevos"** que enumera CU-02: D-11 pospuso la mensajería.
+
+Existe porque §8 prohíbe que el cliente calcule nada y sin él "el panel muestra sus contadores" no
+sería verificable — el mismo criterio con el que T-32b creó `GET /perfil`.
+
+#### Definiciones de los contadores
+
+Valen para los dos paneles. Ninguna estaba en la spec y las fijó el desarrollador el 23/08/2026:
+
+- **En curso:** órdenes con `estado.es_terminal = false` **y estado distinto de `LISTO`**. Se
+  excluye `LISTO` para que "en curso" y "listas para retirar" no cuenten dos veces el mismo
+  trabajo: si un trabajo listo apareciera en los dos, quien lee "3 en curso, 1 listo" no sabría si
+  tiene 3 o 4 trabajos abiertos.
+- **Listas para retirar:** órdenes en la etapa `LISTO`.
+- **Entregadas esta semana:** órdenes cuyo **pasaje a `ENTREGADO` en `orden_historial_estado`**
+  cayó en la semana en curso. La tabla `orden` no tiene fecha de entrega real, así que el dato solo
+  existe en el historial. La semana es la calendario, **de lunes a domingo**, y el rango es
+  semiabierto `[lunes 00:00, lunes siguiente 00:00)`.
+  - **El corte se calcula en la zona horaria del laboratorio, no en UTC.** `fecha_hora` es
+    `TIMESTAMPTZ`: con el corte en UTC, un trabajo entregado el domingo a las 21:00 en Montevideo
+    caería en la semana siguiente. La zona vive en **`app.laboratorio.zona-horaria`**
+    (`America/Montevideo` por defecto), nunca escrita en el código.
+- **Urgentes activas** *(solo el dashboard del laboratorio)*: las filas de `v_ordenes_urgentes`,
+  que ya define urgente activa como tipo `URGENTE` con estado no terminal. **Se solapa a propósito
+  con "en curso"**: es el mismo conjunto mirado por otro corte.
+
+Los cuatro **no forman una partición** y no se pretende que sumen un total.
+
+#### Bloques de resumen
+
+"Próximas a entregar", "órdenes recientes" y "urgentes" traen **hasta 5 filas** cada uno. **No son
+listados paginados de §8.1**: el panel es un vistazo, y quien quiera la lista completa va a "Mis
+trabajos" (§5.3) o a "Órdenes" (§5.7). "Recientes" ordena por `fecha_ingreso` descendente.
+
+**Sin reportes ni estadísticas** más allá de estos contadores: CU-13 es Fase 4.
+
 ---
 
 ## 6. Módulo Notificaciones
@@ -690,8 +754,13 @@ Un bot de Telegram **no puede iniciar** una conversación: el usuario debe escri
 | PATCH | `/api/v1/usuarios/{id}/estado` | SUPERADMIN | CU-17 |
 | GET | `/api/v1/perfil` | autenticado | — |
 | PUT | `/api/v1/perfil` | autenticado | — |
+| GET | `/api/v1/dashboard` | ODONTOLOGO — **sin parámetros** (RN-01) | CU-02 |
+| GET | `/api/v1/admin/dashboard` | ADMIN, SUPERADMIN | CU-10 |
 
 En `/perfil` el usuario edita `nombreCompleto` y `direccion`. **No** puede cambiar su rol ni su correo.
+
+> **Los dos paneles se especifican en §5.7**, que es donde vive el contenido de CU-10 y donde se
+> agregó el de CU-02. Figuran acá porque esta tabla es el índice de endpoints del sistema.
 
 > **Los dos listados de odontólogos son distintos y conviven.** `/odontologos` es la tabla administrable de CU-11: paginada (§8.1 Regla 2), con los datos de cada cuenta y acciones sobre ella. `/odontologos/activos` alimenta el **selector** de odontólogo al registrar una orden (§5.1, D-19): sin paginar —por la exención de §4—, solo cuentas `ACTIVA`, y devuelve únicamente `id` y `nombreCompleto`, que es lo único que un selector necesita.
 

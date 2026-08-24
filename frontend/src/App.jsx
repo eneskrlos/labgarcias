@@ -1,16 +1,15 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { SesionProvider, useSesion } from './shared/hooks/useSesion';
 import { RutaProtegida } from './shared/components/RutaProtegida';
 import { LayoutAutenticado } from './shared/components/LayoutAutenticado';
 import { PantallaPendiente } from './shared/components/PantallaPendiente';
-import { logout } from './features/auth/api';
 import Login from './features/auth/Login';
 import Bloqueado from './features/auth/Bloqueado';
 import SolicitarAcceso from './features/auth/SolicitarAcceso';
 import SolicitudesListado from './features/auth/SolicitudesListado';
 import CambiarPassword from './features/auth/CambiarPassword';
+import BotonCerrarSesion from './features/auth/BotonCerrarSesion';
 import OdontologoFormulario from './features/auth/OdontologoFormulario';
 import Campana from './features/notificaciones/Campana';
 import Perfil from './features/perfil/Perfil';
@@ -21,6 +20,9 @@ import MenuOdontologo from './features/ordenes/MenuOdontologo';
 import MenuAdmin from './features/ordenes/MenuAdmin';
 import OrdenesAdmin from './features/ordenes/OrdenesAdmin';
 import OrdenDetalleAdmin from './features/ordenes/OrdenDetalleAdmin';
+import HistorialOrdenes from './features/ordenes/HistorialOrdenes';
+import PanelOdontologo from './features/dashboard/PanelOdontologo';
+import DashboardAdmin from './features/dashboard/DashboardAdmin';
 import TiposTrabajoListado from './features/catalogos/TiposTrabajoListado';
 import TipoTrabajoFormulario from './features/catalogos/TipoTrabajoFormulario';
 
@@ -42,42 +44,33 @@ function PantallaAutenticada({ rolesPermitidos, children }) {
 
   return (
     <RutaProtegida rolesPermitidos={rolesPermitidos}>
-      <LayoutAutenticado acciones={<Campana />} navegacion={navegacion}>
+      <LayoutAutenticado
+        acciones={
+          <>
+            <Campana />
+            <BotonCerrarSesion />
+          </>
+        }
+        navegacion={navegacion}
+      >
         {children}
       </LayoutAutenticado>
     </RutaProtegida>
   );
 }
 
-function Inicio() {
-  const { usuario, cerrarSesion } = useSesion();
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const salir = async () => {
-    try {
-      await logout();
-    } catch {
-      // CU-14: el cierre de sesión es stateless; si la llamada falla, igual se limpia localmente.
-    }
-    cerrarSesion();
-    navigate('/login');
-  };
-
-  return (
-    <div className="contenedor">
-      <h1>Inicio</h1>
-      {/* §8.1 Regla 1: los formularios vuelven acá con su confirmación mientras no exista el
-          listado al que deberían volver. */}
-      {location.state?.mensaje && <p role="status">{location.state.mensaje}</p>}
-      <p>
-        Hola, {usuario.nombreCompleto} ({usuario.rol})
-      </p>
-      {/* La navegación vive en el menú de §8 del encabezado, uno por rol. Repetirla acá sería
-          mantener dos listas de enlaces que se desincronizan. */}
-      <button type="button" onClick={salir}>Cerrar sesión</button>
-    </div>
-  );
+/**
+ * §8: `/` deja de ser un inicio genérico y manda a cada rol a su panel — el odontólogo a
+ * `/inicio` (CU-02) y la administración a `/admin` (CU-10).
+ *
+ * §8 le asigna `/inicio` al panel del odontólogo y ninguna de sus dieciocho pantallas es
+ * compartida entre roles, así que una pantalla común en `/` no correspondía a nada de la spec.
+ * Va fuera de `PantallaAutenticada` a propósito: montar el layout para redirigir enseguida haría
+ * parpadear el encabezado.
+ */
+function InicioSegunRol() {
+  const { usuario } = useSesion();
+  return <Navigate to={usuario.rol === ROL_ODONTOLOGO ? '/inicio' : '/admin'} replace />;
 }
 
 function App() {
@@ -90,11 +83,21 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/solicitar-acceso" element={<SolicitarAcceso />} />
             <Route path="/bloqueado" element={<Bloqueado />} />
+            {/* §8: la raíz redirige según el rol; ningún usuario queda en una pantalla compartida. */}
             <Route
               path="/"
               element={
-                <PantallaAutenticada>
-                  <Inicio />
+                <RutaProtegida>
+                  <InicioSegunRol />
+                </RutaProtegida>
+              }
+            />
+            {/* CU-02: el panel del odontólogo, en la ruta que le asigna §8. */}
+            <Route
+              path="/inicio"
+              element={
+                <PantallaAutenticada rolesPermitidos={[ROL_ODONTOLOGO]}>
+                  <PanelOdontologo />
                 </PantallaAutenticada>
               }
             />
@@ -133,27 +136,21 @@ function App() {
                 </PantallaAutenticada>
               }
             />
-            {/* §8: el ítem del menú existe desde T-25; la pantalla de CU-12 la construye T-27. */}
+            {/* CU-12: los trabajos ya cerrados del odontólogo. El backend decide cuáles con `historico`. */}
             <Route
               path="/historial"
               element={
                 <PantallaAutenticada rolesPermitidos={[ROL_ODONTOLOGO]}>
-                  <PantallaPendiente
-                    titulo="Historial"
-                    detalle="Vas a poder consultar acá tus trabajos entregados y cancelados."
-                  />
+                  <HistorialOrdenes />
                 </PantallaAutenticada>
               }
             />
-            {/* CU-10: el panel del laboratorio es de T-27; el ítem del menú ya existe. */}
+            {/* CU-10/§5.7: el dashboard del laboratorio. */}
             <Route
               path="/admin"
               element={
                 <PantallaAutenticada rolesPermitidos={ROLES_ADMIN}>
-                  <PantallaPendiente
-                    titulo="Dashboard"
-                    detalle="Vas a ver acá los contadores del laboratorio y los trabajos próximos a entregar."
-                  />
+                  <DashboardAdmin />
                 </PantallaAutenticada>
               }
             />

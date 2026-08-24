@@ -510,6 +510,22 @@ dashboard, y dejarlo en una nota interna garantizaría que se redescubra.
 6. **Los enlaces sueltos del inicio se retiraron.** La navegación es el menú de §8, uno por rol;
    mantener dos listas de enlaces las desincroniza.
 
+### 17. `/inicio` es del odontólogo y `/` redirige por rol (23/08/2026)
+
+**Decisión del desarrollador, tomada antes de implementar T-27.** Cierra el punto abierto que había
+dejado T-26 y que la ficha de T-27 arrastraba:
+
+- **`/inicio` es la ruta del panel del odontólogo (CU-02)**, como manda §8. Se crea aparte, no se
+  reusa `/`.
+- **`/` deja de ser un inicio genérico y redirige según el rol:** `ODONTOLOGO` → `/inicio`,
+  `ADMIN` y `SUPERADMIN` → `/admin`.
+- **Ningún usuario queda en una pantalla compartida.** La pantalla `Inicio` que hoy vive en `App.jsx`
+  —saludo por nombre y rol— desaparece; su función de destino de las confirmaciones la heredan las
+  dos pantallas por rol.
+
+Arrastra el ítem "Inicio" del menú del odontólogo (`/` → `/inicio`) y el destino de los formularios
+de administración que hoy vuelven a `/` con su mensaje en `location.state`.
+
 ### Puntos abiertos (no son decisiones, son deudas)
 
 - ~~**El `ordenId` de la campana es enlace solo para ODONTOLOGO.**~~ — **cerrado el 23/08/2026 por
@@ -577,12 +593,8 @@ dashboard, y dejarlo en una nota interna garantizaría que se redescubra.
   `ORDEN_URGENTE` de una orden real. Sigue sin probarse en una corrida el **desvincular** (criterio 3
   de §6.5), que está cubierto por tests.
 
-- **`/inicio` de §8 no existe: hoy la ruta es `/`, un inicio genérico para cualquier rol.** §8 le
-  asigna `/inicio` al **panel del odontólogo** (CU-02), pero lo que hay en `/` es una pantalla que
-  saluda por nombre y rol y sirve de destino para las confirmaciones. **Definirlo es de T-27**, que
-  construye ese panel, y la decisión arrastra tres cosas: a dónde apunta el ítem "Inicio" del menú
-  del odontólogo, qué ve el administrador en `/`, y a dónde vuelven los formularios que hoy caen
-  ahí. **No resolverlo por partes:** o `/` pasa a ser el panel por rol, o `/inicio` se crea aparte.
+- ~~**`/inicio` de §8 no existe: hoy la ruta es `/`, un inicio genérico para cualquier rol.**~~ —
+  **decidido por el desarrollador el 23/08/2026, antes de implementar T-27** (ver decisión 17).
 
 - **El alta de odontólogo todavía vuelve a `/` con su confirmación.** El alta de orden ya vuelve al
   listado (T-26, §8.1 Regla 1); **T-28 tiene que hacer lo mismo con `/admin/odontologos`** cuando
