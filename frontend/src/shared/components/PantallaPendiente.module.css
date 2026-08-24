@@ -1,0 +1,13 @@
+.pantalla {
+  padding: var(--espaciado-lg) var(--espaciado-md);
+}
+
+.aviso {
+  font-weight: 600;
+}
+
+.detalle {
+  color: var(--color-texto-tenue);
+  font-size: 0.9rem;
+  margin-bottom: var(--espaciado-md);
+}

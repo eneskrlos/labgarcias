@@ -48,7 +48,8 @@ function renderizar() {
       <MemoryRouter initialEntries={['/admin/ordenes/nueva']}>
         <Routes>
           <Route path="/admin/ordenes/nueva" element={<OrdenFormulario />} />
-          <Route path="/" element={<Destino />} />
+          {/* §8.1 Regla 1: al guardar y al cancelar se vuelve al listado, que existe desde T-26. */}
+          <Route path="/admin/ordenes" element={<Destino />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -97,8 +98,8 @@ describe('OrdenFormulario', () => {
     });
   });
 
-  /** §8.1 Regla 1: al guardar se vuelve al origen con confirmación. */
-  it('al guardar vuelve al inicio con la confirmación de la orden', async () => {
+  /** §8.1 Regla 1: al guardar se vuelve al listado con confirmación. */
+  it('al guardar vuelve al listado con la confirmación de la orden', async () => {
     renderizar();
     await completarFormulario();
 

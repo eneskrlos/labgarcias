@@ -517,6 +517,16 @@ Incluye los datos del listado más `descripcion`, `precioBase`, `recargoUrgencia
 
 El `ADMIN` sí recibe `pacienteNombre` (lo necesita para operar); el `ODONTOLOGO` **no** (RN-22).
 
+**`siguienteEstado`** *(agregado el 23/08/2026 por el desarrollador, con T-26)* — la única transición que la orden admite en ese momento, con `codigo` y `nombre`:
+
+```json
+{ "siguienteEstado": { "codigo": "CONTROL_CALIDAD", "nombre": "Control de calidad" } }
+```
+
+- **Es `null` cuando no hay transición posible**, que es el caso de los estados terminales `ENTREGADO` y `CANCELADO`.
+- Lo calcula el backend con la regla de RN-04 —`orden_secuencia` inmediatamente superior—, la misma que valida §5.5. **§8 lo exige así:** *"ningún cálculo de negocio en el cliente: precios, fechas y transiciones vienen del backend"*. Con esto la pantalla de administración dibuja su botón de avance sin reimplementar RN-04.
+- Viaja el **nombre** además del código porque `estado.nombre` es editable (CU-22): derivarlo del código en el cliente rompería la pantalla al renombrar una etapa.
+
 **Criterios de aceptación**
 1. La línea de tiempo muestra cada etapa con fecha y hora.
 2. Un odontólogo recibe 404 al pedir una orden ajena.

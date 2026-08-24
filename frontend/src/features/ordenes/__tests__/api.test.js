@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiFetch } from '../../../shared/api/cliente';
-import { crearOrden } from '../api';
+import { avanzarEstado, crearOrden, listarOrdenesAdmin } from '../api';
 
 vi.mock('../../../shared/api/cliente', () => ({
   apiFetch: vi.fn(),
@@ -32,5 +32,30 @@ describe('features/ordenes/api', () => {
 
     const cuerpo = apiFetch.mock.calls[0][1].body;
     expect(cuerpo).not.toMatch(/precio|recargo|fechaEstimada|estadoId/i);
+  });
+
+  /** §5.7: los tres filtros del laboratorio son opcionales y se combinan. */
+  it('listarOrdenesAdmin manda los filtros que recibe', () => {
+    listarOrdenesAdmin({ pagina: 1, tamano: 20, estado: 'LISTO', tipoOrden: 'URGENTE', odontologoId: 17 });
+
+    expect(apiFetch).toHaveBeenCalledWith(
+      '/admin/ordenes?page=1&size=20&estado=LISTO&tipoOrden=URGENTE&odontologoId=17',
+    );
+  });
+
+  it('listarOrdenesAdmin omite los filtros vacíos', () => {
+    listarOrdenesAdmin({ pagina: 0, tamano: 10, estado: null, tipoOrden: null, odontologoId: null });
+
+    expect(apiFetch).toHaveBeenCalledWith('/admin/ordenes?page=0&size=10');
+  });
+
+  /** §5.5: el código que se manda es el que trajo `siguienteEstado`, no uno elegido en la pantalla. */
+  it('avanzarEstado llama a PATCH /ordenes/{id}/estado con el código recibido', () => {
+    avanzarEstado(7, 'CONTROL_CALIDAD');
+
+    expect(apiFetch).toHaveBeenCalledWith('/ordenes/7/estado', {
+      method: 'PATCH',
+      body: JSON.stringify({ estadoCodigo: 'CONTROL_CALIDAD' }),
+    });
   });
 });

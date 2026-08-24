@@ -61,7 +61,16 @@ public record OrdenDetalleResponse(
         List<OrdenArchivoResponse> archivos,
 
         @Schema(description = "CU-04: etapas alcanzadas, en orden cronológico")
-        List<EtapaSeguimientoResponse> lineaTiempo
+        List<EtapaSeguimientoResponse> lineaTiempo,
+
+        /**
+         * §8: "ningún cálculo de negocio en el cliente: precios, fechas y **transiciones** vienen
+         * del backend". Con esto la pantalla de administración dibuja su botón sin reimplementar
+         * RN-04: si viene, es la única transición posible; si viene null, no hay ninguna.
+         */
+        @Schema(description = "§5.5: única transición admitida ahora. **null** cuando no hay ninguna, "
+                + "que es el caso de ENTREGADO y CANCELADO (estados terminales).")
+        EstadoSiguienteResponse siguienteEstado
 
 ) {
 }
