@@ -176,6 +176,38 @@ Ejemplo del nivel esperado:
 
 ---
 
+### 1.2 Configuración por instalación
+
+*(Agregada el 23/08/2026 por el desarrollador, con T-27.)*
+
+D-16 define una instalación y una base **por laboratorio**. Estas properties son las que cambian
+de una instalación a otra: **las setea el desarrollador al instalar, no el agente**, que es el
+mismo criterio que ya fijó P-20 para el bot de Telegram. Ninguna lleva un valor inventado en el
+código, y las obligatorias **no tienen default en `prod`**: sin ellas la aplicación no arranca, a
+propósito.
+
+| Property | Variable de entorno | Obligatoria en `prod` | Para qué |
+|---|---|---|---|
+| `app.laboratorio.zona-horaria` | `LAB_ZONA_HORARIA` | **Sí**, sin default | Corte de la semana de "entregadas esta semana" (§5.7) |
+| `telegram.bot.token` | `TELEGRAM_BOT_TOKEN` | No — sin él el canal se deshabilita | Bot API de Telegram (§6.3, P-20) |
+| `telegram.bot.username` | `TELEGRAM_BOT_USERNAME` | No — sin él la vinculación se deshabilita | Enlace profundo de vinculación (§6.5, P-20) |
+
+**`app.laboratorio.zona-horaria`** — zona IANA del laboratorio; en `dev`, `America/Montevideo` por
+defecto.
+
+- **Qué decide:** los contadores "entregadas esta semana" de los dos paneles (§5.7) cuentan el
+  pasaje a `ENTREGADO` de `orden_historial_estado`, y esa columna es `TIMESTAMPTZ`. La semana va de
+  lunes a domingo **en esta zona**.
+- **Por qué no puede quedar en UTC:** un trabajo entregado el domingo a las 21:00 en Montevideo son
+  las 00:00 del lunes en UTC, así que con el corte en UTC caería en la semana siguiente y el
+  indicador mentiría justo el día de mayor actividad.
+- **Por qué no se deduce del servidor:** el huso del sistema operativo no es un dato del negocio y
+  cambia con la máquina; el del laboratorio, no.
+- **Por qué no tiene default en `prod`:** un default sería adivinar dónde está el laboratorio. En
+  `dev` sí lo tiene porque ahí el valor no afecta a nadie.
+
+---
+
 ## 2. Constantes del dominio
 
 Definidas una sola vez, con referencia a su regla (ver `Agente.md` 6.1):
@@ -641,8 +673,8 @@ Valen para los dos paneles. Ninguna estaba en la spec y las fijó el desarrollad
   semiabierto `[lunes 00:00, lunes siguiente 00:00)`.
   - **El corte se calcula en la zona horaria del laboratorio, no en UTC.** `fecha_hora` es
     `TIMESTAMPTZ`: con el corte en UTC, un trabajo entregado el domingo a las 21:00 en Montevideo
-    caería en la semana siguiente. La zona vive en **`app.laboratorio.zona-horaria`**
-    (`America/Montevideo` por defecto), nunca escrita en el código.
+    caería en la semana siguiente. La zona vive en **`app.laboratorio.zona-horaria`**, que es
+    configuración de instalación y se documenta en **§1.2**.
 - **Urgentes activas** *(solo el dashboard del laboratorio)*: las filas de `v_ordenes_urgentes`,
   que ya define urgente activa como tipo `URGENTE` con estado no terminal. **Se solapa a propósito
   con "en curso"**: es el mismo conjunto mirado por otro corte.
