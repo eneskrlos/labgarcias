@@ -27,7 +27,8 @@ describe('MenuOdontologo', () => {
   it('cada ítem apunta a la ruta que le fija §8', () => {
     renderizar();
 
-    expect(screen.getByRole('link', { name: 'Inicio' })).toHaveAttribute('href', '/');
+    // §8 asigna `/inicio` al panel del odontólogo. Apuntaba a `/` mientras esa pantalla no existía.
+    expect(screen.getByRole('link', { name: 'Inicio' })).toHaveAttribute('href', '/inicio');
     expect(screen.getByRole('link', { name: 'Mis trabajos' })).toHaveAttribute('href', '/ordenes');
     expect(screen.getByRole('link', { name: 'Historial' })).toHaveAttribute('href', '/historial');
     expect(screen.getByRole('link', { name: 'Perfil' })).toHaveAttribute('href', '/perfil');

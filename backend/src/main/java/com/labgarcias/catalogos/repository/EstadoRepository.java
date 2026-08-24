@@ -14,4 +14,7 @@ public interface EstadoRepository extends JpaRepository<Estado, Short> {
 
     /** CU-06/CU-20: el estado destino de una transición llega identificado por su código. */
     Optional<Estado> findByCodigo(String codigo);
+
+    /** RN-04: la etapa que ocupa una posición del flujo. `CANCELADO` no tiene secuencia. */
+    Optional<Estado> findByOrdenSecuencia(Short ordenSecuencia);
 }

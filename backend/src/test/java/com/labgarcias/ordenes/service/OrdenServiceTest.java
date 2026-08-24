@@ -3,6 +3,7 @@ package com.labgarcias.ordenes.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -32,6 +33,7 @@ import com.labgarcias.catalogos.domain.CodigoTipoOrden;
 import com.labgarcias.catalogos.domain.Estado;
 import com.labgarcias.catalogos.domain.TipoOrden;
 import com.labgarcias.catalogos.domain.TipoTrabajo;
+import com.labgarcias.catalogos.service.EstadoService;
 import com.labgarcias.catalogos.service.TipoOrdenService;
 import com.labgarcias.catalogos.service.TipoTrabajoService;
 import com.labgarcias.ordenes.domain.Orden;
@@ -62,12 +64,16 @@ class OrdenServiceTest {
     private TipoTrabajoService tipoTrabajoService;
     @Mock
     private TipoOrdenService tipoOrdenService;
+    @Mock
+    private EstadoService estadoService;
     @Spy
     private FabricaOrden fabricaOrden = new FabricaOrden();
     @Mock
     private OrdenArchivoService ordenArchivoService;
     @Mock
     private UsuarioService usuarioService;
+    @Spy
+    private MapeadorOrden mapeadorOrden = new MapeadorOrden();
     @Mock
     private ApplicationEventPublisher eventos;
 
@@ -396,11 +402,11 @@ class OrdenServiceTest {
     void rn01ElListadoConsultaSiempreConElIdDelOdontologoAutenticado() {
         Pageable pagina = PageRequest.of(0, 10);
         PageImpl<Orden> resultado = new PageImpl<>(List.of(ordenCompleta()), pagina, 1);
-        when(ordenRepository.buscarDelOdontologo(ID_DUENO, null, pagina)).thenReturn(resultado);
+        when(ordenRepository.buscarDelOdontologo(ID_DUENO, null, false, pagina)).thenReturn(resultado);
 
-        PaginaResponse<OrdenListadoResponse> respuesta = ordenService.listarMisOrdenes(ID_DUENO, null, pagina);
+        PaginaResponse<OrdenListadoResponse> respuesta = ordenService.listarMisOrdenes(ID_DUENO, null, false, pagina);
 
-        verify(ordenRepository).buscarDelOdontologo(ID_DUENO, null, pagina);
+        verify(ordenRepository).buscarDelOdontologo(ID_DUENO, null, false, pagina);
         assertThat(respuesta.total()).isEqualTo(1);
         assertThat(respuesta.contenido()).hasSize(1);
     }
@@ -410,9 +416,9 @@ class OrdenServiceTest {
     void elListadoIdentificaAlPacientePorInicialesYCodigo() {
         Pageable pagina = PageRequest.of(0, 10);
         PageImpl<Orden> resultado = new PageImpl<>(List.of(ordenCompleta()), pagina, 1);
-        when(ordenRepository.buscarDelOdontologo(ID_DUENO, null, pagina)).thenReturn(resultado);
+        when(ordenRepository.buscarDelOdontologo(ID_DUENO, null, false, pagina)).thenReturn(resultado);
 
-        OrdenListadoResponse item = ordenService.listarMisOrdenes(ID_DUENO, null, pagina).contenido().get(0);
+        OrdenListadoResponse item = ordenService.listarMisOrdenes(ID_DUENO, null, false, pagina).contenido().get(0);
 
         assertThat(item.pacienteIdentificacion()).isEqualTo("M.P. - Caso #1000");
         assertThat(item.toString()).doesNotContain("Martín Pérez");
@@ -425,12 +431,37 @@ class OrdenServiceTest {
     @Test
     void elFiltroPorEstadoSePasaAlRepositorio() {
         Pageable pagina = PageRequest.of(0, 20);
-        when(ordenRepository.buscarDelOdontologo(ID_DUENO, "EN_PRODUCCION", pagina))
+        when(ordenRepository.buscarDelOdontologo(ID_DUENO, "EN_PRODUCCION", false, pagina))
                 .thenReturn(new PageImpl<>(List.of(), pagina, 0));
 
-        ordenService.listarMisOrdenes(ID_DUENO, "EN_PRODUCCION", pagina);
+        ordenService.listarMisOrdenes(ID_DUENO, "EN_PRODUCCION", false, pagina);
 
-        verify(ordenRepository).buscarDelOdontologo(ID_DUENO, "EN_PRODUCCION", pagina);
+        verify(ordenRepository).buscarDelOdontologo(ID_DUENO, "EN_PRODUCCION", false, pagina);
+    }
+
+    /** CU-12: el historial es el mismo listado con `historico`; la regla de qué es terminal la aplica la consulta. */
+    @Test
+    void cu12ElHistoricoViajaAlRepositorioJuntoConElEstado() {
+        Pageable pagina = PageRequest.of(0, 10);
+        when(ordenRepository.buscarDelOdontologo(ID_DUENO, "CANCELADO", true, pagina))
+                .thenReturn(new PageImpl<>(List.of(), pagina, 0));
+
+        ordenService.listarMisOrdenes(ID_DUENO, "CANCELADO", true, pagina);
+
+        verify(ordenRepository).buscarDelOdontologo(ID_DUENO, "CANCELADO", true, pagina);
+    }
+
+    /** CU-12/RN-01: el historial también sale del token; no hay id de odontólogo por parámetro. */
+    @Test
+    void rn01ElHistorialConsultaConElIdDelOdontologoAutenticado() {
+        Pageable pagina = PageRequest.of(0, 10);
+        PageImpl<Orden> resultado = new PageImpl<>(List.of(ordenCompleta()), pagina, 1);
+        when(ordenRepository.buscarDelOdontologo(ID_DUENO, null, true, pagina)).thenReturn(resultado);
+
+        PaginaResponse<OrdenListadoResponse> respuesta = ordenService.listarMisOrdenes(ID_DUENO, null, true, pagina);
+
+        verify(ordenRepository).buscarDelOdontologo(ID_DUENO, null, true, pagina);
+        assertThat(respuesta.contenido().get(0).pacienteIdentificacion()).isEqualTo("M.P. - Caso #1000");
     }
 
     /** spec.md §1: size solo admite 10, 20 o 30. */
@@ -438,10 +469,82 @@ class OrdenServiceTest {
     void unTamanoDePaginaNoPermitidoEsRechazado() {
         Pageable pagina = PageRequest.of(0, 15);
 
-        assertThatThrownBy(() -> ordenService.listarMisOrdenes(ID_DUENO, null, pagina))
+        assertThatThrownBy(() -> ordenService.listarMisOrdenes(ID_DUENO, null, false, pagina))
                 .isInstanceOf(ValidacionException.class)
                 .satisfies(ex -> assertThat(((ValidacionException) ex).getCodigo()).isEqualTo("TAMANO_PAGINA_INVALIDO"));
 
-        verify(ordenRepository, never()).buscarDelOdontologo(any(), any(), any());
+        verify(ordenRepository, never()).buscarDelOdontologo(any(), any(), anyBoolean(), any());
+    }
+
+    /** §5.7/CU-06: los tres filtros del laboratorio viajan tal cual al repositorio. */
+    @Test
+    void elListadoDeAdministracionPasaLosTresFiltros() {
+        Pageable pagina = PageRequest.of(0, 10);
+        when(ordenRepository.buscarParaAdministracion("LISTO", CodigoTipoOrden.URGENTE, 7L, pagina))
+                .thenReturn(new PageImpl<>(List.of(), pagina, 0));
+
+        ordenService.listarParaAdministracion("LISTO", "URGENTE", 7L, pagina);
+
+        verify(ordenRepository).buscarParaAdministracion("LISTO", CodigoTipoOrden.URGENTE, 7L, pagina);
+    }
+
+    /** Sin filtros, la consulta los recibe en null y devuelve todas las órdenes. */
+    @Test
+    void sinFiltrosElListadoDeAdministracionLosPasaEnNulo() {
+        Pageable pagina = PageRequest.of(0, 10);
+        when(ordenRepository.buscarParaAdministracion(null, null, null, pagina))
+                .thenReturn(new PageImpl<>(List.of(), pagina, 0));
+
+        ordenService.listarParaAdministracion(null, "", null, pagina);
+
+        verify(ordenRepository).buscarParaAdministracion(null, null, null, pagina);
+    }
+
+    /** Un tipo inexistente se rechaza con código propio; sin esto el `valueOf` saldría como 500. */
+    @Test
+    void unTipoDeOrdenInvalidoSeRechazaConCodigoPropio() {
+        Pageable pagina = PageRequest.of(0, 10);
+
+        assertThatThrownBy(() -> ordenService.listarParaAdministracion(null, "EXPRESS", null, pagina))
+                .isInstanceOf(ValidacionException.class)
+                .satisfies(ex -> assertThat(((ValidacionException) ex).getCodigo()).isEqualTo("TIPO_ORDEN_INVALIDO"));
+
+        verify(ordenRepository, never()).buscarParaAdministracion(any(), any(), any(), any());
+    }
+
+    /**
+     * RN-22 y Agente.md §8.2: **ningún** listado incluye el nombre del paciente, tampoco el del
+     * laboratorio. El admin lo ve en el detalle, que es donde lo necesita para operar (§5.4).
+     */
+    @Test
+    void ningunListadoExponeElNombreDelPaciente() {
+        assertThat(OrdenListadoResponse.class.getRecordComponents())
+                .extracting(java.lang.reflect.RecordComponent::getName)
+                .doesNotContain("pacienteNombre");
+    }
+
+    /**
+     * §5.5 y §8: la transición posible la decide el backend. El detalle la expone con código y
+     * nombre —el nombre es editable por CU-22, así que no se puede derivar del código—.
+     */
+    @Test
+    void elDetalleExponeLaTransicionSiguienteQueCalculaElCatalogo() {
+        Estado siguiente = mock(Estado.class);
+        when(siguiente.getCodigo()).thenReturn("EN_PRODUCCION");
+        when(siguiente.getNombre()).thenReturn("En produccion");
+        when(estadoService.siguienteEnFlujo(any(Estado.class))).thenReturn(Optional.of(siguiente));
+
+        OrdenDetalleResponse detalle = detalleComo(ID_DUENO, false);
+
+        assertThat(detalle.siguienteEstado().codigo()).isEqualTo("EN_PRODUCCION");
+        assertThat(detalle.siguienteEstado().nombre()).isEqualTo("En produccion");
+    }
+
+    /** §5.5: desde un estado terminal no hay transición, y el campo viaja en null. */
+    @Test
+    void sinTransicionPosibleElCampoViajaEnNulo() {
+        when(estadoService.siguienteEnFlujo(any(Estado.class))).thenReturn(Optional.empty());
+
+        assertThat(detalleComo(ID_DUENO, false).siguienteEstado()).isNull();
     }
 }

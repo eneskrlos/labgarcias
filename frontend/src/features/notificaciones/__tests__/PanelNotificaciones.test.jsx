@@ -83,15 +83,14 @@ describe('PanelNotificaciones', () => {
   });
 
   /**
-   * §8 asigna `/ordenes/:id` al odontólogo y §5.6 reserva la cancelación al propietario: el
-   * administrador vería una pantalla que no es suya. Su destino lo construye T-26.
+   * §8 asigna `/ordenes/:id` al odontólogo y §5.6 le reserva la cancelación al propietario, así
+   * que el administrador va a su propio detalle (§5.7), donde además ve el nombre del paciente.
    */
-  it('para el administrador el ordenId sigue siendo texto, sin enlace', async () => {
+  it('para el administrador el ordenId enlaza a su propio detalle', async () => {
     renderizar('ADMIN');
 
-    await screen.findByText(NOTIFICACION_SIN_LEER.mensaje);
-    expect(screen.getByText(`Orden #${NOTIFICACION_SIN_LEER.ordenId}`)).toBeInTheDocument();
-    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    const enlace = await screen.findByRole('link', { name: `Orden #${NOTIFICACION_SIN_LEER.ordenId}` });
+    expect(enlace).toHaveAttribute('href', `/admin/ordenes/${NOTIFICACION_SIN_LEER.ordenId}`);
   });
 
   it('pide la primera página al backend con tamaño 10 (Agente.md §6.2)', async () => {

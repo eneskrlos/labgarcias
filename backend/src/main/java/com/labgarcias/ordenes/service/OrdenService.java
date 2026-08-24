@@ -10,12 +10,14 @@ import org.springframework.transaction.annotation.Transactional;
 import com.labgarcias.catalogos.domain.CodigoTipoOrden;
 import com.labgarcias.catalogos.domain.TipoOrden;
 import com.labgarcias.catalogos.domain.TipoTrabajo;
+import com.labgarcias.catalogos.service.EstadoService;
 import com.labgarcias.catalogos.service.TipoOrdenService;
 import com.labgarcias.catalogos.service.TipoTrabajoService;
 import com.labgarcias.ordenes.domain.Orden;
 import com.labgarcias.ordenes.domain.OrdenCreadaEvent;
 import com.labgarcias.ordenes.domain.OrdenHistorialEstado;
 import com.labgarcias.ordenes.dto.CrearOrdenRequest;
+import com.labgarcias.ordenes.dto.EstadoSiguienteResponse;
 import com.labgarcias.ordenes.dto.EtapaSeguimientoResponse;
 import com.labgarcias.ordenes.dto.OrdenArchivoResponse;
 import com.labgarcias.ordenes.dto.OrdenDetalleResponse;
@@ -27,6 +29,7 @@ import com.labgarcias.seguridad.domain.Usuario;
 import com.labgarcias.seguridad.service.UsuarioService;
 import com.labgarcias.shared.dto.PaginaResponse;
 import com.labgarcias.shared.excepcion.RecursoNoEncontradoException;
+import com.labgarcias.shared.excepcion.ValidacionException;
 import com.labgarcias.shared.util.ValidadorPaginacion;
 
 /**
@@ -40,26 +43,32 @@ public class OrdenService {
     private final OrdenHistorialEstadoRepository historialRepository;
     private final TipoTrabajoService tipoTrabajoService;
     private final TipoOrdenService tipoOrdenService;
+    private final EstadoService estadoService;
     private final FabricaOrden fabricaOrden;
     private final OrdenArchivoService ordenArchivoService;
     private final UsuarioService usuarioService;
+    private final MapeadorOrden mapeadorOrden;
     private final ApplicationEventPublisher eventos;
 
     public OrdenService(OrdenRepository ordenRepository,
                         OrdenHistorialEstadoRepository historialRepository,
                         TipoTrabajoService tipoTrabajoService,
                         TipoOrdenService tipoOrdenService,
+                        EstadoService estadoService,
                         FabricaOrden fabricaOrden,
                         OrdenArchivoService ordenArchivoService,
                         UsuarioService usuarioService,
+                        MapeadorOrden mapeadorOrden,
                         ApplicationEventPublisher eventos) {
         this.ordenRepository = ordenRepository;
         this.historialRepository = historialRepository;
         this.tipoTrabajoService = tipoTrabajoService;
         this.tipoOrdenService = tipoOrdenService;
+        this.estadoService = estadoService;
         this.fabricaOrden = fabricaOrden;
         this.ordenArchivoService = ordenArchivoService;
         this.usuarioService = usuarioService;
+        this.mapeadorOrden = mapeadorOrden;
         this.eventos = eventos;
     }
 
@@ -86,12 +95,57 @@ public class OrdenService {
      * CU-03/§5.3: las órdenes del odontólogo autenticado. El id del dueño llega como argumento
      * desde el token, nunca como parámetro de la petición (RN-01): no hay forma de pedir las
      * órdenes de otro. El filtro por estado es opcional y compara contra estado.codigo.
+     *
+     * CU-12: `historico` acota el listado a las órdenes ya cerradas —las de estado terminal—, que
+     * es lo que muestra la pantalla de historial. No es un endpoint aparte porque es el mismo
+     * recurso con un filtro más, y el filtro entre ENTREGADO y CANCELADO lo hace el `estado` que
+     * ya existía.
      */
     @Transactional(readOnly = true)
-    public PaginaResponse<OrdenListadoResponse> listarMisOrdenes(Long odontologoId, String estado, Pageable pageable) {
+    public PaginaResponse<OrdenListadoResponse> listarMisOrdenes(Long odontologoId, String estado,
+                                                                 boolean historico, Pageable pageable) {
         ValidadorPaginacion.validarTamano(pageable.getPageSize());
-        return PaginaResponse.de(
-                ordenRepository.buscarDelOdontologo(odontologoId, estado, pageable).map(this::aItemDeListado));
+        return PaginaResponse.de(ordenRepository
+                .buscarDelOdontologo(odontologoId, estado, historico, pageable)
+                .map(mapeadorOrden::aItemDeListado));
+    }
+
+    /**
+     * CU-06/§5.7: las órdenes de todo el laboratorio, con los tres filtros opcionales.
+     *
+     * Acá `odontologoId` **sí** es un filtro de la petición, al revés que en `listarMisOrdenes`:
+     * quien consulta es la administración, que ve todas por rol. `tipoOrden` se valida contra la
+     * lista cerrada de RN-11 antes de llegar a la consulta.
+     *
+     * **El ítem no lleva el nombre del paciente**: `Agente.md` §8.2 lo prohíbe en cualquier
+     * listado. El laboratorio lo ve en el detalle (§5.4), que es donde lo necesita para operar.
+     */
+    @Transactional(readOnly = true)
+    public PaginaResponse<OrdenListadoResponse> listarParaAdministracion(String estado,
+                                                                         String tipoOrden,
+                                                                         Long odontologoId,
+                                                                         Pageable pageable) {
+        ValidadorPaginacion.validarTamano(pageable.getPageSize());
+        return PaginaResponse.de(ordenRepository
+                .buscarParaAdministracion(estado, tipoOrdenDe(tipoOrden), odontologoId, pageable)
+                .map(mapeadorOrden::aItemDeListado));
+    }
+
+    /**
+     * Un tipo de orden inexistente se rechaza con un código propio en vez de dejar que reviente
+     * el `valueOf`: `MethodArgumentTypeMismatchException` saldría como 500 (mismo criterio que el
+     * filtro de estado de las solicitudes en §3.1.b).
+     */
+    private CodigoTipoOrden tipoOrdenDe(String tipoOrden) {
+        if (tipoOrden == null || tipoOrden.isBlank()) {
+            return null;
+        }
+        try {
+            return CodigoTipoOrden.valueOf(tipoOrden);
+        } catch (IllegalArgumentException noEsUnCodigoValido) {
+            throw new ValidacionException("TIPO_ORDEN_INVALIDO",
+                    "El tipo de orden debe ser NORMAL o URGENTE.", "tipoOrden");
+        }
     }
 
     /**
@@ -115,7 +169,7 @@ public class OrdenService {
         return new OrdenDetalleResponse(
                 orden.getId(),
                 orden.getCodigo(),
-                identificacionPaciente(orden),
+                mapeadorOrden.identificacionPaciente(orden),
                 // RN-22: el nombre del paciente solo viaja al laboratorio, que lo necesita para operar.
                 esAdministrador ? orden.getPacienteNombre() : null,
                 orden.getTipoTrabajo().getNombre(),
@@ -128,20 +182,19 @@ public class OrdenService {
                 orden.getRecargoUrgencia(),
                 orden.getPrecioTotal(),
                 archivos,
-                lineaTiempo);
+                lineaTiempo,
+                siguienteEstadoDe(orden));
     }
 
-    private OrdenListadoResponse aItemDeListado(Orden orden) {
-        return new OrdenListadoResponse(
-                orden.getId(),
-                orden.getCodigo(),
-                identificacionPaciente(orden),
-                orden.getTipoTrabajo().getNombre(),
-                orden.getTipoOrden().getNombre(),
-                orden.getEstado().getNombre(),
-                orden.getFechaIngreso(),
-                orden.getFechaEstimadaEntrega(),
-                orden.getPrecioTotal());
+    /**
+     * §5.5 y §8: la transición posible la decide el backend y viaja en la respuesta. La regla es la
+     * del catálogo —`orden_secuencia`—, la misma que valida `OrdenEstadoService`: acá se expone,
+     * no se vuelve a escribir.
+     */
+    private EstadoSiguienteResponse siguienteEstadoDe(Orden orden) {
+        return estadoService.siguienteEnFlujo(orden.getEstado())
+                .map(siguiente -> new EstadoSiguienteResponse(siguiente.getCodigo(), siguiente.getNombre()))
+                .orElse(null);
     }
 
     private EtapaSeguimientoResponse aEtapa(OrdenHistorialEstado etapa) {
@@ -153,11 +206,6 @@ public class OrdenService {
                 autor == null ? null : autor.getNombreCompleto());
     }
 
-    /** RN-03/RN-22: al paciente se lo identifica por iniciales y código, nunca por su nombre. */
-    private String identificacionPaciente(Orden orden) {
-        return orden.getPacienteIniciales() + " - Caso #" + orden.getPacienteCodigo();
-    }
-
     private RecursoNoEncontradoException ordenNoEncontrada() {
         return new RecursoNoEncontradoException("ORDEN_NO_ENCONTRADA", "No existe la orden solicitada.");
     }
@@ -167,7 +215,7 @@ public class OrdenService {
         return new OrdenResponse(
                 orden.getId(),
                 orden.getCodigo(),
-                identificacionPaciente(orden),
+                mapeadorOrden.identificacionPaciente(orden),
                 orden.getTipoTrabajo().getNombre(),
                 orden.getTipoOrden().getNombre(),
                 orden.getEstado().getNombre(),

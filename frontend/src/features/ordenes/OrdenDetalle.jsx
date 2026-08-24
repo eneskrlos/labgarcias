@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { listarEstados } from '../catalogos/api';
+import { abrirDescarga } from '../../shared/util/descargaArchivo';
 import { cancelarOrden, descargarArchivo, obtenerOrden } from './api';
 import estilos from './OrdenDetalle.module.css';
 
@@ -164,17 +165,3 @@ function estadoTerminal(estados, nombreEstado) {
   return (estados ?? []).some((estado) => estado.nombre === nombreEstado && estado.esTerminal);
 }
 
-/**
- * El adjunto llega como blob porque la ruta exige el token (ver `apiFetchArchivo`). Se abre desde
- * memoria con un enlace temporal, y la URL se libera enseguida para no retener el archivo.
- */
-function abrirDescarga(blob, nombreArchivo) {
-  const url = URL.createObjectURL(blob);
-  const enlace = document.createElement('a');
-  enlace.href = url;
-  enlace.download = nombreArchivo;
-  document.body.appendChild(enlace);
-  enlace.click();
-  enlace.remove();
-  URL.revokeObjectURL(url);
-}
