@@ -2,16 +2,22 @@ package com.labgarcias.seguridad.service;
 
 import java.util.List;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.labgarcias.seguridad.domain.EstadoCuenta;
 import com.labgarcias.seguridad.domain.RolCodigo;
 import com.labgarcias.seguridad.domain.Usuario;
+import com.labgarcias.seguridad.dto.ActualizarPerfilRequest;
 import com.labgarcias.seguridad.dto.PerfilResponse;
+import com.labgarcias.seguridad.dto.UsuarioResponse;
 import com.labgarcias.seguridad.repository.UsuarioRepository;
+import com.labgarcias.shared.dto.PaginaResponse;
 import com.labgarcias.shared.excepcion.RecursoNoEncontradoException;
 import com.labgarcias.shared.excepcion.ReglaNegocioException;
+import com.labgarcias.shared.excepcion.ValidacionException;
+import com.labgarcias.shared.util.ValidadorPaginacion;
 
 @Service
 public class UsuarioService {
@@ -60,6 +66,63 @@ public class UsuarioService {
     @Transactional(readOnly = true)
     public PerfilResponse obtenerPerfil(Long id) {
         return PerfilResponse.de(obtenerPorId(id));
+    }
+
+    /**
+     * §7: el usuario edita **solo su nombre y su dirección**, y solo los suyos — el id sale del
+     * token. Ni el rol ni el correo se tocan: no están en el request, así que no hay forma de
+     * mandarlos aunque se los agregue al cuerpo de la petición.
+     */
+    @Transactional
+    public PerfilResponse actualizarPerfil(Long id, ActualizarPerfilRequest request) {
+        Usuario usuario = obtenerPorId(id);
+        usuario.setNombreCompleto(request.nombreCompleto());
+        usuario.setDireccion(request.direccion());
+        return PerfilResponse.de(usuario);
+    }
+
+    /**
+     * CU-17: el padrón completo, de cualquier rol, para el SUPERADMIN. Paginado (§8.1 Regla 2).
+     * A diferencia de `/odontologos`, no filtra por rol: §7 lo reserva al mantenimiento del sistema.
+     */
+    @Transactional(readOnly = true)
+    public PaginaResponse<UsuarioResponse> listarTodos(Pageable pageable) {
+        ValidadorPaginacion.validarTamano(pageable.getPageSize());
+        return PaginaResponse.de(usuarioRepository.findAllByOrderByNombreCompletoAsc(pageable)
+                .map(UsuarioResponse::de));
+    }
+
+    /**
+     * CU-17: el SUPERADMIN da de alta o de baja una cuenta.
+     *
+     * **No puede desactivarse a sí mismo**: es la única cuenta que puede volver a activar cuentas,
+     * y dejar el sistema sin ningún SUPERADMIN activo lo haría irrecuperable desde la aplicación.
+     * `PENDIENTE_VERIFICACION` **no se acepta**: D-18 eliminó la verificación por correo y las
+     * cuentas nacen ACTIVA, así que ponerla ahí a mano dejaría una cuenta que nada puede destrabar.
+     */
+    @Transactional
+    public UsuarioResponse cambiarEstado(Long id, String estadoCuenta, Long solicitanteId) {
+        EstadoCuenta destino = estadoDe(estadoCuenta);
+        if (id.equals(solicitanteId)) {
+            throw new ReglaNegocioException("AUTODESACTIVACION_NO_PERMITIDA",
+                    "No podés cambiar el estado de tu propia cuenta.", "id");
+        }
+        Usuario usuario = obtenerPorId(id);
+        usuario.setEstadoCuenta(destino);
+        return UsuarioResponse.de(usuario);
+    }
+
+    private EstadoCuenta estadoDe(String estadoCuenta) {
+        if (EstadoCuenta.PENDIENTE_VERIFICACION.name().equals(estadoCuenta)) {
+            throw new ValidacionException("ESTADO_CUENTA_INVALIDO",
+                    "El estado debe ser ACTIVA o INACTIVA.", "estadoCuenta");
+        }
+        try {
+            return EstadoCuenta.valueOf(estadoCuenta);
+        } catch (IllegalArgumentException noEsUnEstadoValido) {
+            throw new ValidacionException("ESTADO_CUENTA_INVALIDO",
+                    "El estado debe ser ACTIVA o INACTIVA.", "estadoCuenta");
+        }
     }
 
     /**

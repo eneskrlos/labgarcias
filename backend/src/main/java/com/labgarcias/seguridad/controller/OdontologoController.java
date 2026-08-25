@@ -2,6 +2,8 @@ package com.labgarcias.seguridad.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,6 +17,7 @@ import com.labgarcias.seguridad.dto.CrearOdontologoRequest;
 import com.labgarcias.seguridad.dto.OdontologoActivoResponse;
 import com.labgarcias.seguridad.dto.OdontologoResponse;
 import com.labgarcias.seguridad.service.OdontologoService;
+import com.labgarcias.shared.dto.PaginaResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -23,12 +26,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
 /**
- * D-18/§3.1.b: alta de cuentas de odontólogo, y el listado sin paginar que alimenta el selector
- * de §5.1.
+ * D-18/§3.1.b y CU-11/§7: alta de cuentas de odontólogo y los **dos listados**, que conviven
+ * porque tienen propósitos distintos:
  *
- * `GET /api/v1/odontologos` —el listado paginado y administrable de CU-11 (§7)— es **otra cosa y
- * de otra tarea (T-28)**: aquel arma una tabla con acciones sobre cada cuenta; este solo dice qué
- * odontólogos se pueden elegir al registrar una orden.
+ * - `GET /odontologos` — la tabla administrable de CU-11: paginada, con los datos de cada cuenta y
+ *   también las dadas de baja, que es donde se las vuelve a activar.
+ * - `GET /odontologos/activos` — el selector de §5.1 (D-19): sin paginar, solo cuentas ACTIVA, y
+ *   únicamente `id` y `nombreCompleto`, que es lo que un selector necesita.
  */
 @RestController
 @RequestMapping("/api/v1/odontologos")
@@ -39,6 +43,26 @@ public class OdontologoController {
 
     public OdontologoController(OdontologoService odontologoService) {
         this.odontologoService = odontologoService;
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','SUPERADMIN')")
+    @Operation(
+            summary = "Listar odontólogos, paginado (CU-11)",
+            description = "La tabla administrable de §7: los datos de cada cuenta, ordenadas por nombre. "
+                    + "**Incluye las cuentas dadas de baja**, que es donde se las vuelve a activar. "
+                    + "Es otra cosa que `GET /odontologos/activos`, que alimenta el selector de §5.1 "
+                    + "sin paginar y solo con las ACTIVA. size solo admite 10, 20 o 30. "
+                    + "No devuelve la contraseña ni su hash."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Página de odontólogos"),
+            @ApiResponse(responseCode = "400", description = "TAMANO_PAGINA_INVALIDO"),
+            @ApiResponse(responseCode = "403", description = "Rol sin permiso")
+    })
+    public ResponseEntity<PaginaResponse<OdontologoResponse>> listar(
+            @PageableDefault(size = 10) Pageable pageable) {
+        return ResponseEntity.ok(odontologoService.listar(pageable));
     }
 
     @GetMapping("/activos")
