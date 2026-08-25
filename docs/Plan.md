@@ -359,7 +359,7 @@ Sus criterios eran el front de CU-09 para el **odontólogo**, que D-19 retira de
 | 3 · Órdenes | T-16 a T-20 | Ciclo completo: creación, adjuntos, seguimiento, estados | Terminado |
 | 4 · Notificaciones | T-21 a T-23 | Outbox, correo, campana | Terminado |
 | 5 · Pantallas de órdenes | T-25, T-26 | Front de odontólogo y administración *(T-24 eliminada por D-19)* | T-25 terminada |
-| 6 · Paneles y cierre | T-27, T-34, T-35, T-28 | Dashboards, configuración de notificaciones, licencias y verificación integral | T-27 y T-34 terminadas |
+| 6 · Paneles y cierre | T-27, T-34, T-35, T-28 | Dashboards, configuración de notificaciones, licencias y verificación integral | **Terminado** |
 | CR-01 · Cambio de alcance | T-29 a T-33b | Solicitud de acceso, alta por admin, Telegram, órdenes por admin | Terminado |
 
 > El orden de ejecución **no** sigue esta tabla: rige la secuencia del principio del documento.

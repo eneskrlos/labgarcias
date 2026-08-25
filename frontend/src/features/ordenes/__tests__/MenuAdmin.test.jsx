@@ -54,7 +54,7 @@ describe('MenuAdmin', () => {
    * solo llegaría desde `/bloqueado` —con el sistema ya caído— y no podría renovar **antes** del
    * vencimiento, que es lo que evita el corte.
    */
-  it('cu23 el SUPERADMIN ve además el ítem Licencias', () => {
+  it('cu17 cu23 el SUPERADMIN ve además Usuarios y Licencias', () => {
     renderizar(SUPERADMIN);
 
     expect(screen.getAllByRole('link').map((enlace) => enlace.textContent)).toEqual([
@@ -64,15 +64,18 @@ describe('MenuAdmin', () => {
       'Solicitudes',
       'Tipos de trabajo',
       'Configuración',
+      'Usuarios',
       'Licencias',
     ]);
+    expect(screen.getByRole('link', { name: 'Usuarios' })).toHaveAttribute('href', '/admin/usuarios');
     expect(screen.getByRole('link', { name: 'Licencias' })).toHaveAttribute('href', '/admin/licencias');
   });
 
   /** §3.5: las licencias son del SUPERADMIN; al ADMIN los endpoints le responden 403. */
-  it('cu23 el ADMIN no ve el ítem Licencias', () => {
+  it('cu17 cu23 el ADMIN no ve Usuarios ni Licencias', () => {
     renderizar(ADMIN);
 
+    expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Licencias' })).not.toBeInTheDocument();
   });
 

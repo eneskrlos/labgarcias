@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { TablaPaginada } from '../../shared/components/TablaPaginada';
 import { FilaContadores, TarjetaContador } from '../../shared/components/TarjetaContador';
 import { obtenerDashboardAdmin } from './api';
@@ -27,20 +26,6 @@ const FORMATO_FECHA = new Intl.DateTimeFormat('es-AR', { dateStyle: 'short' });
  * **Sin reportes ni estadísticas** más allá de estos contadores: CU-13 es Fase 4.
  */
 export default function DashboardAdmin() {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  // §8.1 Regla 1: el alta de odontólogo vuelve acá con su confirmación. Foto del mensaje, porque
-  // el efecto limpia location.state enseguida: recargar no debe repetir un aviso de algo ya hecho.
-  const [mensajeConfirmacion] = useState(location.state?.mensaje ?? null);
-
-  useEffect(() => {
-    if (location.state?.mensaje) {
-      navigate(location.pathname, { replace: true, state: {} });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const consulta = useQuery({ queryKey: [CLAVE_CONSULTA], queryFn: obtenerDashboardAdmin });
 
   const contadores = consulta.data?.contadores;
@@ -82,8 +67,6 @@ export default function DashboardAdmin() {
 
   return (
     <div className="contenedor">
-      {mensajeConfirmacion && <p role="status">{mensajeConfirmacion}</p>}
-
       <h1>Dashboard</h1>
 
       <FilaContadores>

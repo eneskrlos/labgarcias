@@ -155,13 +155,14 @@ describe('DashboardAdmin', () => {
   });
 
   /**
-   * §8.1 Regla 1: el alta de odontólogo vuelve acá con su confirmación. Antes caía en `/`, que
-   * desde T-27 solo redirige.
+   * §8.1 Regla 1: el alta de odontólogo vuelve **al listado de CU-11**, que existe desde T-28.
+   * Pasó por acá mientras esa pantalla no existía; el dashboard ya no recibe confirmaciones.
    */
-  it('muestra la confirmación con la que vuelve el alta de odontólogo', async () => {
-    renderizar({ mensaje: 'Cuenta creada. Las credenciales se enviaron por correo al odontólogo.' });
+  it('el dashboard ya no recibe confirmaciones de ningún formulario', async () => {
+    renderizar({ mensaje: 'Cuenta creada.' });
+    await screen.findByText('Dr. Juan Pérez');
 
-    expect(await screen.findByRole('status')).toHaveTextContent('Cuenta creada.');
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
   /** Los bloques son resúmenes, no listados navegables: sin controles de paginación. */

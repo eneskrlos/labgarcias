@@ -832,6 +832,7 @@ En `/perfil` el usuario edita `nombreCompleto` y `direccion`. **No** puede cambi
 | Nueva orden (admin) | `/admin/ordenes/nueva` | ADMIN | CU-05 / D-19 |
 | Solicitudes de acceso | `/admin/solicitudes` | ADMIN | D-17 |
 | Odontólogos | `/admin/odontologos` | ADMIN | CU-11 |
+| Usuarios | `/admin/usuarios` | SUPERADMIN | CU-17 |
 | Tipos de trabajo | `/admin/tipos-trabajo` | ADMIN | CU-16 |
 | Configuración | `/admin/configuracion` | ADMIN | CU-21 |
 | Licencias | `/admin/licencias` | SUPERADMIN | CU-23 |
@@ -842,7 +843,22 @@ En `/perfil` el usuario edita `nombreCompleto` y `direccion`. **No** puede cambi
 **Menú odontólogo:** Inicio · Mis trabajos · Historial · Perfil. ("Nueva orden" retirada por D-19; ver P-19.)
 **El ítem "Mensajes" NO se incluye** (D-11, pospuesto).
 
+> **Fila `Usuarios` agregada el 25/08/2026 por el desarrollador, con T-28.** §7 define
+> `GET /usuarios` y `PATCH /usuarios/{id}/estado` (CU-17) y esta tabla no les daba pantalla, así que
+> se operaban solo por la API. **`PATCH /usuarios/{id}/estado` es la única forma de reactivar una
+> cuenta dada de baja**, y `/admin/odontologos` —que sí estaba en la tabla— muestra esas cuentas
+> inactivas: sin esta pantalla, el SuperAdmin ve el problema en una pantalla documentada y tiene que
+> salir de la aplicación para resolverlo. Reactivar una cuenta es una operación de negocio con
+> efecto visible, no el "soporte técnico fuera del flujo" del que habla CU-17 —eso cubre consultar y
+> corregir datos, que sí puede vivir en la API—.
+>
+> **Solo lista y cambia el estado**: sin alta ni edición, porque §7 no define más endpoints para
+> este recurso. De §8.1 rigen las Reglas 2 a 5.
+
 **Menú admin:** Dashboard · Trabajos · Odontólogos · Solicitudes · Tipos de trabajo · Configuración.
+**El SUPERADMIN ve además dos ítems**, coherentes con §3.5 —el ADMIN más usuarios y licencias—:
+**Usuarios** (CU-17) y **Licencias** (CU-23). Es el mismo menú con ítems condicionados al rol, no
+un menú aparte.
 **No incluir** Pacientes (S-03 sin resolver), Calendario, Mensajes, Reportes ni Facturación (P-08).
 
 **Reglas transversales del frontend**

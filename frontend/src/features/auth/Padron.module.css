@@ -1,0 +1,40 @@
+.encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaciado-md);
+  margin-bottom: var(--espaciado-md);
+}
+
+.boton {
+  padding: var(--espaciado-xs) var(--espaciado-md);
+  border-radius: var(--radio-borde);
+  background: var(--color-primario);
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.accion {
+  background: none;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-borde);
+  padding: var(--espaciado-xs) var(--espaciado-sm);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.accion:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.propia {
+  font-size: 0.85rem;
+  color: var(--color-texto-tenue);
+}
+
+.error {
+  color: var(--color-error, #b00020);
+}

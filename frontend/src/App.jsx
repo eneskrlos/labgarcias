@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { SesionProvider, useSesion } from './shared/hooks/useSesion';
 import { RutaProtegida } from './shared/components/RutaProtegida';
 import { LayoutAutenticado } from './shared/components/LayoutAutenticado';
-import { PantallaPendiente } from './shared/components/PantallaPendiente';
 import Login from './features/auth/Login';
 import Bloqueado from './features/auth/Bloqueado';
 import SolicitarAcceso from './features/auth/SolicitarAcceso';
@@ -11,6 +10,8 @@ import SolicitudesListado from './features/auth/SolicitudesListado';
 import CambiarPassword from './features/auth/CambiarPassword';
 import BotonCerrarSesion from './features/auth/BotonCerrarSesion';
 import OdontologoFormulario from './features/auth/OdontologoFormulario';
+import OdontologosListado from './features/auth/OdontologosListado';
+import UsuariosListado from './features/auth/UsuariosListado';
 import Campana from './features/notificaciones/Campana';
 import ConfiguracionNotificaciones from './features/notificaciones/ConfiguracionNotificaciones';
 import Perfil from './features/perfil/Perfil';
@@ -40,8 +41,8 @@ const ROL_SUPERADMIN = 'SUPERADMIN';
  * en una sola pantalla la dejaría invisible en el resto.
  *
  * §8 define **dos menús distintos**, uno por rol: T-25 montó el del odontólogo y T-26 el del
- * laboratorio. Los ítems cuya pantalla todavía no existe llevan a una `PantallaPendiente`, para
- * que el menú sea el de §8 completo sin que ninguno caiga en una página en blanco.
+ * laboratorio. **Desde T-28 todos los ítems tienen su pantalla**: la `PantallaPendiente` que
+ * cubría los destinos que llegaban después se retiró al quedar sin uso.
  */
 function PantallaAutenticada({ rolesPermitidos, children }) {
   const { usuario } = useSesion();
@@ -185,15 +186,21 @@ function App() {
                 </PantallaAutenticada>
               }
             />
-            {/* CU-11: el listado de odontólogos es de T-28; el alta ya existe. */}
+            {/* CU-11/§7: la tabla administrable de cuentas de odontólogo. */}
             <Route
               path="/admin/odontologos"
               element={
                 <PantallaAutenticada rolesPermitidos={ROLES_ADMIN}>
-                  <PantallaPendiente
-                    titulo="Odontólogos"
-                    detalle="Vas a ver acá las cuentas de los odontólogos del laboratorio."
-                  />
+                  <OdontologosListado />
+                </PantallaAutenticada>
+              }
+            />
+            {/* CU-17/§7: el padrón completo, solo SUPERADMIN. */}
+            <Route
+              path="/admin/usuarios"
+              element={
+                <PantallaAutenticada rolesPermitidos={[ROL_SUPERADMIN]}>
+                  <UsuariosListado />
                 </PantallaAutenticada>
               }
             />

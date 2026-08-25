@@ -47,6 +47,32 @@ export function crearOdontologo(datos) {
  * §5.1/D-19: alimenta el selector de odontólogo al registrar una orden. Sin paginar y con solo
  * id y nombre; el listado administrable de CU-11 es otro endpoint y es de T-28.
  */
+/**
+ * CU-11/§7: la tabla administrable de odontólogos, **paginada en el backend** (§8.1 Regla 2).
+ *
+ * Es otra cosa que `listarOdontologosActivos`, y conviven: aquella alimenta el selector de §5.1 y
+ * trae solo las cuentas ACTIVA; esta trae **también las dadas de baja**, que es donde se ven.
+ */
+export function listarOdontologos({ pagina, tamano }) {
+  const parametros = new URLSearchParams();
+  parametros.set('page', String(pagina));
+  parametros.set('size', String(tamano));
+  return apiFetch(`/odontologos?${parametros.toString()}`);
+}
+
+/** CU-17/§7: el padrón completo, de cualquier rol. Solo SUPERADMIN. */
+export function listarUsuarios({ pagina, tamano }) {
+  const parametros = new URLSearchParams();
+  parametros.set('page', String(pagina));
+  parametros.set('size', String(tamano));
+  return apiFetch(`/usuarios?${parametros.toString()}`);
+}
+
+/** CU-17: alta o baja de una cuenta. El backend rechaza que el SuperAdmin se toque a sí mismo. */
+export function cambiarEstadoUsuario(id, estadoCuenta) {
+  return apiFetch(`/usuarios/${id}/estado`, { method: 'PATCH', body: JSON.stringify({ estadoCuenta }) });
+}
+
 export function listarOdontologosActivos() {
   return apiFetch('/odontologos/activos');
 }
