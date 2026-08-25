@@ -35,6 +35,13 @@ export async function apiFetchArchivo(path) {
   return respuesta.blob();
 }
 
+/** §3.6: la ruta donde el SuperAdmin regulariza la licencia, y de la que no puede ser expulsado. */
+export const RUTA_LICENCIAS = '/admin/licencias';
+
+function estaEnPantallaDeLicencias() {
+  return window.location.pathname.startsWith(RUTA_LICENCIAS);
+}
+
 function cabecerasAutenticadas() {
   const headers = new Headers();
   const token = obtenerToken();
@@ -56,7 +63,11 @@ export async function apiFetch(path, opciones = {}) {
   const respuesta = await fetch(`${BASE_URL}${path}`, { ...opciones, headers });
 
   // RN-20: licencia vencida bloquea el sistema; el interceptor redirige a /bloqueado.
-  if (respuesta.status === 423) {
+  //
+  // §3.6: **salvo desde la pantalla de licencias**. Ahí es donde el SuperAdmin regulariza, y el
+  // filtro del backend exime `/licencias/**` justamente para eso; expulsarlo por un 423 de
+  // cualquier otra llamada le sacaría de las manos la única pantalla que resuelve el bloqueo.
+  if (respuesta.status === 423 && !estaEnPantallaDeLicencias()) {
     window.location.assign('/bloqueado');
     throw new ApiError(423, 'LICENCIA_VENCIDA', 'Licencia vencida.');
   }

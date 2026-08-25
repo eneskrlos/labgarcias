@@ -360,9 +360,24 @@ Filtro que se ejecuta antes de cualquier endpoint de negocio y consulta `v_licen
 - El frontend intercepta el `423` y muestra una pantalla de bloqueo.
 
 **Endpoints de licencia** (solo `SUPERADMIN`):
-- `GET /api/v1/licencias` — listado histórico
+- `GET /api/v1/licencias?page=&size=` — listado histórico, **paginado**, más reciente primero
 - `GET /api/v1/licencias/vigente` — estado actual
 - `POST /api/v1/licencias` — registrar período: `{ "fechaInicio", "fechaVencimiento", "observacion" }`
+
+> **`GET /licencias` pasó a ser paginado el 25/08/2026, con T-35.** Devolvía la lista completa, y
+> `/admin/licencias` es una **tabla de administración**: §8.1 se aplica a todas "sin excepción" y su
+> criterio 5 pide que las tablas de dos recursos distintos sean indistinguibles en estructura. Una
+> sin selector de tamaño ni controles se ve distinta de las otras cuatro, tenga tres filas o
+> trescientas — **§8.1 es una regla de uniformidad, no de rendimiento**. La exención de §4 no
+> aplica: cubre selectores, y este histórico es una tabla administrable.
+>
+> **`GET /licencias/vigente` no cambió**: devuelve un solo registro.
+
+**Pantalla:** `/admin/licencias`, SUPERADMIN (§8). **Se llega también desde `/bloqueado`**, que es
+lo que la hace utilizable: con la licencia vencida el frontend manda todo a esa pantalla, así que
+un acceso que dependiera del menú dejaría al SuperAdmin sin forma de regularizar. Por el mismo
+motivo, la pantalla **se monta sin la campana** —su polling de `/notificaciones/contador` no está
+exento del bloqueo y devolvería `423`— y el interceptor de `423` **no redirige si ya se está ahí**.
 
 **Fuera de alcance:** planes, precios y pasarela de pago (P-11, P-12).
 
@@ -370,6 +385,8 @@ Filtro que se ejecuta antes de cualquier endpoint de negocio y consulta `v_licen
 1. Con licencia vencida, ningún rol de negocio opera; el login sigue accesible.
 2. Al registrar una licencia vigente, la operación se restablece sin pérdida de datos.
 3. Un `ADMIN` no puede crear licencias.
+4. Con la licencia vencida, el SuperAdmin llega a `/admin/licencias` desde `/bloqueado`, registra un
+   período y **no es expulsado de la pantalla mientras la completa**.
 
 ---
 

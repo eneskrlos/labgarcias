@@ -24,12 +24,16 @@ import OrdenDetalleAdmin from './features/ordenes/OrdenDetalleAdmin';
 import HistorialOrdenes from './features/ordenes/HistorialOrdenes';
 import PanelOdontologo from './features/dashboard/PanelOdontologo';
 import DashboardAdmin from './features/dashboard/DashboardAdmin';
+import LicenciasListado from './features/licencia/LicenciasListado';
+import LicenciaFormulario from './features/licencia/LicenciaFormulario';
 import TiposTrabajoListado from './features/catalogos/TiposTrabajoListado';
 import TipoTrabajoFormulario from './features/catalogos/TipoTrabajoFormulario';
 
 const queryClient = new QueryClient();
 const ROLES_ADMIN = ['ADMIN', 'SUPERADMIN'];
 const ROL_ODONTOLOGO = 'ODONTOLOGO';
+/** §8: las licencias son del SuperAdmin, no de toda la administración (CU-23). */
+const ROL_SUPERADMIN = 'SUPERADMIN';
 
 /**
  * Toda ruta con sesión iniciada comparte el encabezado, y la campana vive ahí (§6.4): montarla
@@ -232,6 +236,30 @@ function App() {
                 <PantallaAutenticada rolesPermitidos={ROLES_ADMIN}>
                   <TipoTrabajoFormulario />
                 </PantallaAutenticada>
+              }
+            />
+            {/*
+              CU-23/§3.6: las licencias van **fuera de `PantallaAutenticada`**, con `RutaProtegida`
+              y sin encabezado. No es una decisión estética: `LayoutAutenticado` monta la campana,
+              que consulta `/notificaciones/contador` cada 60 s, y ese endpoint **no** está exento
+              del bloqueo por licencia. Con la licencia vencida devolvería 423 y el interceptor
+              sacaría al SuperAdmin de la única pantalla que le permite regularizar, antes del
+              minuto y sin que él tocara nada.
+            */}
+            <Route
+              path="/admin/licencias"
+              element={
+                <RutaProtegida rolesPermitidos={[ROL_SUPERADMIN]}>
+                  <LicenciasListado />
+                </RutaProtegida>
+              }
+            />
+            <Route
+              path="/admin/licencias/nueva"
+              element={
+                <RutaProtegida rolesPermitidos={[ROL_SUPERADMIN]}>
+                  <LicenciaFormulario />
+                </RutaProtegida>
               }
             />
             <Route
