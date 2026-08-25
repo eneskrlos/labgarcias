@@ -16,10 +16,12 @@ Las tareas **no** se ejecutan en orden numérico. El bloque CR-01 no puede corre
 ```
 T-29 → T-18 → T-19 → T-20 → [T-33a] → T-21 → T-22 → T-23
      → T-30 → T-31 → T-32 → T-32b → T-33b
-     → T-25 → T-26 → T-27 → T-34 → T-28
+     → T-25 → T-26 → T-27 → T-34 → T-35 → T-28
 ```
 
 > **T-34 agregada (23/08/2026).** La pantalla de CU-21 no tenía tarea: T-22 hizo sus endpoints y T-23 solo la campana. Va **después de T-27 y antes de T-28**, para que la tarea de cierre no estrene funcionalidad que tendría que verificar en la misma pasada.
+
+> **T-35 agregada (25/08/2026).** Mismo caso, encontrado por el repaso de trazabilidad que abre T-28: `/admin/licencias` (CU-23) figura en §8 desde el principio, T-10 entregó el módulo y sus tres endpoints, y **ninguna tarea construía la pantalla**. Va **después de T-34 y antes de T-28**, por el mismo criterio.
 
 > **T-33a adelantada (19/08/2026).** T-33 quedó partida: su etapa de backend solo dependía de T-29 y T-20, ya terminadas, y hasta hacerla `POST /ordenes` seguía aceptando al odontólogo, en contra de D-19. La etapa de pantalla (T-33b) conserva su lugar después de T-32b, porque el selector necesita las cuentas de T-31.
 
@@ -319,6 +321,22 @@ Sus criterios eran el front de CU-09 para el **odontólogo**, que D-19 retira de
 
 > **Creada el 23/08/2026.** La pantalla de CU-21 estaba huérfana: T-22 entregó sus endpoints (§6.4) y T-23 fue solo la campana, así que §8 la listaba sin que ninguna tarea la construyera. **No se asignó a T-28**, que es la tarea de cierre y no corresponde que implemente funcionalidad nueva y la verifique en la misma pasada. Hasta que esta tarea corra, `/admin/configuracion` es una `PantallaPendiente` puesta por T-26.
 
+### T-35 · Pantalla de licencias
+**Objetivo:** front de CU-23.
+**Depende de:** T-10, T-26
+**Spec:** §3.6, §8, §8.1
+**Reglas:** RN-20, CU-23
+**Terminado cuando:**
+- `/admin/licencias` (SUPERADMIN) lista el histórico y permite registrar un período, consumiendo los tres endpoints que ya entregó T-10.
+- Es un CRUD: aplica **§8.1 completa, las cinco reglas**.
+- **CRÍTICO:** la pantalla `/bloqueado` ofrece al SUPERADMIN acceso a `/admin/licencias`, y el interceptor de `423` **no lo expulsa de ahí**.
+
+> **Ese último criterio es el que decide si la pantalla sirve.** Con la licencia vencida el sistema entero está bloqueado y el frontend manda todo a `/bloqueado`: si `/admin/licencias` solo se alcanza desde el menú del admin, el SuperAdmin nunca llega a ella justo cuando la necesita. **El backend acompaña**: el filtro de §3.6 ya excluye `/licencias/**` y el login.
+
+> **Fuera de alcance:** planes, precios y pasarela de pago (**P-11**, **P-12**). Solo activación manual del SuperAdmin.
+
+> **Creada el 25/08/2026**, por el repaso de trazabilidad de §9 que abre T-28. §8 lista `/admin/licencias` desde el principio y **ninguna tarea la construía**: T-10 entregó el módulo y los tres endpoints, y ahí quedó. Es el mismo caso que motivó crear T-34 con la pantalla de CU-21. **Va antes de T-28** por el criterio ya fijado: la tarea de cierre no estrena funcionalidad que después tiene que verificar en la misma pasada.
+
 ### T-28 · Perfil, odontólogos y repaso final
 **Objetivo:** CU-11, CU-17 y verificación integral.
 **Depende de:** T-27
@@ -341,7 +359,7 @@ Sus criterios eran el front de CU-09 para el **odontólogo**, que D-19 retira de
 | 3 · Órdenes | T-16 a T-20 | Ciclo completo: creación, adjuntos, seguimiento, estados | Terminado |
 | 4 · Notificaciones | T-21 a T-23 | Outbox, correo, campana | Terminado |
 | 5 · Pantallas de órdenes | T-25, T-26 | Front de odontólogo y administración *(T-24 eliminada por D-19)* | T-25 terminada |
-| 6 · Paneles y cierre | T-27, T-34, T-28 | Dashboards, configuración de notificaciones y verificación integral | Pendiente |
+| 6 · Paneles y cierre | T-27, T-34, T-35, T-28 | Dashboards, configuración de notificaciones, licencias y verificación integral | T-27 y T-34 terminadas |
 | CR-01 · Cambio de alcance | T-29 a T-33b | Solicitud de acceso, alta por admin, Telegram, órdenes por admin | Terminado |
 
 > El orden de ejecución **no** sigue esta tabla: rige la secuencia del principio del documento.

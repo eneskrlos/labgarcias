@@ -898,9 +898,9 @@ Misma disposición en todas: título, botón "Nuevo" a la derecha, filtros si co
 
 | Regla | Dónde se implementa |
 |---|---|
-| RN-01 | Filtro por usuario autenticado en todas las consultas de órdenes; 404 ante orden ajena |
+| RN-01 | Filtro por usuario autenticado en todas las consultas de órdenes; 404 ante orden ajena. **También los contadores y las órdenes recientes del panel del odontólogo (§5.7)**, que se filtran por el id del token: `GET /dashboard` no acepta ningún parámetro |
 | RN-03 / RN-22 | `pacienteIdentificacion` en toda respuesta al odontólogo |
-| RN-04 | Transiciones lineales en el servicio de órdenes (State) |
+| RN-04 | Validación de la transición contra `orden_secuencia` y `es_terminal` en `OrdenEstadoService`. La misma regla, leída del mismo lugar, alimenta **`siguienteEstado`** del detalle (§5.4), para que la pantalla no la recalcule |
 | RN-05 | Evento + outbox + canales app, correo y Telegram (D-20/D-21) |
 | RN-11 | `tipo_orden`: estado inicial, `notifica_admin`, `recargo_monto` |
 | RN-12 | Validación `diasEstimados >= 7` |
@@ -913,6 +913,21 @@ Misma disposición en todas: título, botón "Nuevo" a la derecha, filtros si co
 | RN-19 | `configuracion_notificacion` + selección de canales |
 | RN-20 | Filtro de licencia |
 | RN-21 | Validación `precio >= 250`; congelado en `precio_base` |
+
+> **Sobre RN-04 y el patrón State** *(corregido el 25/08/2026 por el repaso de T-28)*: esta fila
+> decía *"Transiciones lineales en el servicio de órdenes (State)"* y **State nunca se aplicó**.
+> **No hubo incumplimiento:** `Agente.md` §7.3 lista State como patrón **previsto, no obligatorio**,
+> y §7.2 dice que un patrón sin un problema real que resolver es sobreingeniería. Una clase por
+> estado habría duplicado en código lo que `orden_secuencia` y `es_terminal` ya definen en la tabla
+> —y §4.2 prohíbe tocar esas columnas justamente porque RN-04 depende de ellas—. La validación
+> quedó en 12 líneas leyendo el catálogo. `Plan.md` T-20 ya estaba anotado; esta tabla no.
+
+> **Esta tabla cubre las reglas de negocio, no el inventario de la API.** Las incorporaciones de
+> CR-01 que no son reglas —`/odontologos/activos`, `GET /dashboard`, `siguienteEstado`,
+> `?historico=true`, `GET /perfil`, la exención de paginado de §4, `CUENTA_INACTIVA` y
+> `app.laboratorio.zona-horaria`— **se documentan cada una en su sección** y se rastrean desde
+> `ESTADO.md`. Sumarlas acá como filas diluiría lo que la tabla existe para responder: qué regla
+> de negocio se cumple dónde.
 
 ---
 
