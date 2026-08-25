@@ -9,11 +9,10 @@ const VALORES_INICIALES = { nombreCompleto: '', correo: '', nombreUsuario: '', d
 const CAMPOS_CONOCIDOS = ['nombreCompleto', 'correo', 'nombreUsuario', 'direccion', 'telefono'];
 
 /**
- * Sin listado de odontólogos todavía (CU-11 es de T-28): el alta directa vuelve al dashboard, que
- * es donde se muestra la confirmación. Apuntaba a `/` hasta que T-27 convirtió esa ruta en un
- * redirect por rol: el `location.state` con el mensaje no sobrevive a un redirect.
+ * §8.1 Regla 1: el alta vuelve **al listado**, que desde T-28 existe. Pasó por `/` hasta T-27 y
+ * por `/admin` hasta acá, que eran destinos intermedios mientras CU-11 no tenía pantalla.
  */
-const DESTINO_POR_DEFECTO = '/admin';
+const DESTINO_POR_DEFECTO = '/admin/odontologos';
 
 /**
  * D-18/§3.1.b: el administrador da de alta la cuenta de un odontólogo.

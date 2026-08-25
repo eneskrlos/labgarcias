@@ -2,8 +2,11 @@ package com.labgarcias.seguridad.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -14,15 +17,22 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import com.labgarcias.seguridad.domain.EstadoCuenta;
 import com.labgarcias.seguridad.domain.Rol;
 import com.labgarcias.seguridad.domain.RolCodigo;
 import com.labgarcias.seguridad.domain.Usuario;
+import com.labgarcias.seguridad.dto.ActualizarPerfilRequest;
 import com.labgarcias.seguridad.dto.PerfilResponse;
+import com.labgarcias.seguridad.dto.UsuarioResponse;
 import com.labgarcias.seguridad.repository.UsuarioRepository;
+import com.labgarcias.shared.dto.PaginaResponse;
 import com.labgarcias.shared.excepcion.RecursoNoEncontradoException;
 import com.labgarcias.shared.excepcion.ReglaNegocioException;
+import com.labgarcias.shared.excepcion.ValidacionException;
 
 @ExtendWith(MockitoExtension.class)
 class UsuarioServiceTest {
@@ -159,5 +169,109 @@ class UsuarioServiceTest {
                         .isInstanceOf(ReglaNegocioException.class)
                         .hasMessage("El odontólogo indicado no existe o no está activo.")
                         .satisfies(ex -> assertThat(((ReglaNegocioException) ex).getCampo()).isEqualTo("odontologoId")));
+    }
+
+    // ---------- T-28: §7, perfil editable ----------
+
+    /** §7: se editan nombre y dirección, y nada más. */
+    @Test
+    void elPerfilEditableGuardaNombreYDireccion() {
+        Usuario encontrado = usuario(RolCodigo.ODONTOLOGO, EstadoCuenta.ACTIVA);
+        when(usuarioRepository.findById(ID)).thenReturn(Optional.of(encontrado));
+
+        usuarioService.actualizarPerfil(ID, new ActualizarPerfilRequest("Dr. Juan Pérez", "Av. 18 de Julio 1234"));
+
+        verify(encontrado).setNombreCompleto("Dr. Juan Pérez");
+        verify(encontrado).setDireccion("Av. 18 de Julio 1234");
+    }
+
+    /**
+     * §7: **ni el rol ni el correo se pueden cambiar desde el perfil.** Es una guarda estructural:
+     * si alguien los agrega al request, este test falla antes de que llegue a producción.
+     */
+    @Test
+    void elPerfilEditableNoPuedeTocarRolNiCorreo() {
+        Usuario encontrado = usuario(RolCodigo.ODONTOLOGO, EstadoCuenta.ACTIVA);
+        when(usuarioRepository.findById(ID)).thenReturn(Optional.of(encontrado));
+
+        usuarioService.actualizarPerfil(ID, new ActualizarPerfilRequest("Otro Nombre", "Otra dirección"));
+
+        verify(encontrado, never()).setRol(any());
+        verify(encontrado, never()).setCorreo(any());
+        verify(encontrado, never()).setNombreUsuario(any());
+        verify(encontrado, never()).setEstadoCuenta(any());
+        assertThat(ActualizarPerfilRequest.class.getRecordComponents())
+                .extracting(java.lang.reflect.RecordComponent::getName)
+                .containsExactly("nombreCompleto", "direccion");
+    }
+
+    // ---------- T-28: CU-17, mantenimiento del padrón ----------
+
+    @Test
+    void cu17ElPadronSeDevuelvePaginado() {
+        Pageable pagina = PageRequest.of(0, 10);
+        Usuario encontrado = usuario(RolCodigo.ADMIN, EstadoCuenta.ACTIVA);
+        when(usuarioRepository.findAllByOrderByNombreCompletoAsc(pagina))
+                .thenReturn(new PageImpl<>(List.of(encontrado), pagina, 1));
+
+        PaginaResponse<UsuarioResponse> padron = usuarioService.listarTodos(pagina);
+
+        assertThat(padron.total()).isEqualTo(1);
+        assertThat(padron.contenido().get(0).rol()).isEqualTo("ADMIN");
+    }
+
+    @Test
+    void cu17UnTamanoDePaginaNoPermitidoEsRechazado() {
+        assertThatThrownBy(() -> usuarioService.listarTodos(PageRequest.of(0, 15)))
+                .isInstanceOf(ValidacionException.class)
+                .satisfies(ex -> assertThat(((ValidacionException) ex).getCodigo()).isEqualTo("TAMANO_PAGINA_INVALIDO"));
+    }
+
+    @Test
+    void cu17DesactivarUnaCuentaLaDejaInactiva() {
+        Usuario encontrado = usuario(RolCodigo.ODONTOLOGO, EstadoCuenta.ACTIVA);
+        when(usuarioRepository.findById(ID)).thenReturn(Optional.of(encontrado));
+
+        usuarioService.cambiarEstado(ID, "INACTIVA", 99L);
+
+        verify(encontrado).setEstadoCuenta(EstadoCuenta.INACTIVA);
+    }
+
+    /**
+     * CU-17: el SuperAdmin es quien reactiva a los demás. Si pudiera desactivarse a sí mismo y
+     * fuera el último activo, el sistema quedaría irrecuperable desde la aplicación.
+     */
+    @Test
+    void cu17NadieCambiaElEstadoDeSuPropiaCuenta() {
+        assertThatThrownBy(() -> usuarioService.cambiarEstado(ID, "INACTIVA", ID))
+                .isInstanceOf(ReglaNegocioException.class)
+                .satisfies(ex -> assertThat(((ReglaNegocioException) ex).getCodigo())
+                        .isEqualTo("AUTODESACTIVACION_NO_PERMITIDA"));
+
+        verify(usuarioRepository, never()).findById(ID);
+    }
+
+    /** D-18 eliminó la verificación: una cuenta ahí quedaría sin forma de destrabarse. */
+    @Test
+    void cu17NoSePuedeVolverAPendienteDeVerificacion() {
+        assertThatThrownBy(() -> usuarioService.cambiarEstado(ID, "PENDIENTE_VERIFICACION", 99L))
+                .isInstanceOf(ValidacionException.class)
+                .satisfies(ex -> assertThat(((ValidacionException) ex).getCodigo()).isEqualTo("ESTADO_CUENTA_INVALIDO"));
+    }
+
+    /** Un estado inexistente da 400 con su código, no un 500 del binding. */
+    @Test
+    void cu17UnEstadoInexistenteEsRechazadoConSuCodigo() {
+        assertThatThrownBy(() -> usuarioService.cambiarEstado(ID, "SUSPENDIDA", 99L))
+                .isInstanceOf(ValidacionException.class)
+                .satisfies(ex -> assertThat(((ValidacionException) ex).getCodigo()).isEqualTo("ESTADO_CUENTA_INVALIDO"));
+    }
+
+    /** CU-17/§8.2: el padrón no expone contraseñas ni el chat de Telegram. */
+    @Test
+    void cu17ElPadronNoExponeSecretos() {
+        assertThat(UsuarioResponse.class.getRecordComponents())
+                .extracting(java.lang.reflect.RecordComponent::getName)
+                .containsExactly("id", "nombreCompleto", "correo", "nombreUsuario", "rol", "estadoCuenta");
     }
 }

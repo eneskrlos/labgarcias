@@ -17,6 +17,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import com.labgarcias.licencia.domain.EstadoLicencia;
 import com.labgarcias.licencia.domain.Licencia;
@@ -25,7 +28,9 @@ import com.labgarcias.licencia.dto.LicenciaVigenteResponse;
 import com.labgarcias.licencia.dto.RegistrarLicenciaRequest;
 import com.labgarcias.licencia.repository.LicenciaRepository;
 import com.labgarcias.seguridad.domain.Usuario;
+import com.labgarcias.shared.dto.PaginaResponse;
 import com.labgarcias.shared.excepcion.ReglaNegocioException;
+import com.labgarcias.shared.excepcion.ValidacionException;
 
 import jakarta.persistence.EntityManager;
 
@@ -116,13 +121,28 @@ class LicenciaServiceTest {
         licencia1.setEstado(EstadoLicencia.VENCIDA);
         Licencia licencia2 = new Licencia();
         licencia2.setEstado(EstadoLicencia.ACTIVA);
-        when(licenciaRepository.findAllByOrderByFechaRegistroDesc()).thenReturn(List.of(licencia2, licencia1));
+        Pageable pagina = PageRequest.of(0, 10);
+        when(licenciaRepository.findAllByOrderByFechaRegistroDesc(pagina))
+                .thenReturn(new PageImpl<>(List.of(licencia2, licencia1), pagina, 2));
 
-        List<LicenciaResponse> historico = licenciaService.listarHistorico();
+        PaginaResponse<LicenciaResponse> historico = licenciaService.listarHistorico(pagina);
 
-        assertThat(historico).hasSize(2);
-        assertThat(historico.get(0).estado()).isEqualTo("ACTIVA");
-        assertThat(historico.get(1).estado()).isEqualTo("VENCIDA");
+        assertThat(historico.total()).isEqualTo(2);
+        assertThat(historico.contenido()).hasSize(2);
+        assertThat(historico.contenido().get(0).estado()).isEqualTo("ACTIVA");
+        assertThat(historico.contenido().get(1).estado()).isEqualTo("VENCIDA");
+    }
+
+    /** §8.1 Regla 2 / spec.md §1: el histórico usa la misma validación de tamaño que las demás tablas. */
+    @Test
+    void unTamanoDePaginaNoPermitidoEsRechazado() {
+        Pageable pagina = PageRequest.of(0, 15);
+
+        assertThatThrownBy(() -> licenciaService.listarHistorico(pagina))
+                .isInstanceOf(ValidacionException.class)
+                .satisfies(ex -> assertThat(((ValidacionException) ex).getCodigo()).isEqualTo("TAMANO_PAGINA_INVALIDO"));
+
+        verify(licenciaRepository, never()).findAllByOrderByFechaRegistroDesc(any(Pageable.class));
     }
 
     @Test

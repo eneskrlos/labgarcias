@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { SesionProvider, useSesion } from './shared/hooks/useSesion';
 import { RutaProtegida } from './shared/components/RutaProtegida';
 import { LayoutAutenticado } from './shared/components/LayoutAutenticado';
-import { PantallaPendiente } from './shared/components/PantallaPendiente';
 import Login from './features/auth/Login';
 import Bloqueado from './features/auth/Bloqueado';
 import SolicitarAcceso from './features/auth/SolicitarAcceso';
@@ -11,6 +10,8 @@ import SolicitudesListado from './features/auth/SolicitudesListado';
 import CambiarPassword from './features/auth/CambiarPassword';
 import BotonCerrarSesion from './features/auth/BotonCerrarSesion';
 import OdontologoFormulario from './features/auth/OdontologoFormulario';
+import OdontologosListado from './features/auth/OdontologosListado';
+import UsuariosListado from './features/auth/UsuariosListado';
 import Campana from './features/notificaciones/Campana';
 import ConfiguracionNotificaciones from './features/notificaciones/ConfiguracionNotificaciones';
 import Perfil from './features/perfil/Perfil';
@@ -24,20 +25,24 @@ import OrdenDetalleAdmin from './features/ordenes/OrdenDetalleAdmin';
 import HistorialOrdenes from './features/ordenes/HistorialOrdenes';
 import PanelOdontologo from './features/dashboard/PanelOdontologo';
 import DashboardAdmin from './features/dashboard/DashboardAdmin';
+import LicenciasListado from './features/licencia/LicenciasListado';
+import LicenciaFormulario from './features/licencia/LicenciaFormulario';
 import TiposTrabajoListado from './features/catalogos/TiposTrabajoListado';
 import TipoTrabajoFormulario from './features/catalogos/TipoTrabajoFormulario';
 
 const queryClient = new QueryClient();
 const ROLES_ADMIN = ['ADMIN', 'SUPERADMIN'];
 const ROL_ODONTOLOGO = 'ODONTOLOGO';
+/** §8: las licencias son del SuperAdmin, no de toda la administración (CU-23). */
+const ROL_SUPERADMIN = 'SUPERADMIN';
 
 /**
  * Toda ruta con sesión iniciada comparte el encabezado, y la campana vive ahí (§6.4): montarla
  * en una sola pantalla la dejaría invisible en el resto.
  *
  * §8 define **dos menús distintos**, uno por rol: T-25 montó el del odontólogo y T-26 el del
- * laboratorio. Los ítems cuya pantalla todavía no existe llevan a una `PantallaPendiente`, para
- * que el menú sea el de §8 completo sin que ninguno caiga en una página en blanco.
+ * laboratorio. **Desde T-28 todos los ítems tienen su pantalla**: la `PantallaPendiente` que
+ * cubría los destinos que llegaban después se retiró al quedar sin uso.
  */
 function PantallaAutenticada({ rolesPermitidos, children }) {
   const { usuario } = useSesion();
@@ -181,15 +186,21 @@ function App() {
                 </PantallaAutenticada>
               }
             />
-            {/* CU-11: el listado de odontólogos es de T-28; el alta ya existe. */}
+            {/* CU-11/§7: la tabla administrable de cuentas de odontólogo. */}
             <Route
               path="/admin/odontologos"
               element={
                 <PantallaAutenticada rolesPermitidos={ROLES_ADMIN}>
-                  <PantallaPendiente
-                    titulo="Odontólogos"
-                    detalle="Vas a ver acá las cuentas de los odontólogos del laboratorio."
-                  />
+                  <OdontologosListado />
+                </PantallaAutenticada>
+              }
+            />
+            {/* CU-17/§7: el padrón completo, solo SUPERADMIN. */}
+            <Route
+              path="/admin/usuarios"
+              element={
+                <PantallaAutenticada rolesPermitidos={[ROL_SUPERADMIN]}>
+                  <UsuariosListado />
                 </PantallaAutenticada>
               }
             />
@@ -232,6 +243,30 @@ function App() {
                 <PantallaAutenticada rolesPermitidos={ROLES_ADMIN}>
                   <TipoTrabajoFormulario />
                 </PantallaAutenticada>
+              }
+            />
+            {/*
+              CU-23/§3.6: las licencias van **fuera de `PantallaAutenticada`**, con `RutaProtegida`
+              y sin encabezado. No es una decisión estética: `LayoutAutenticado` monta la campana,
+              que consulta `/notificaciones/contador` cada 60 s, y ese endpoint **no** está exento
+              del bloqueo por licencia. Con la licencia vencida devolvería 423 y el interceptor
+              sacaría al SuperAdmin de la única pantalla que le permite regularizar, antes del
+              minuto y sin que él tocara nada.
+            */}
+            <Route
+              path="/admin/licencias"
+              element={
+                <RutaProtegida rolesPermitidos={[ROL_SUPERADMIN]}>
+                  <LicenciasListado />
+                </RutaProtegida>
+              }
+            />
+            <Route
+              path="/admin/licencias/nueva"
+              element={
+                <RutaProtegida rolesPermitidos={[ROL_SUPERADMIN]}>
+                  <LicenciaFormulario />
+                </RutaProtegida>
               }
             />
             <Route

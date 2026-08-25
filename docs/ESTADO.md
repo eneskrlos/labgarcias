@@ -1,7 +1,7 @@
 # ESTADO.md — Punto de retomada
 
 **Proyecto:** Lab. Garcia's Connect
-**Actualizado:** 24/08/2026 · rama `feature/T-34_pantalla_config_notification`
+**Actualizado:** 25/08/2026 · rama `feature/T-28_Perfil_odontologo_repaso_final`
 
 Este archivo existe para retomar el trabajo sin releer toda la conversación. No reemplaza a
 `spec.md`, `Plan.md` ni `Agente.md`: ante cualquier diferencia, **mandan esos tres**. Acá solo
@@ -38,14 +38,16 @@ va el estado de avance y lo que se acordó de palabra y no quedó escrito en ell
 | **—** | `PantallaPendiente`: destino de los ítems de menú cuya pantalla llega después | `fbe6beb` |
 | **T-26** | Gestión de órdenes del laboratorio: `GET /admin/ordenes` con los tres filtros de §5.7, `siguienteEstado` en el detalle, pantallas `/admin/ordenes` y `/admin/ordenes/:id` con el avance de estado, y el menú del admin de §8 | `73af666` (falta el merge) |
 | **T-27** | Dashboards: `GET /admin/dashboard` y `GET /dashboard` (nuevo, CU-02), filtro `?historico` en `GET /ordenes` (CU-12), pantallas `/inicio`, `/admin` y `/historial`, `/` redirige por rol, y la zona horaria del laboratorio en properties | `25606ef` + `7b8bb42` (docs) |
-| **T-34** | Pantalla `/admin/configuracion` (CU-21): ve y edita los canales del administrador con el `GET` y el `PUT` de T-22, el `422 TELEGRAM_SIN_DESTINO` en su campo y WhatsApp deshabilitado (P-18). **Sin endpoints nuevos** | rama `feature/T-34_pantalla_config_notification` |
+| **T-34** | Pantalla `/admin/configuracion` (CU-21): ve y edita los canales del administrador con el `GET` y el `PUT` de T-22, el `422 TELEGRAM_SIN_DESTINO` en su campo y WhatsApp deshabilitado (P-18). **Sin endpoints nuevos** | `1f6334f` |
+| **T-35** | Pantalla de licencias (CU-23): `/admin/licencias` y `/admin/licencias/nueva` para SUPERADMIN, `GET /licencias` **pasa a ser paginado**, acceso desde `/bloqueado`, ítem de menú propio y guarda en el interceptor de `423` | `e89eb2e` |
+| **T-28** | **Cierre del plan.** Perfil editable (`PUT /perfil`), `GET /odontologos` paginado con `/admin/odontologos` (CU-11), padrón del SuperAdmin (`GET /usuarios`, `PATCH /usuarios/{id}/estado`) con `/admin/usuarios` (CU-17), los tres pendientes heredados y los dos repasos finales | rama `feature/T-28_Perfil_odontologo_repaso_final` |
 
 > **Sobre la columna "Commit":** desde que rige el paso 7 de `Agente.md`, este archivo se actualiza
 > *dentro* del commit de la tarea, así que ese commit no puede citar su propio hash. La tarea en
 > curso se identifica por su rama; el hash o el merge se completan al integrarla a `develop`.
 
-**Verificación al día de hoy:** `mvn -o test` en `backend/` → **406 tests, 0 fallos**.
-`npm test` en `frontend/` → **266 tests, 0 fallos**. `npm run lint` y `npm run build` limpios.
+**Verificación al día de hoy:** `mvn -o test` en `backend/` → **416 tests, 0 fallos**.
+`npm test` en `frontend/` → **313 tests, 0 fallos**. `npm run lint` y `npm run build` limpios.
 
 T-30, T-31 y T-32 se probaron además de punta a punta con el backend levantado en `dev` contra la
 base real. De T-31, con un SMTP de prueba: el correo de credenciales llegó completo y la contraseña
@@ -118,9 +120,59 @@ Con rol ODONTOLOGO, `GET` y `PUT` dan **403**; sin token, **401**. **La verifica
 residuo:** la tabla `configuracion_notificacion` estaba vacía, el `PUT` creó una fila y se borró al
 terminar — volvió a **0 filas**, verificado.
 
-**Datos de prueba deliberados en la base de desarrollo** (se conservan para mostrarle el flujo a la
-clienta): dos solicitudes de `juan.prueba@mail.com` —una `RECHAZADA` y otra `APROBADA`—, el
-odontólogo `jperez` (id 17, contraseña ya cambiada) y las notificaciones de ambos flujos.
+De T-35, contra la base real y **venciendo la licencia de verdad** para probar el criterio crítico:
+`GET /licencias?page=0&size=10` devolvió el `PaginaResponse` con los dos períodos, más reciente
+primero; `size=15` dio **400** y el rol ODONTOLOGO **403**. **Con `v_licencia_vigente` en `false`**,
+`/licencias` y `/licencias/vigente` siguieron respondiendo **200** y el login no quedó bloqueado,
+mientras `/admin/dashboard` y `/ordenes` daban **423** (criterio 1 de §3.6). **`GET
+/notificaciones/contador` devolvió `423`**: es la confirmación en vivo de que la campana era la que
+expulsaba al SuperAdmin de la pantalla de licencias. Registrar un período con el sistema bloqueado
+devolvió **201** y la operación se restableció al instante —`/admin/dashboard` pasó de `423` a
+`200`— que es el criterio 2. Fechas invertidas dieron **`422 FECHAS_LICENCIA_INVALIDAS` con
+`campo: "fechaVencimiento"`**, que es donde la pantalla lo pinta. Con un token de rol ADMIN real,
+`POST` y `GET /licencias` dieron **403**
+(criterio 3). **La verificación no dejó residuo:** se borró el período creado y se restauraron las
+dos fechas originales; `v_licencia_vigente` volvió a `true`.
+
+De T-28, contra la base real: `GET /odontologos?page=0&size=10` devolvió los **tres** odontólogos
+con su estado, `size=15` dio **400** y el rol ODONTOLOGO **403**. `GET /usuarios` devolvió las
+**siete** cuentas con su rol, y con rol ADMIN dio **403**. **§7 verificado a fondo:** un `PUT
+/perfil` con `rol: "SUPERADMIN"` y un correo ajeno **en el mismo cuerpo** cambió solo la dirección
+—rol y correo volvieron intactos—, y un nombre vacío dio **400**. De CU-17: desactivar a `armando`
+lo **sacó del selector** de nueva orden y lo **dejó visible** en el listado de CU-11, que es
+exactamente la razón por la que la pantalla existe; tocar la propia cuenta dio **422
+AUTODESACTIVACION_NO_PERMITIDA**, `PENDIENTE_VERIFICACION` y un estado inexistente dieron **400
+ESTADO_CUENTA_INVALIDO**, y con rol ADMIN **403**. **La verificación no dejó residuo:** `armando`
+se reactivó **por el mismo endpoint, no por SQL**, y la dirección de `eperez` se restauró; las
+siete cuentas quedaron `ACTIVA`.
+
+### Contenido de la base de desarrollo — reconciliado el 25/08/2026
+
+> **Esto es solo la base de desarrollo.** Una instalación nueva corre `V1` + `V2` con su seed y **no
+> arrastra nada de esto**: ni cuentas, ni órdenes, ni solicitudes. El seed carga los catálogos —45
+> tipos de trabajo, 7 estados, 2 tipos de orden, 3 roles— y nada más.
+
+**El repaso de T-28 encontró residuo no documentado y se limpió** (25/08/2026, ver hallazgos abajo).
+Desde entonces, **esta lista coincide exactamente con lo que hay en la base**, verificado por
+consulta directa:
+
+**Las siete cuentas** — todas `ACTIVA`; ya no hay ninguna en `PENDIENTE_VERIFICACION`, un estado que
+D-18 eliminó y que el sistema actual no puede producir:
+
+| id | Usuario | Rol | Para qué está |
+|---|---|---|---|
+| 3 | `eperez` | ODONTOLOGO | Dueño de LG-0003 y LG-0004. **La cuenta de odontólogo del desarrollador** |
+| 5 | `superadmint10` | SUPERADMIN | Destinatario de 5 notificaciones reales (3 `SOLICITUD_ACCESO` + 2 `ORDEN_URGENTE`) |
+| 6 | `postlicenciat10` | ADMIN | Ídem, otras 5. **Entre 5, 6 y 10 prueban la decisión 4 de T-21**: una notificación por cada cuenta de administración |
+| 10 | `Mona` | ADMIN | **Autora de las 8 etapas** de las órdenes de demostración |
+| 11 | `erneskrlos` | SUPERADMIN | **Vinculado a Telegram** desde el 23/08/2026 |
+| 17 | `jperez` | ODONTOLOGO | Dueño de LG-0005, LG-0006 y LG-0007. Contraseña ya cambiada |
+| 18 | `armando` | ODONTOLOGO | Cuenta creada desde la **segunda solicitud aprobada** |
+
+**Tres solicitudes de acceso**: **1 `RECHAZADA` y 2 `APROBADAS`** —no dos, como decía este archivo
+hasta el 25/08—. Las aprobadas son las que produjeron a `jperez` y a `armando`.
+
+**33 notificaciones** de los flujos reales, más 20 correos en mailpit.
 **Cinco órdenes de demostración, cargadas el 23/08/2026** a pedido del desarrollador, por los mismos
 endpoints que usan las pantallas —**nada se insertó por SQL**—, y **repartidas entre dos odontólogos**
 para poder verificar RN-01:
@@ -144,66 +196,54 @@ verificación se borraron al terminar.
 **Vinculación real de Telegram:** `erneskrlos` (id 11) está vinculado desde el 23/08/2026, por la
 corrida del propio desarrollador. No es dato de prueba: es el estado que dejó el flujo de §6.5.
 
+**Lo que se limpió el 25/08/2026**, encontrado por el repaso de T-28 y borrado tras verificar una
+por una que nada colgara de esas filas. Se respetó la regla de no tocar material de demostración:
+
+- **6 cuentas de prueba de T-06/T-07/T-08/T-11** —`jperezt06`, `agomezt07`, `logint08` y tres
+  `pwtest…`— con **cero** órdenes, etapas, notificaciones y configuración. Tres de ellas estaban en
+  `PENDIENTE_VERIFICACION`.
+- **El tipo de trabajo id 51, "Rnalnlna 2"** (12 días, 400), residuo de la verificación de
+  T-14/T-15 del 15/08. Se comprobó primero que **ninguna orden lo referenciaba**; §4.1 prohíbe
+  eliminar tipos de trabajo *en el sistema*, y esto fue limpieza de la base de desarrollo, no una
+  operación de la aplicación. Quedaron los **45** del seed.
+- **Las 12 filas de `token_verificacion`**, tabla que **CR-01 §3.2 dejó muerta**: ninguna entidad
+  JPA la mapea y ningún código la lee.
+
+**No se tocó** ninguna cuenta con datos de la demostración —`eperez`, `Mona`, `erneskrlos`,
+`jperez`, `armando` y las dos cuentas de administración que reciben las notificaciones—, ni las 5
+órdenes con sus 8 etapas, ni las 33 notificaciones, ni la vinculación de Telegram. Hay un respaldo
+previo de `usuario`, `tipo_trabajo` y `token_verificacion` tomado antes de borrar.
+
 ---
 
 ## (b) Próxima tarea
 
-### T-28 · Perfil, odontólogos y repaso final — **última tarea del plan**
+### Ninguna: **el plan está terminado.**
 
-**Spec:** §7, §9 · **Depende de:** T-27 ✅
-**Terminado cuando:**
-- **Perfil editable**: `PUT /api/v1/perfil` y el formulario, con `nombreCompleto` y `direccion`.
-  **No** rol ni correo. *La pantalla `/perfil` y `GET /api/v1/perfil` ya existen desde T-32b:
-  T-28 la **extiende**, no la crea.*
-- **Listado de odontólogos** para el admin (CU-11) y **gestión de usuarios** para el SuperAdmin
-  (CU-17): `GET /api/v1/odontologos` **paginado**, `GET /api/v1/usuarios` y
-  `PATCH /api/v1/usuarios/{id}/estado`.
-- **Repaso de la tabla de trazabilidad de §9**: cada regla con su implementación verificable.
-- **Repaso de que ningún punto fuera de alcance (`Agente.md` §3.3) quedó implementado.**
+T-28 era la última. Las 35 tareas de `Plan.md` están cerradas y verificadas, las **18 pantallas de
+§8** existen, y los dos repasos finales —trazabilidad de §9 y fuera de alcance de `Agente.md` §3.3—
+dieron limpio (decisión 23).
 
-#### Los tres pendientes que hereda
+**Lo que queda no es trabajo pendiente del plan, sino decisiones de la clienta.** Están todas en
+"Puntos abiertos", y estas dos se elevan juntas porque son **la misma pregunta sobre qué significa
+"canal activo"**:
 
-1. **`/admin/odontologos` es hoy una `PantallaPendiente`** puesta por T-26 — es el **último**
-   destino del menú del admin sin su pantalla. La reemplaza el listado de CU-11, con §8.1 **Regla 1
-   completa** (es un CRUD de verdad) y el botón "Nuevo" apuntando a `/admin/odontologos/nuevo`, que
-   **ya existe** desde T-31.
-2. **Mover el destino del alta de odontólogo de `/admin` a `/admin/odontologos`.** Hoy
-   `OdontologoFormulario` vuelve al dashboard con su confirmación en `location.state`
-   (`DESTINO_POR_DEFECTO`), que es un destino intermedio: §8.1 Regla 1 pide volver **al listado**.
-   Cuando exista, hay que cambiar esa constante y mostrar el mensaje ahí, como ya hacen
-   `/admin/ordenes` y `/admin/tipos-trabajo`. **El dashboard deja de necesitar su `role="status"`.**
-3. **`GET /api/v1/odontologos` paginado no existe todavía.** Lo que hay es `/odontologos/activos`,
-   que alimenta un **selector** y devuelve solo `id` y `nombreCompleto` (decisión 14). **Son dos
-   endpoints con propósitos distintos y conviven** — §7 lo dice explícitamente.
+1. **Deuda de spec de T-32** — §6.4 valida CU-21 contra `configuracion_notificacion.telegram_chat_id`
+   mientras el envío usa `usuario.telegram_chat_id`: se puede activar Telegram y recibir todo
+   `FALLIDO`.
+2. **Punto abierto de T-34** — destildar `canal_app_activo` **no apaga la campana**. No es lo mismo
+   que la anterior: ahí el admin configura algo que no surte efecto; acá apaga un canal y el canal
+   sigue funcionando. Es un **defecto de comportamiento**.
 
-#### Para el repaso de §9: lo que se agregó o cambió durante CR-01
+Y estas dos, de menor peso:
 
-La tabla de §9 se escribió antes de estas ocho incorporaciones, así que **el repaso tiene que
-contemplarlas** o va a dar por completo algo que no lo está. Todas están documentadas en `spec.md`
-—ninguna vive solo acá— y cada una tiene su decisión en la sección (c):
+3. **Un odontólogo no puede apagar ningún canal** (§6.4 reserva la configuración a la
+   administración, pero D-20 le manda notificaciones por tres canales).
+4. **Dos "Conectar Telegram" seguidos dejan dos tokens vigentes** (§6.5 no dice qué hacer).
 
-| Qué | Dónde está en `spec.md` | Decisión |
-|---|---|---|
-| `GET /odontologos/activos` (sin paginar, selector de D-19) | §7, §5.1 | 14 (T-33b) |
-| `GET /dashboard` del odontólogo (CU-02) | §5.7, §7 | 18 (T-27) |
-| `siguienteEstado` en el detalle de la orden (RN-04 desde el backend) | §5.4 | 16 (T-26) |
-| `?historico=true` en `GET /ordenes` (CU-12) | §5.3 | 18 (T-27) |
-| `GET /perfil` | §7, §6.5 | 13 (T-32b) |
-| Exención de paginado ampliada a los endpoints que alimentan selectores | §4 (nota tras §4.1) | 14 (T-33b) |
-| `CUENTA_INACTIVA`, renombrado desde `CUENTA_NO_VERIFICADA` por D-18 | §3.3 | CR-01 / T-29 |
-| `app.laboratorio.zona-horaria` / `LAB_ZONA_HORARIA`, obligatoria en `prod` | **§1.2** (sección nueva) | 18 (T-27) |
-
-**Además, para el repaso de `Agente.md` §3.3** (nada fuera de alcance implementado), los tres
-puntos donde es más fácil equivocarse: **P-14** (la columna `cargo_cancelacion` existe y queda en
-`null`, sin lógica de cálculo), **P-18** (WhatsApp es estructura: puerto y validación de teléfono,
-sin integración) y **D-11** (la tabla de mensajes existe y **no hay** entidad, servicio, endpoint,
-pantalla ni contador — el de CU-02 se omitió a propósito).
-
-> **Los dos puntos que se elevan a la clienta no los resuelve T-28**: la deuda de spec de T-32 y el
-> punto abierto de T-34 sobre `canal_app_activo`. Los dos están en "Puntos abiertos" y son la misma
-> pregunta sobre qué significa "canal activo".
-
----
+**Deudas técnicas anotadas, sin tarea asignada:** las trazas de auditoría (decisión 4 — hoy no se
+registra quién borró un adjunto ni quién registró una orden; haría falta una migración) y el test
+automático del criterio 2 de §1.1 (que `/swagger-ui.html` dé 404 en `prod`).
 
 ## (c) Decisiones acordadas fuera de spec.md / Plan.md / Agente.md
 
@@ -683,6 +723,166 @@ dos puntos:
 6. **`MenuAdmin` solo cambió de comentario.** El `NavLink` ya apuntaba a `/admin/configuracion`
    desde T-26; lo único desactualizado era la nota de cuántos destinos seguían pendientes.
 
+### 20. Los dos repasos que abren T-28 (25/08/2026)
+
+Se corrieron **antes de escribir código**, a pedido del desarrollador, verificando **contra el
+código y no contra las tablas**. Es lo que hizo aparecer el hallazgo principal: comparar las 18
+filas de §8 contra las 21 rutas del router, en vez de recorrer §9 como checklist.
+
+**Trazabilidad de §9 — 13 reglas correctas y dos hallazgos:**
+
+1. **`/admin/licencias` (CU-23) estaba en §8 sin tarea que la construyera** → **se creó T-35**, que
+   corre antes de T-28.
+2. **§9 describía para RN-04 una implementación que no era la real** — decía "(State)" y State
+   nunca se aplicó. **La fila se corrigió** y se dejó constancia de que **no hubo incumplimiento**:
+   `Agente.md` §7.3 lista State como patrón previsto, **no obligatorio**, y §7.2 dice que un patrón
+   sin un problema real es sobreingeniería. `Plan.md` T-20 ya estaba anotado; §9 no.
+
+**Las ocho incorporaciones de CR-01 no se sumaron como filas de §9**, por decisión del
+desarrollador: esa tabla es *regla de negocio → implementación*, y las incorporaciones son
+endpoints, campos y parámetros, que la diluirían. Solo se actualizaron **las dos filas de reglas
+que sí cambiaron**: RN-04 (con `siguienteEstado`) y RN-01 (con el filtrado por token de
+`GET /dashboard`). El resto se rastrea desde este archivo y desde su sección propia en `spec.md`,
+y §9 lleva ahora una nota que lo dice.
+
+**Fuera de alcance (`Agente.md` §3.3) — nada de lo pospuesto quedó implementado.** Se verificaron
+los once puntos. Los tres más expuestos: **P-14** (`cargo_cancelacion` mapeada **sin setter**, con
+dos tests que lo vigilan), **P-18** (`CanalWhatsApp` sin cliente HTTP ni proveedor) y **D-11** (la
+tabla `mensaje` existe en el esquema y **ninguna entidad JPA la mapea**). También: sin retrocesos
+(P-02), sin facturación (P-08), recargo como monto fijo de la tabla (P-10), sin pasarela ni planes
+(P-11/P-12) —`PasarelaPago` no existe ni como interfaz—, los seis campos de §5.1 (P-13), sin
+símbolo de moneda (P-17), sin reportes (CU-13) y sin Pacientes (S-03).
+
+**Hallazgo extra, fuera de los dos repasos:** residuo de datos en la base de desarrollo, limpiado
+el mismo día. Ver la sección de contenido de la base, arriba.
+
+### 21. Las decisiones de T-35 (25/08/2026)
+
+**La decisión de contrato, tomada por el desarrollador antes de implementar:** **`GET /licencias`
+pasa a ser paginado**, y **§3.6 quedó actualizada**. Los dos criterios de la ficha se contradecían
+—"consumiendo los tres endpoints de T-10" y "§8.1 completa, las cinco reglas"— porque el endpoint
+devolvía la lista entera. El motivo de paginarlo **no es el volumen**: §8.1 se aplica a todas las
+pantallas de administración "sin excepción" y su objetivo es "que todas se vean y se operen igual";
+su criterio 5 pide que dos tablas distintas sean indistinguibles en estructura, y una sin selector
+de tamaño ni controles se ve distinta tenga tres filas o trescientas. **Es una regla de uniformidad,
+no de rendimiento**, y documentar y defender la excepción costaba más que paginar.
+**`GET /licencias/vigente` no se tocó**: devuelve un solo registro.
+
+**El ítem "Licencias" del menú, agregado al cerrar la tarea:** §8 le da su propia fila con rol
+SUPERADMIN, así que es una pantalla de navegación y no una ruta suelta. Con acceso solo desde
+`/bloqueado`, el SuperAdmin llegaría a sus licencias **únicamente con el sistema ya caído** y no
+podría renovar antes del vencimiento, que es justo lo que evita el corte. Alcance mínimo: **el mismo
+menú del admin con un ítem condicionado al rol**, no un menú aparte — §3.5 ya define al SUPERADMIN
+como el ADMIN más usuarios y licencias.
+
+**Las decisiones de implementación:**
+
+1. **Las dos rutas van fuera de `PantallaAutenticada`**, con `RutaProtegida` y sin encabezado. No es
+   estético: `LayoutAutenticado` monta la campana, que consulta `/notificaciones/contador` cada 60 s,
+   y **ese endpoint no está exento del bloqueo de §3.6**. Con la licencia vencida devuelve `423` y
+   el interceptor sacaba al SuperAdmin de la única pantalla que resuelve el bloqueo, antes del
+   minuto y sin que tocara nada. **Verificado en vivo**, no deducido.
+2. **Además, guarda en el interceptor de `423`**: no redirige si la ruta ya empieza con
+   `/admin/licencias`. La decisión 1 elimina la causa conocida; esta evita que cualquier llamada
+   futura reabra el agujero. El error se muestra en la pantalla en vez de navegar.
+3. **`/bloqueado` ofrece el enlace solo al SUPERADMIN.** A los demás roles el endpoint responde 403
+   y el enlace sería una promesa falsa.
+4. **Sin ruta `/{id}/editar`.** Un período no se modifica —no hay `PUT`—, se registra otro, así que
+   esa ruta de §8.1 Regla 1 no existe. Mismo criterio que las solicitudes y la campana.
+5. **El listado encabeza con el estado vigente**, leído de `GET /licencias/vigente` y **no derivado
+   del listado** (§8). Es lo primero que necesita ver quien llega desde `/bloqueado`.
+6. **El formulario no adelanta la validación de fechas**: manda y muestra el `422` del backend en el
+   campo que este indica (`Agente.md` §6.1).
+
+### 22. Las decisiones de T-28 (25/08/2026) — cierre del plan
+
+**La decisión de alcance, tomada por el desarrollador antes de implementar:** **CU-17 lleva
+pantalla** (`/admin/usuarios`, SUPERADMIN) y **§8 suma su fila**. §8 no la listaba y §7 solo define
+`GET /usuarios` y `PATCH /usuarios/{id}/estado`, así que la lectura literal era entregar los
+endpoints y operarlos por Swagger. Se decidió lo contrario porque **`PATCH /usuarios/{id}/estado`
+es la única forma de reactivar una cuenta dada de baja**, y `/admin/odontologos` —que sí está en
+§8— muestra esas cuentas inactivas: sin la pantalla, el SuperAdmin ve el problema en una pantalla
+documentada y tiene que salir de la aplicación para resolverlo. **Reactivar una cuenta es una
+operación de negocio con efecto visible**, no el "soporte técnico fuera del flujo" del que habla
+CU-17 —eso cubre consultar y corregir datos, que sí puede vivir en la API—.
+
+**Las decisiones de implementación:**
+
+1. **`PUT /perfil` recibe solo `nombreCompleto` y `direccion`.** Rol y correo **no están en el
+   request**, así que mandarlos en el cuerpo no tiene efecto — verificado contra la base real
+   enviando `rol: SUPERADMIN` y un correo ajeno: la respuesta conservó los originales. En la
+   pantalla se muestran como dato y no como campo: que no se puedan cambiar tiene que verse, no
+   depender de que el backend los rechace. Hay un test estructural sobre los componentes del record.
+2. **`GET /odontologos` incluye las cuentas dadas de baja.** Es la tabla donde se las ve; el
+   selector de §5.1 (`/odontologos/activos`) sigue trayendo solo las ACTIVA. Los dos conviven y el
+   javadoc del controller ahora lo explica.
+3. **Nadie puede cambiar el estado de su propia cuenta** → `422 AUTODESACTIVACION_NO_PERMITIDA`.
+   El SUPERADMIN es quien reactiva a los demás: dejar el sistema sin ninguno activo lo volvería
+   irrecuperable desde la aplicación. En la pantalla, la fila propia dice "Tu cuenta" y no ofrece
+   botón.
+4. **`PENDIENTE_VERIFICACION` no se acepta como destino** → `400 ESTADO_CUENTA_INVALIDO`. **Está
+   atado a D-18**, que eliminó la verificación por correo: una cuenta puesta ahí a mano no tendría
+   forma de destrabarse. **Si algún día se reabre la verificación de cuentas, esta regla hay que
+   revisarla.**
+5. **`/admin/usuarios` no tiene alta ni edición.** §7 define para ese recurso `GET` y `PATCH` de
+   estado, y nada más; de §8.1 rigen las Reglas 2 a 5. El alta de odontólogos vive en
+   `/admin/odontologos/nuevo`; las cuentas de administración no se crean desde la aplicación.
+6. **`/admin/odontologos` tampoco ofrece "Editar":** §7 no define ningún `PUT /odontologos/{id}`.
+   Los datos los cambia su dueño en `/perfil` y el estado el SUPERADMIN en `/admin/usuarios`.
+7. **Los dos ítems de menú del SUPERADMIN —Usuarios y Licencias— van en el mismo menú del admin**,
+   condicionados al rol. Es exactamente lo que dice §3.5: el ADMIN más usuarios y licencias.
+8. **Editar el perfil refresca la sesión guardada.** El nombre se muestra en el saludo del panel y
+   en el encabezado, que leen la sesión de `localStorage`: sin esto, el usuario cambiaba su nombre
+   y seguía viendo el anterior hasta cerrar sesión.
+
+**Los tres pendientes heredados, cerrados:**
+
+1. `/admin/odontologos` **dejó de ser `PantallaPendiente`** y es el listado de CU-11.
+2. **El alta de odontólogo vuelve a `/admin/odontologos`** con su confirmación (§8.1 Regla 1).
+   Pasó por `/` hasta T-27 y por `/admin` hasta acá, que eran destinos intermedios.
+3. **`GET /odontologos` paginado existe.**
+
+**Y dos limpiezas que se desprendieron de eso:**
+
+- **`PantallaPendiente` se retiró** —componente, estilos y test—: era la última en uso y quedó sin
+  ninguna referencia. `Agente.md` §6.2 prohíbe las abstracciones sin uso actual. Si se necesita de
+  nuevo, está en el historial.
+- **`DashboardAdmin` perdió su `role="status"`** y el efecto que limpiaba `location.state`: con el
+  alta volviendo al listado, **ningún formulario navega ya a `/admin` con mensaje**, verificado por
+  búsqueda. Era código muerto.
+
+### 23. Los dos repasos finales, rehechos (25/08/2026)
+
+Se rehicieron **de cero sobre el código final**, no se reutilizaron los del 25/08 (decisión 20):
+T-35 y el propio T-28 los habían desactualizado. Los dos dan **limpio**.
+
+**Trazabilidad de §9 — las 15 reglas, verificadas contra el código:**
+
+- **§8 contra el router**: las **18 filas** de §8 tienen ruta —la última en llegar fue
+  `/admin/usuarios`— y el router tiene **24**, que son esas 18 más 6 subrutas de alta y detalle.
+  **No falta ninguna pantalla y no sobra ninguna ruta.**
+- **RN-14**: los **19 controllers** tienen tantos `@PreAuthorize` como mappings. Los públicos lo
+  declaran explícito (`permitAll()`), no por omisión.
+- **RN-22**: `pacienteNombre` existe en **un solo DTO de respuesta** (`OrdenDetalleResponse`, con
+  `@JsonInclude(NON_NULL)`) y se asigna en **un solo punto**, con `esAdministrador ? … : null`. En
+  `OrdenResponse` la palabra aparece únicamente en un javadoc que dice que **no** lo incluye.
+- Las otras 13 reglas siguen como en el repaso anterior; T-35 y T-28 no tocaron su implementación.
+- **§9 quedó corregida**: la fila de RN-04 ya no dice "(State)", RN-01 menciona el filtrado por
+  token de `GET /dashboard`, y una nota remite las ocho incorporaciones de CR-01 a `ESTADO.md` y a
+  su sección propia.
+
+**Fuera de alcance (`Agente.md` §3.3) — nada de lo pospuesto quedó implementado:**
+
+- **P-14**: `setCargoCancelacion` no existe en `main` — solo getter, con dos tests que lo vigilan.
+- **D-11**: **ninguna entidad JPA mapea la tabla `mensaje`**. Sin servicio, endpoint, pantalla ni
+  contador.
+- **P-18**: `CanalWhatsApp` sin cliente HTTP ni proveedor.
+- **P-08, P-11, P-12**: las únicas apariciones de "factura" y "pasarela" son los comentarios que
+  las **excluyen** del menú. `PasarelaPago` no existe ni como interfaz.
+- **CU-13**: la única aparición de "reporte" es el test que verifica que **no** está en el menú.
+- **P-02** sin retrocesos, **P-10** recargo como monto fijo de la tabla, **P-13** los seis campos de
+  §5.1, **P-17** sin símbolo de moneda, **S-03** sin Pacientes.
+
 ### Puntos abiertos (no son decisiones, son deudas)
 
 - ~~**El `ordenId` de la campana es enlace solo para ODONTOLOGO.**~~ — **cerrado el 23/08/2026 por
@@ -720,10 +920,14 @@ dos puntos:
   pantalla llega después: `/admin/odontologos` (T-28).
 
 - ~~**El menú del admin de §8 todavía no se montó.**~~ — **montado el 23/08/2026 por T-26**, con los
-  seis ítems. **Dashboard** (`/admin`) lo reemplazó T-27 y **Configuración**
-  (`/admin/configuracion`) T-34; queda **un solo** destino en `PantallaPendiente`: **Odontólogos**
-  (`/admin/odontologos`, **T-28**).
-- **`/admin/odontologos/nuevo` solo es alcanzable desde una solicitud.** No se le agregó enlace en
+  seis ítems. **Dashboard** (`/admin`) lo reemplazó T-27, **Configuración** T-34 y **Odontólogos**
+  T-28: **ya no queda ningún destino pendiente**, y `PantallaPendiente` se retiró por quedar sin
+  uso. Para el SUPERADMIN el menú suma dos ítems, **Usuarios** (T-28) y **Licencias** (T-35),
+  coherentes con §3.5.
+- ~~**`/admin/odontologos/nuevo` solo es alcanzable desde una solicitud.**~~ — **cerrado el
+  25/08/2026 por T-28**: el listado de CU-11 tiene su botón "Nuevo" (§8.1 Regla 5), así que el alta
+  sin solicitud previa —el "o directamente" de D-17— ya no exige escribir la URL. *Texto original:*
+  No se le agregó enlace en
   el inicio: el botón "Nuevo" pertenece al listado de CU-11, que construye **T-28**. Hasta entonces,
   el alta sin solicitud previa —el "o directamente" de D-17— solo se puede hacer escribiendo la URL.
 - ~~**`LicenciaBloqueoFilter` devuelve su mensaje con los acentos rotos.**~~ — **resuelto el
@@ -753,11 +957,10 @@ dos puntos:
 - ~~**`/inicio` de §8 no existe: hoy la ruta es `/`, un inicio genérico para cualquier rol.**~~ —
   **decidido por el desarrollador el 23/08/2026, antes de implementar T-27** (ver decisión 17).
 
-- **El alta de odontólogo vuelve a `/admin` con su confirmación**, que la muestra el dashboard.
-  Cambió de `/` a `/admin` en T-27 porque el `location.state` no sobrevive al redirect por rol, pero
-  **sigue siendo un destino intermedio**: el alta de orden ya vuelve a su listado (T-26, §8.1
-  Regla 1) y **T-28 tiene que hacer lo mismo con `/admin/odontologos`** cuando lo construya,
-  mostrando ahí el mensaje que hoy se ve en el dashboard.
+- ~~**El alta de odontólogo vuelve a `/admin` con su confirmación.**~~ — **cerrado el 25/08/2026
+  por T-28**: vuelve a `/admin/odontologos`, que es su listado, como manda §8.1 Regla 1. Pasó por
+  `/` hasta T-27 y por `/admin` hasta T-28, que eran destinos intermedios mientras CU-11 no tenía
+  pantalla. El dashboard perdió el `role="status"` que ya no usa nadie.
 
 - **Punto abierto (T-34): destildar `canal_app_activo` no apaga la campana.** `canal_app_activo`
   solo recorta las filas de `notificacion_envio`; la campana lee `notificacion` directamente
@@ -790,13 +993,17 @@ dos puntos:
 ```
 T-29 ✅ → T-18 ✅ → T-19 ✅ → T-20 ✅ → T-33a ✅ → T-21 ✅ → T-22 ✅ → T-23 ✅
      → T-30 ✅ → T-31 ✅ → T-32 ✅ → T-32b ✅ → T-33b ✅
-     → T-25 ✅ → T-26 ✅ → T-27 ✅ → T-34 ✅ → [T-28]
+     → T-25 ✅ → T-26 ✅ → T-27 ✅ → T-34 ✅ → T-35 ✅ → T-28 ✅  ← plan terminado
 ```
 
 Es el orden de `Plan.md`, que **no** sigue la numeración de los bloques. `T-24` fue eliminada
 por D-19. `T-33` quedó partida: **T-33a** (backend) ya se hizo adelantada, **T-33b** (pantalla
 y notificación) conserva su lugar después de T-32b porque el selector de odontólogo necesita
 las cuentas de T-31.
+
+**`T-35` se creó el 25/08/2026**, por el repaso de trazabilidad de §9 que abre T-28: `/admin/licencias`
+(CU-23) figuraba en §8 sin tarea que la construyera, con sus tres endpoints entregados desde T-10.
+Va entre T-34 y T-28, por el mismo criterio con el que se creó T-34.
 
 **`T-34` se creó el 23/08/2026**: la pantalla de CU-21 (`/admin/configuracion`) estaba huérfana
 —T-22 hizo sus endpoints y T-23 solo la campana— y ninguna tarea la construía. Va después de T-27
