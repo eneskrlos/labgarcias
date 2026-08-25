@@ -360,9 +360,24 @@ Filtro que se ejecuta antes de cualquier endpoint de negocio y consulta `v_licen
 - El frontend intercepta el `423` y muestra una pantalla de bloqueo.
 
 **Endpoints de licencia** (solo `SUPERADMIN`):
-- `GET /api/v1/licencias` — listado histórico
+- `GET /api/v1/licencias?page=&size=` — listado histórico, **paginado**, más reciente primero
 - `GET /api/v1/licencias/vigente` — estado actual
 - `POST /api/v1/licencias` — registrar período: `{ "fechaInicio", "fechaVencimiento", "observacion" }`
+
+> **`GET /licencias` pasó a ser paginado el 25/08/2026, con T-35.** Devolvía la lista completa, y
+> `/admin/licencias` es una **tabla de administración**: §8.1 se aplica a todas "sin excepción" y su
+> criterio 5 pide que las tablas de dos recursos distintos sean indistinguibles en estructura. Una
+> sin selector de tamaño ni controles se ve distinta de las otras cuatro, tenga tres filas o
+> trescientas — **§8.1 es una regla de uniformidad, no de rendimiento**. La exención de §4 no
+> aplica: cubre selectores, y este histórico es una tabla administrable.
+>
+> **`GET /licencias/vigente` no cambió**: devuelve un solo registro.
+
+**Pantalla:** `/admin/licencias`, SUPERADMIN (§8). **Se llega también desde `/bloqueado`**, que es
+lo que la hace utilizable: con la licencia vencida el frontend manda todo a esa pantalla, así que
+un acceso que dependiera del menú dejaría al SuperAdmin sin forma de regularizar. Por el mismo
+motivo, la pantalla **se monta sin la campana** —su polling de `/notificaciones/contador` no está
+exento del bloqueo y devolvería `423`— y el interceptor de `423` **no redirige si ya se está ahí**.
 
 **Fuera de alcance:** planes, precios y pasarela de pago (P-11, P-12).
 
@@ -370,6 +385,8 @@ Filtro que se ejecuta antes de cualquier endpoint de negocio y consulta `v_licen
 1. Con licencia vencida, ningún rol de negocio opera; el login sigue accesible.
 2. Al registrar una licencia vigente, la operación se restablece sin pérdida de datos.
 3. Un `ADMIN` no puede crear licencias.
+4. Con la licencia vencida, el SuperAdmin llega a `/admin/licencias` desde `/bloqueado`, registra un
+   período y **no es expulsado de la pantalla mientras la completa**.
 
 ---
 
@@ -815,6 +832,7 @@ En `/perfil` el usuario edita `nombreCompleto` y `direccion`. **No** puede cambi
 | Nueva orden (admin) | `/admin/ordenes/nueva` | ADMIN | CU-05 / D-19 |
 | Solicitudes de acceso | `/admin/solicitudes` | ADMIN | D-17 |
 | Odontólogos | `/admin/odontologos` | ADMIN | CU-11 |
+| Usuarios | `/admin/usuarios` | SUPERADMIN | CU-17 |
 | Tipos de trabajo | `/admin/tipos-trabajo` | ADMIN | CU-16 |
 | Configuración | `/admin/configuracion` | ADMIN | CU-21 |
 | Licencias | `/admin/licencias` | SUPERADMIN | CU-23 |
@@ -825,7 +843,22 @@ En `/perfil` el usuario edita `nombreCompleto` y `direccion`. **No** puede cambi
 **Menú odontólogo:** Inicio · Mis trabajos · Historial · Perfil. ("Nueva orden" retirada por D-19; ver P-19.)
 **El ítem "Mensajes" NO se incluye** (D-11, pospuesto).
 
+> **Fila `Usuarios` agregada el 25/08/2026 por el desarrollador, con T-28.** §7 define
+> `GET /usuarios` y `PATCH /usuarios/{id}/estado` (CU-17) y esta tabla no les daba pantalla, así que
+> se operaban solo por la API. **`PATCH /usuarios/{id}/estado` es la única forma de reactivar una
+> cuenta dada de baja**, y `/admin/odontologos` —que sí estaba en la tabla— muestra esas cuentas
+> inactivas: sin esta pantalla, el SuperAdmin ve el problema en una pantalla documentada y tiene que
+> salir de la aplicación para resolverlo. Reactivar una cuenta es una operación de negocio con
+> efecto visible, no el "soporte técnico fuera del flujo" del que habla CU-17 —eso cubre consultar y
+> corregir datos, que sí puede vivir en la API—.
+>
+> **Solo lista y cambia el estado**: sin alta ni edición, porque §7 no define más endpoints para
+> este recurso. De §8.1 rigen las Reglas 2 a 5.
+
 **Menú admin:** Dashboard · Trabajos · Odontólogos · Solicitudes · Tipos de trabajo · Configuración.
+**El SUPERADMIN ve además dos ítems**, coherentes con §3.5 —el ADMIN más usuarios y licencias—:
+**Usuarios** (CU-17) y **Licencias** (CU-23). Es el mismo menú con ítems condicionados al rol, no
+un menú aparte.
 **No incluir** Pacientes (S-03 sin resolver), Calendario, Mensajes, Reportes ni Facturación (P-08).
 
 **Reglas transversales del frontend**
@@ -898,9 +931,9 @@ Misma disposición en todas: título, botón "Nuevo" a la derecha, filtros si co
 
 | Regla | Dónde se implementa |
 |---|---|
-| RN-01 | Filtro por usuario autenticado en todas las consultas de órdenes; 404 ante orden ajena |
+| RN-01 | Filtro por usuario autenticado en todas las consultas de órdenes; 404 ante orden ajena. **También los contadores y las órdenes recientes del panel del odontólogo (§5.7)**, que se filtran por el id del token: `GET /dashboard` no acepta ningún parámetro |
 | RN-03 / RN-22 | `pacienteIdentificacion` en toda respuesta al odontólogo |
-| RN-04 | Transiciones lineales en el servicio de órdenes (State) |
+| RN-04 | Validación de la transición contra `orden_secuencia` y `es_terminal` en `OrdenEstadoService`. La misma regla, leída del mismo lugar, alimenta **`siguienteEstado`** del detalle (§5.4), para que la pantalla no la recalcule |
 | RN-05 | Evento + outbox + canales app, correo y Telegram (D-20/D-21) |
 | RN-11 | `tipo_orden`: estado inicial, `notifica_admin`, `recargo_monto` |
 | RN-12 | Validación `diasEstimados >= 7` |
@@ -913,6 +946,21 @@ Misma disposición en todas: título, botón "Nuevo" a la derecha, filtros si co
 | RN-19 | `configuracion_notificacion` + selección de canales |
 | RN-20 | Filtro de licencia |
 | RN-21 | Validación `precio >= 250`; congelado en `precio_base` |
+
+> **Sobre RN-04 y el patrón State** *(corregido el 25/08/2026 por el repaso de T-28)*: esta fila
+> decía *"Transiciones lineales en el servicio de órdenes (State)"* y **State nunca se aplicó**.
+> **No hubo incumplimiento:** `Agente.md` §7.3 lista State como patrón **previsto, no obligatorio**,
+> y §7.2 dice que un patrón sin un problema real que resolver es sobreingeniería. Una clase por
+> estado habría duplicado en código lo que `orden_secuencia` y `es_terminal` ya definen en la tabla
+> —y §4.2 prohíbe tocar esas columnas justamente porque RN-04 depende de ellas—. La validación
+> quedó en 12 líneas leyendo el catálogo. `Plan.md` T-20 ya estaba anotado; esta tabla no.
+
+> **Esta tabla cubre las reglas de negocio, no el inventario de la API.** Las incorporaciones de
+> CR-01 que no son reglas —`/odontologos/activos`, `GET /dashboard`, `siguienteEstado`,
+> `?historico=true`, `GET /perfil`, la exención de paginado de §4, `CUENTA_INACTIVA` y
+> `app.laboratorio.zona-horaria`— **se documentan cada una en su sección** y se rastrean desde
+> `ESTADO.md`. Sumarlas acá como filas diluiría lo que la tabla existe para responder: qué regla
+> de negocio se cumple dónde.
 
 ---
 

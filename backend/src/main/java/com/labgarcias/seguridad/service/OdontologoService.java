@@ -3,6 +3,7 @@ package com.labgarcias.seguridad.service;
 import java.util.List;
 
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,8 +19,10 @@ import com.labgarcias.seguridad.dto.OdontologoActivoResponse;
 import com.labgarcias.seguridad.dto.OdontologoResponse;
 import com.labgarcias.seguridad.repository.RolRepository;
 import com.labgarcias.seguridad.repository.UsuarioRepository;
+import com.labgarcias.shared.dto.PaginaResponse;
 import com.labgarcias.shared.excepcion.ConflictoException;
 import com.labgarcias.shared.excepcion.ReglaNegocioException;
+import com.labgarcias.shared.util.ValidadorPaginacion;
 
 /**
  * D-18/§3.1.b: el administrador crea la cuenta del odontólogo.
@@ -84,6 +87,22 @@ public class OdontologoService {
                 .stream()
                 .map(OdontologoActivoResponse::de)
                 .toList();
+    }
+
+    /**
+     * CU-11/§7: la tabla administrable de odontólogos, **paginada** (§8.1 Regla 2).
+     *
+     * **Es otra cosa que `listarActivos`** y conviven: aquella alimenta el selector de §5.1 y
+     * devuelve solo `id` y `nombreCompleto` de las cuentas ACTIVA; esta es la tabla de CU-11, con
+     * los datos de cada cuenta y **también las dadas de baja**, que es donde se las vuelve a
+     * activar. Devolver solo las activas dejaría una cuenta inactiva fuera de toda pantalla.
+     */
+    @Transactional(readOnly = true)
+    public PaginaResponse<OdontologoResponse> listar(Pageable pageable) {
+        ValidadorPaginacion.validarTamano(pageable.getPageSize());
+        return PaginaResponse.de(usuarioRepository
+                .findByRolCodigoOrderByNombreCompletoAsc(RolCodigo.ODONTOLOGO, pageable)
+                .map(OdontologoResponse::de));
     }
 
     /**

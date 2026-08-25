@@ -61,6 +61,35 @@ describe('apiFetch', () => {
     expect(window.location.assign).toHaveBeenCalledWith('/bloqueado');
   });
 
+  /**
+   * §3.6, criterio crítico de T-35: la pantalla de licencias es donde el SuperAdmin regulariza.
+   * Un 423 de cualquier otra llamada **no puede sacarlo de ahí**, o pierde de las manos la única
+   * pantalla que resuelve el bloqueo.
+   */
+  it('en /admin/licencias un 423 no redirige', async () => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...window.location, pathname: '/admin/licencias', assign: vi.fn() },
+    });
+    const fetchSimulado = vi.fn().mockResolvedValue(respuestaSimulada({ status: 423, ok: false, cuerpo: {} }));
+    vi.stubGlobal('fetch', fetchSimulado);
+
+    await expect(apiFetch('/algo')).rejects.toBeInstanceOf(ApiError);
+    expect(window.location.assign).not.toHaveBeenCalled();
+  });
+
+  it('tampoco redirige desde el alta de licencia', async () => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...window.location, pathname: '/admin/licencias/nueva', assign: vi.fn() },
+    });
+    const fetchSimulado = vi.fn().mockResolvedValue(respuestaSimulada({ status: 423, ok: false, cuerpo: {} }));
+    vi.stubGlobal('fetch', fetchSimulado);
+
+    await expect(apiFetch('/licencias')).rejects.toBeInstanceOf(ApiError);
+    expect(window.location.assign).not.toHaveBeenCalled();
+  });
+
   it('en un error de negocio propaga codigo/mensaje/campo del backend', async () => {
     const fetchSimulado = vi.fn().mockResolvedValue(respuestaSimulada({
       status: 409,

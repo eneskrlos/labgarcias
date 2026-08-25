@@ -1,8 +1,21 @@
 import { apiFetch } from '../../shared/api/cliente';
 
-/** §7: los datos propios del usuario autenticado. Editar nombre y dirección es de T-28. */
+/** §7: los datos propios del usuario autenticado. */
 export function obtenerPerfil() {
   return apiFetch('/perfil');
+}
+
+/**
+ * §7: edita **solo el nombre y la dirección** del usuario autenticado.
+ *
+ * `rol` y `correo` **no se mandan y no se pueden mandar**: el request del backend no los tiene, así
+ * que agregarlos acá no tendría efecto. El id sale del token; esta función no lo acepta.
+ */
+export function actualizarPerfil({ nombreCompleto, direccion }) {
+  return apiFetch('/perfil', {
+    method: 'PUT',
+    body: JSON.stringify({ nombreCompleto, direccion }),
+  });
 }
 
 /**

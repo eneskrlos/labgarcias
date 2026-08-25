@@ -1,13 +1,16 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Perfil from '../Perfil';
-import { conectarTelegram, desvincularTelegram, obtenerPerfil } from '../api';
+import { SesionProvider } from '../../../shared/hooks/useSesion';
+import { guardarSesion } from '../../../shared/api/token';
+import { actualizarPerfil, conectarTelegram, desvincularTelegram, obtenerPerfil } from '../api';
 import { ApiError } from '../../../shared/api/cliente';
 
 vi.mock('../api', () => ({
   obtenerPerfil: vi.fn(),
+  actualizarPerfil: vi.fn(),
   conectarTelegram: vi.fn(),
   desvincularTelegram: vi.fn(),
 }));
@@ -28,25 +31,34 @@ const PERFIL_VINCULADO = { ...PERFIL_SIN_VINCULAR, telegramVinculado: true };
 const ENLACE = 'https://t.me/labgarcias_bot?start=abc123';
 
 function renderizar() {
+  guardarSesion('token-de-prueba', { id: 12, nombreCompleto: 'Dr. Juan Pérez', rol: 'ODONTOLOGO' });
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={queryClient}>
-      <Perfil />
+      <SesionProvider>
+        <Perfil />
+      </SesionProvider>
     </QueryClientProvider>,
   );
 }
 
 describe('Perfil', () => {
+  afterEach(() => {
+    localStorage.clear();
+  });
+
   beforeEach(() => {
     obtenerPerfil.mockReset().mockResolvedValue(PERFIL_SIN_VINCULAR);
     conectarTelegram.mockReset().mockResolvedValue({ enlace: ENLACE });
     desvincularTelegram.mockReset().mockResolvedValue(null);
   });
 
+  /** §7: nombre y dirección son campos editables; el resto se muestra como dato. */
   it('muestra los datos propios del usuario', async () => {
     renderizar();
 
-    expect(await screen.findByText('Dr. Juan Pérez')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Nombre')).toHaveValue('Dr. Juan Pérez');
+    expect(screen.getByLabelText('Dirección')).toHaveValue('Av. 18 de Julio 1234');
     expect(screen.getByText('juan@mail.com')).toBeInTheDocument();
     expect(screen.getByText('jperez')).toBeInTheDocument();
   });
@@ -114,5 +126,52 @@ describe('Perfil', () => {
 
     expect(await screen.findByText('No pudimos traer tu perfil.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
+  });
+
+  // ---------- T-28: §7, perfil editable ----------
+
+  /** §7: se editan nombre y dirección, y solo eso llega al backend. */
+  it('guarda el nombre y la dirección', async () => {
+    actualizarPerfil.mockResolvedValue({ ...PERFIL_SIN_VINCULAR, nombreCompleto: 'Dr. Juan P. Pérez' });
+    renderizar();
+    await screen.findByLabelText('Nombre');
+
+    await userEvent.clear(screen.getByLabelText('Nombre'));
+    await userEvent.type(screen.getByLabelText('Nombre'), 'Dr. Juan P. Pérez');
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    expect(actualizarPerfil).toHaveBeenCalledWith({
+      nombreCompleto: 'Dr. Juan P. Pérez',
+      direccion: 'Av. 18 de Julio 1234',
+    });
+    expect(await screen.findByRole('status')).toHaveTextContent('Perfil actualizado.');
+  });
+
+  /**
+   * §7: **ni el rol ni el correo son editables.** Se muestran como dato, no como campo: que no se
+   * puedan cambiar tiene que verse en la pantalla, no depender de que el backend los rechace.
+   */
+  it('§7 no ofrece editar el rol ni el correo', async () => {
+    renderizar();
+    await screen.findByLabelText('Nombre');
+
+    expect(screen.queryByLabelText('Correo')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Rol')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Usuario')).not.toBeInTheDocument();
+    expect(screen.getByText('ODONTOLOGO')).toBeInTheDocument();
+  });
+
+  /** El error de validación del backend se muestra en su campo. */
+  it('muestra el error del backend en el campo que indica', async () => {
+    actualizarPerfil.mockRejectedValue(
+      new ApiError(400, 'VALIDACION', 'El nombre completo es obligatorio.', 'nombreCompleto'),
+    );
+    renderizar();
+    await screen.findByLabelText('Nombre');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    const mensaje = await screen.findByText('El nombre completo es obligatorio.');
+    expect(mensaje.closest('div')).toContainElement(screen.getByLabelText('Nombre'));
   });
 });

@@ -1,7 +1,7 @@
 package com.labgarcias.licencia.controller;
 
-import java.util.List;
-
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,6 +16,7 @@ import com.labgarcias.licencia.dto.LicenciaResponse;
 import com.labgarcias.licencia.dto.LicenciaVigenteResponse;
 import com.labgarcias.licencia.dto.RegistrarLicenciaRequest;
 import com.labgarcias.licencia.service.LicenciaService;
+import com.labgarcias.shared.dto.PaginaResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -37,12 +38,19 @@ public class LicenciaController {
     @GetMapping
     @PreAuthorize("hasRole('SUPERADMIN')")
     @Operation(
-            summary = "Listado histórico de licencias (CU-23)",
-            description = "Todos los períodos registrados, más reciente primero."
+            summary = "Listado histórico de licencias, paginado (CU-23)",
+            description = "Todos los períodos registrados, más reciente primero. "
+                    + "**Paginado desde T-35** (§8.1 Regla 2): `/admin/licencias` es una tabla de "
+                    + "administración y se opera igual que las demás. size solo admite 10, 20 o 30."
     )
-    @ApiResponses({ @ApiResponse(responseCode = "200", description = "Listado histórico") })
-    public ResponseEntity<List<LicenciaResponse>> listar() {
-        return ResponseEntity.ok(licenciaService.listarHistorico());
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Página del histórico"),
+            @ApiResponse(responseCode = "400", description = "TAMANO_PAGINA_INVALIDO"),
+            @ApiResponse(responseCode = "403", description = "Rol sin permiso")
+    })
+    public ResponseEntity<PaginaResponse<LicenciaResponse>> listar(
+            @PageableDefault(size = 10) Pageable pageable) {
+        return ResponseEntity.ok(licenciaService.listarHistorico(pageable));
     }
 
     @GetMapping("/vigente")

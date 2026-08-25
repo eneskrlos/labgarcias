@@ -3,6 +3,8 @@ package com.labgarcias.licencia.repository;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -11,8 +13,14 @@ import com.labgarcias.licencia.domain.Licencia;
 
 public interface LicenciaRepository extends JpaRepository<Licencia, Long> {
 
-    /** CU-23: listado histórico, más reciente primero. */
-    List<Licencia> findAllByOrderByFechaRegistroDesc();
+    /**
+     * CU-23: listado histórico, más reciente primero.
+     *
+     * Paginado desde T-35 (§8.1 Regla 2): `/admin/licencias` es una tabla de administración y
+     * tiene que operarse igual que las otras cuatro. El orden va en el nombre del método y no en
+     * el `Pageable` porque es fijo: el histórico se lee del último período hacia atrás.
+     */
+    Page<Licencia> findAllByOrderByFechaRegistroDesc(Pageable pageable);
 
     /** RN-20: período(s) ACTIVA cuyo rango de fechas cubre hoy. */
     List<Licencia> findByEstadoAndFechaInicioLessThanEqualAndFechaVencimientoGreaterThanEqualOrderByFechaVencimientoDesc(

@@ -2,9 +2,9 @@ package com.labgarcias.licencia.service;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,7 +15,9 @@ import com.labgarcias.licencia.dto.LicenciaVigenteResponse;
 import com.labgarcias.licencia.dto.RegistrarLicenciaRequest;
 import com.labgarcias.licencia.repository.LicenciaRepository;
 import com.labgarcias.seguridad.domain.Usuario;
+import com.labgarcias.shared.dto.PaginaResponse;
 import com.labgarcias.shared.excepcion.ReglaNegocioException;
+import com.labgarcias.shared.util.ValidadorPaginacion;
 
 import jakarta.persistence.EntityManager;
 
@@ -31,11 +33,21 @@ public class LicenciaService {
         this.entityManager = entityManager;
     }
 
+    /**
+     * CU-23: el histórico de períodos, más reciente primero.
+     *
+     * **Paginado desde T-35** (§8.1 Regla 2): `/admin/licencias` es una tabla de administración
+     * como las de órdenes, odontólogos, solicitudes y tipos de trabajo, y §8.1 se aplica a todas
+     * "sin excepción" para que se vean y se operen igual. Que una instalación tenga pocos períodos
+     * no lo cambia: la regla es de uniformidad, no de rendimiento.
+     *
+     * `obtenerVigente` **no se paginó**: devuelve un único registro.
+     */
     @Transactional(readOnly = true)
-    public List<LicenciaResponse> listarHistorico() {
-        return licenciaRepository.findAllByOrderByFechaRegistroDesc().stream()
-                .map(this::aRespuesta)
-                .toList();
+    public PaginaResponse<LicenciaResponse> listarHistorico(Pageable pageable) {
+        ValidadorPaginacion.validarTamano(pageable.getPageSize());
+        return PaginaResponse.de(
+                licenciaRepository.findAllByOrderByFechaRegistroDesc(pageable).map(this::aRespuesta));
     }
 
     @Transactional(readOnly = true)
