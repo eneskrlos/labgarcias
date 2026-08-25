@@ -38,14 +38,15 @@ va el estado de avance y lo que se acordó de palabra y no quedó escrito en ell
 | **—** | `PantallaPendiente`: destino de los ítems de menú cuya pantalla llega después | `fbe6beb` |
 | **T-26** | Gestión de órdenes del laboratorio: `GET /admin/ordenes` con los tres filtros de §5.7, `siguienteEstado` en el detalle, pantallas `/admin/ordenes` y `/admin/ordenes/:id` con el avance de estado, y el menú del admin de §8 | `73af666` (falta el merge) |
 | **T-27** | Dashboards: `GET /admin/dashboard` y `GET /dashboard` (nuevo, CU-02), filtro `?historico` en `GET /ordenes` (CU-12), pantallas `/inicio`, `/admin` y `/historial`, `/` redirige por rol, y la zona horaria del laboratorio en properties | `25606ef` + `7b8bb42` (docs) |
-| **T-34** | Pantalla `/admin/configuracion` (CU-21): ve y edita los canales del administrador con el `GET` y el `PUT` de T-22, el `422 TELEGRAM_SIN_DESTINO` en su campo y WhatsApp deshabilitado (P-18). **Sin endpoints nuevos** | rama `feature/T-34_pantalla_config_notification` |
+| **T-34** | Pantalla `/admin/configuracion` (CU-21): ve y edita los canales del administrador con el `GET` y el `PUT` de T-22, el `422 TELEGRAM_SIN_DESTINO` en su campo y WhatsApp deshabilitado (P-18). **Sin endpoints nuevos** | `1f6334f` |
+| **T-35** | Pantalla de licencias (CU-23): `/admin/licencias` y `/admin/licencias/nueva` para SUPERADMIN, `GET /licencias` **pasa a ser paginado**, acceso desde `/bloqueado`, ítem de menú propio y guarda en el interceptor de `423` | rama `feature/T-34_pantalla_config_notification` |
 
 > **Sobre la columna "Commit":** desde que rige el paso 7 de `Agente.md`, este archivo se actualiza
 > *dentro* del commit de la tarea, así que ese commit no puede citar su propio hash. La tarea en
 > curso se identifica por su rama; el hash o el merge se completan al integrarla a `develop`.
 
-**Verificación al día de hoy:** `mvn -o test` en `backend/` → **406 tests, 0 fallos**.
-`npm test` en `frontend/` → **266 tests, 0 fallos**. `npm run lint` y `npm run build` limpios.
+**Verificación al día de hoy:** `mvn -o test` en `backend/` → **407 tests, 0 fallos**.
+`npm test` en `frontend/` → **294 tests, 0 fallos**. `npm run lint` y `npm run build` limpios.
 
 T-30, T-31 y T-32 se probaron además de punta a punta con el backend levantado en `dev` contra la
 base real. De T-31, con un SMTP de prueba: el correo de credenciales llegó completo y la contraseña
@@ -118,6 +119,20 @@ Con rol ODONTOLOGO, `GET` y `PUT` dan **403**; sin token, **401**. **La verifica
 residuo:** la tabla `configuracion_notificacion` estaba vacía, el `PUT` creó una fila y se borró al
 terminar — volvió a **0 filas**, verificado.
 
+De T-35, contra la base real y **venciendo la licencia de verdad** para probar el criterio crítico:
+`GET /licencias?page=0&size=10` devolvió el `PaginaResponse` con los dos períodos, más reciente
+primero; `size=15` dio **400** y el rol ODONTOLOGO **403**. **Con `v_licencia_vigente` en `false`**,
+`/licencias` y `/licencias/vigente` siguieron respondiendo **200** y el login no quedó bloqueado,
+mientras `/admin/dashboard` y `/ordenes` daban **423** (criterio 1 de §3.6). **`GET
+/notificaciones/contador` devolvió `423`**: es la confirmación en vivo de que la campana era la que
+expulsaba al SuperAdmin de la pantalla de licencias. Registrar un período con el sistema bloqueado
+devolvió **201** y la operación se restableció al instante —`/admin/dashboard` pasó de `423` a
+`200`— que es el criterio 2. Fechas invertidas dieron **`422 FECHAS_LICENCIA_INVALIDAS` con
+`campo: "fechaVencimiento"`**, que es donde la pantalla lo pinta. Con un token de rol ADMIN real,
+`POST` y `GET /licencias` dieron **403**
+(criterio 3). **La verificación no dejó residuo:** se borró el período creado y se restauraron las
+dos fechas originales; `v_licencia_vigente` volvió a `true`.
+
 ### Contenido de la base de desarrollo — reconciliado el 25/08/2026
 
 > **Esto es solo la base de desarrollo.** Una instalación nueva corre `V1` + `V2` con su seed y **no
@@ -188,36 +203,19 @@ previo de `usuario`, `tipo_trabajo` y `token_verificacion` tomado antes de borra
 
 ---
 
-## (b) Próxima tarea — y la que sigue
-
-### T-35 · Pantalla de licencias
-
-**Spec:** §3.6, §8, §8.1 · **Depende de:** T-10 ✅, T-26 ✅
-**Terminado cuando:** `/admin/licencias` (SUPERADMIN) lista el histórico y permite registrar un
-período con los tres endpoints de T-10; es un CRUD, así que aplica **§8.1 completa**; y —**el
-criterio crítico**— `/bloqueado` ofrece al SUPERADMIN acceso a `/admin/licencias` y el interceptor
-de `423` **no lo expulsa de ahí**.
-
-**Creada el 25/08/2026 por el repaso de trazabilidad que abre T-28.** §8 lista `/admin/licencias`
-desde el principio, T-10 entregó el módulo y sus tres endpoints —`GET /licencias`,
-`GET /licencias/vigente` y `POST /licencias`, los tres SUPERADMIN— y **ninguna tarea construía la
-pantalla**. Mismo caso que motivó T-34, y va antes de T-28 por el mismo criterio.
-
-Lo que hay que tener presente antes de empezar:
-
-- **El criterio crítico es el que decide si la pantalla sirve.** Con la licencia vencida el sistema
-  entero está bloqueado y el frontend manda todo a `/bloqueado` (el interceptor de `423` en
-  `shared/api/cliente.js`). Si `/admin/licencias` solo se alcanza desde el menú del admin, **el
-  SuperAdmin nunca llega a ella justo cuando la necesita**.
-- **El backend ya acompaña:** el filtro de §3.6 excluye `/licencias/**` y el login, así que con la
-  licencia vencida esos endpoints siguen respondiendo. Verificarlo antes de tocar nada.
-- **Fuera de alcance: P-11 y P-12** — sin planes, sin precios, sin pasarela. Solo activación manual.
-- El menú del admin de §8 **no incluye Licencias**: es de SUPERADMIN y §8 le da su propia fila.
-  Decidir cómo se llega desde la navegación normal es parte de la tarea.
+## (b) Próxima tarea
 
 ### T-28 · Perfil, odontólogos y repaso final — **última tarea del plan**
 
-**Spec:** §7, §9 · **Depende de:** T-27 ✅, y ahora también **T-35**
+**Spec:** §7, §9 · **Depende de:** T-27 ✅, T-35 ✅
+
+> ⚠️ **Los dos repasos hay que rehacerlos, no reutilizarlos.** El repaso que abrió T-28 el
+> 25/08/2026 (decisión 20) **quedó desactualizado por T-35, que corrió después**: hay **una pantalla
+> más y dos rutas más** —`/admin/licencias` y `/admin/licencias/nueva`—, **§3.6 cambió** (el contrato
+> de `GET /licencias` y un criterio de aceptación nuevo), **el menú del admin tiene un séptimo ítem**
+> condicionado al rol, y el interceptor de `423` dejó de ser incondicional. Los hallazgos de aquel
+> repaso siguen siendo válidos como historia, pero **el recuento de §8 contra el router y la
+> verificación de §9 se rehacen de cero**.
 **Terminado cuando:**
 - **Perfil editable**: `PUT /api/v1/perfil` y el formulario, con `nombreCompleto` y `direccion`.
   **No** rol ni correo. *La pantalla `/perfil` y `GET /api/v1/perfil` ya existen desde T-32b:
@@ -230,8 +228,10 @@ Lo que hay que tener presente antes de empezar:
 
 #### Los tres pendientes que hereda
 
-1. **`/admin/odontologos` es hoy una `PantallaPendiente`** puesta por T-26 — es el **último**
-   destino del menú del admin sin su pantalla. La reemplaza el listado de CU-11, con §8.1 **Regla 1
+1. **`/admin/odontologos` es hoy una `PantallaPendiente`** puesta por T-26 — y es **la última que
+   queda en todo el frontend**, verificado el 25/08/2026: `grep -c "<PantallaPendiente"` sobre
+   `App.jsx` devuelve **1**. Cuando T-28 la reemplace, el componente `PantallaPendiente` se queda
+   sin uso y hay que decidir si se retira. La reemplaza el listado de CU-11, con §8.1 **Regla 1
    completa** (es un CRUD de verdad) y el botón "Nuevo" apuntando a `/admin/odontologos/nuevo`, que
    **ya existe** desde T-31.
 2. **Mover el destino del alta de odontólogo de `/admin` a `/admin/odontologos`.** Hoy
@@ -783,6 +783,44 @@ símbolo de moneda (P-17), sin reportes (CU-13) y sin Pacientes (S-03).
 **Hallazgo extra, fuera de los dos repasos:** residuo de datos en la base de desarrollo, limpiado
 el mismo día. Ver la sección de contenido de la base, arriba.
 
+### 21. Las decisiones de T-35 (25/08/2026)
+
+**La decisión de contrato, tomada por el desarrollador antes de implementar:** **`GET /licencias`
+pasa a ser paginado**, y **§3.6 quedó actualizada**. Los dos criterios de la ficha se contradecían
+—"consumiendo los tres endpoints de T-10" y "§8.1 completa, las cinco reglas"— porque el endpoint
+devolvía la lista entera. El motivo de paginarlo **no es el volumen**: §8.1 se aplica a todas las
+pantallas de administración "sin excepción" y su objetivo es "que todas se vean y se operen igual";
+su criterio 5 pide que dos tablas distintas sean indistinguibles en estructura, y una sin selector
+de tamaño ni controles se ve distinta tenga tres filas o trescientas. **Es una regla de uniformidad,
+no de rendimiento**, y documentar y defender la excepción costaba más que paginar.
+**`GET /licencias/vigente` no se tocó**: devuelve un solo registro.
+
+**El ítem "Licencias" del menú, agregado al cerrar la tarea:** §8 le da su propia fila con rol
+SUPERADMIN, así que es una pantalla de navegación y no una ruta suelta. Con acceso solo desde
+`/bloqueado`, el SuperAdmin llegaría a sus licencias **únicamente con el sistema ya caído** y no
+podría renovar antes del vencimiento, que es justo lo que evita el corte. Alcance mínimo: **el mismo
+menú del admin con un ítem condicionado al rol**, no un menú aparte — §3.5 ya define al SUPERADMIN
+como el ADMIN más usuarios y licencias.
+
+**Las decisiones de implementación:**
+
+1. **Las dos rutas van fuera de `PantallaAutenticada`**, con `RutaProtegida` y sin encabezado. No es
+   estético: `LayoutAutenticado` monta la campana, que consulta `/notificaciones/contador` cada 60 s,
+   y **ese endpoint no está exento del bloqueo de §3.6**. Con la licencia vencida devuelve `423` y
+   el interceptor sacaba al SuperAdmin de la única pantalla que resuelve el bloqueo, antes del
+   minuto y sin que tocara nada. **Verificado en vivo**, no deducido.
+2. **Además, guarda en el interceptor de `423`**: no redirige si la ruta ya empieza con
+   `/admin/licencias`. La decisión 1 elimina la causa conocida; esta evita que cualquier llamada
+   futura reabra el agujero. El error se muestra en la pantalla en vez de navegar.
+3. **`/bloqueado` ofrece el enlace solo al SUPERADMIN.** A los demás roles el endpoint responde 403
+   y el enlace sería una promesa falsa.
+4. **Sin ruta `/{id}/editar`.** Un período no se modifica —no hay `PUT`—, se registra otro, así que
+   esa ruta de §8.1 Regla 1 no existe. Mismo criterio que las solicitudes y la campana.
+5. **El listado encabeza con el estado vigente**, leído de `GET /licencias/vigente` y **no derivado
+   del listado** (§8). Es lo primero que necesita ver quien llega desde `/bloqueado`.
+6. **El formulario no adelanta la validación de fechas**: manda y muestra el `422` del backend en el
+   campo que este indica (`Agente.md` §6.1).
+
 ### Puntos abiertos (no son decisiones, son deudas)
 
 - ~~**El `ordenId` de la campana es enlace solo para ODONTOLOGO.**~~ — **cerrado el 23/08/2026 por
@@ -822,7 +860,8 @@ el mismo día. Ver la sección de contenido de la base, arriba.
 - ~~**El menú del admin de §8 todavía no se montó.**~~ — **montado el 23/08/2026 por T-26**, con los
   seis ítems. **Dashboard** (`/admin`) lo reemplazó T-27 y **Configuración**
   (`/admin/configuracion`) T-34; queda **un solo** destino en `PantallaPendiente`: **Odontólogos**
-  (`/admin/odontologos`, **T-28**).
+  (`/admin/odontologos`, **T-28**). Desde T-35 el menú tiene un **séptimo ítem, "Licencias"**,
+  visible solo para SUPERADMIN (§8, §3.5).
 - **`/admin/odontologos/nuevo` solo es alcanzable desde una solicitud.** No se le agregó enlace en
   el inicio: el botón "Nuevo" pertenece al listado de CU-11, que construye **T-28**. Hasta entonces,
   el alta sin solicitud previa —el "o directamente" de D-17— solo se puede hacer escribiendo la URL.
@@ -890,7 +929,7 @@ el mismo día. Ver la sección de contenido de la base, arriba.
 ```
 T-29 ✅ → T-18 ✅ → T-19 ✅ → T-20 ✅ → T-33a ✅ → T-21 ✅ → T-22 ✅ → T-23 ✅
      → T-30 ✅ → T-31 ✅ → T-32 ✅ → T-32b ✅ → T-33b ✅
-     → T-25 ✅ → T-26 ✅ → T-27 ✅ → T-34 ✅ → [T-35] → T-28
+     → T-25 ✅ → T-26 ✅ → T-27 ✅ → T-34 ✅ → T-35 ✅ → [T-28]
 ```
 
 Es el orden de `Plan.md`, que **no** sigue la numeración de los bloques. `T-24` fue eliminada
