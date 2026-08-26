@@ -1,23 +1,121 @@
+/*
+ * Sistema de diseño — spec.md §8: "el detalle visual queda a criterio del desarrollador".
+ *
+ * Los valores salen del prototipo de `docs/prototipo/`, que es la fuente de diseño. Nada de
+ * ese prototipo se copió como código: acá viven solo los tokens que se extrajeron de él
+ * —paleta, tipografía, espaciado, radios y sombras—, con la nomenclatura en español que ya
+ * usaba este archivo.
+ *
+ * **Ningún token existente cambió de nombre**, solo de valor. Es lo que permite que las
+ * dieciocho pantallas de §8 adopten el diseño sin tocarlas una por una: todas consumen estos
+ * tokens a través de los componentes compartidos de §8.1 Regla 4.
+ */
 :root {
-  --color-bg: #ffffff;
-  --color-texto: #1f2028;
-  --color-texto-tenue: #6b6375;
-  --color-borde: #e5e4e7;
-  --color-primario: #0f6d5c;
+  /* ── Marca ──────────────────────────────────────────────────────────────
+     El azul profundo del cromo: barra lateral y superficies oscuras. */
+  --color-marca: #0f2a5e;
+  --color-marca-profundo: #0b1f47;
+  --color-marca-fuerte: #143a76;
+
+  /* ── Acción ─────────────────────────────────────────────────────────────
+     Enlaces, ítem de menú activo y botón primario. */
+  --color-primario: #1b6fd4;
+  --color-primario-fuerte: #143a76;
+  --color-primario-suave: #f1f6fd;
   --color-primario-contraste: #ffffff;
+
+  /* ── Superficies ────────────────────────────────────────────────────────
+     El prototipo trabaja a dos niveles: página gris azulada, tarjetas blancas.
+     Antes de este cambio los dos eran blancos y las tarjetas no se distinguían. */
+  --color-bg: #f4f7fb;
+  --color-superficie: #ffffff;
+  --color-campo: #fcfdfe;
+  --color-hover-fila: #f7fafe;
+
+  /* `TarjetaContador` lo consumía con un fallback y **nunca estuvo definido**. Con el fondo
+     de página en blanco no se notaba; con el fondo nuevo, las tarjetas habrían desaparecido. */
+  --color-fondo-tarjeta: var(--color-superficie);
+
+  /* ── Bordes ─────────────────────────────────────────────────────────────── */
+  --color-borde: #e7edf5;
+  --color-borde-suave: #f1f4f9;
+  --color-borde-campo: #dfe6f0;
+
+  /* ── Texto ──────────────────────────────────────────────────────────────── */
+  --color-texto: #16233d;
+  --color-texto-cuerpo: #4c5b76;
+  --color-texto-tenue: #6b7a96;
+  --color-texto-sutil: #8494ae;
+  --color-placeholder: #9aa8bf;
+
+  /* ── Texto y superficies sobre la marca (barra lateral) ─────────────────── */
+  --color-marca-texto: #c3d2e8;
+  --color-marca-texto-tenue: #8fa6cc;
+  --color-marca-hover: rgb(255 255 255 / 8%);
+  --color-marca-superficie: rgb(255 255 255 / 6%);
+
+  /* ── Semánticos ─────────────────────────────────────────────────────────
+     Error, éxito y advertencia se conservan: no forman parte del lenguaje visual que define
+     el prototipo, y cambiarlos sería inventar. `--color-alerta` sí sale de él: es el globo
+     de la campana. */
   --color-error: #b3261e;
   --color-exito: #1e7a34;
   --color-advertencia: #a15c00;
+  --color-alerta: #e8632f;
 
+  /* ── Tipografía ─────────────────────────────────────────────────────────
+     Cormorant Garamond se usa **solo** en la marca del encabezado. */
+  --fuente-base: 'Manrope', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --fuente-marca: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+
+  --texto-xs: 0.6875rem;    /* 11px — etiquetas y textos de apoyo */
+  --texto-sm: 0.75rem;      /* 12px — encabezados de tabla */
+  --texto-md: 0.8125rem;    /* 13px — menú, celdas */
+  --texto-base: 0.875rem;   /* 14px — cuerpo y controles */
+  --texto-lg: 1rem;         /* 16px — títulos de tarjeta */
+  --texto-xl: 1.375rem;     /* 22px — título de pantalla */
+  --texto-2xl: 1.6875rem;   /* 27px — cifra de indicador */
+
+  /* El prototipo titula en 800, no en 700: es lo que le da su peso característico. */
+  --peso-normal: 400;
+  --peso-medio: 600;
+  --peso-fuerte: 700;
+  --peso-titulo: 800;
+
+  --interletra-etiqueta: 0.2em;
+
+  /* ── Espaciado ──────────────────────────────────────────────────────────
+     La escala original (4/8/16/24/32) se conserva entera para no correr las pantallas ya
+     entregadas. Los dos pasos intermedios que el prototipo usa todo el tiempo se suman. */
   --espaciado-xs: 4px;
   --espaciado-sm: 8px;
+  --espaciado-sm-md: 12px;
   --espaciado-md: 16px;
+  --espaciado-md-lg: 20px;
   --espaciado-lg: 24px;
   --espaciado-xl: 32px;
 
-  --radio-borde: 6px;
-  --fuente-base: system-ui, 'Segoe UI', Roboto, sans-serif;
+  /* ── Radios ─────────────────────────────────────────────────────────────
+     `--radio-borde` pasa de 6px a 9px: es el radio de botón, campo e ítem de menú del
+     prototipo, y al conservar el nombre lo adopta todo lo que ya lo consumía. */
+  --radio-borde: 9px;
+  --radio-sm: 8px;
+  --radio-tarjeta: 12px;
+  --radio-tarjeta-lg: 14px;
+  --radio-pildora: 999px;
 
+  /* ── Sombras ────────────────────────────────────────────────────────────── */
+  --sombra-tarjeta: 0 1px 3px rgb(16 35 70 / 5%);
+  --sombra-elevada: 0 2px 8px rgb(19 43 85 / 10%);
+  --sombra-primario: 0 8px 18px rgb(20 58 118 / 24%);
+  --sombra-flotante: 0 24px 60px rgb(11 31 71 / 16%);
+
+  /* ── Medidas de layout ──────────────────────────────────────────────────
+     `--corte-barra-lateral` documenta el breakpoint; las media queries no aceptan custom
+     properties, así que en ellas los 860px van literales. */
   --ancho-tablet: 768px;
   --ancho-escritorio: 1024px;
+  --ancho-contenido: 1180px;
+  --ancho-barra-lateral: 228px;
+  --corte-barra-lateral: 860px;
 }

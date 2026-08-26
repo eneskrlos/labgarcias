@@ -993,6 +993,20 @@ T-35 y el propio T-28 los habían desactualizado. Los dos dan **limpio**.
   ADMIN y SUPERADMIN, pero D-20 le manda notificaciones por tres canales. Se implementó como dice la
   spec. Si la clienta quiere que el odontólogo elija, es un cambio de spec, no un error.
 
+- **`OrdenResponse.estado` viaja como nombre y no como código** — *anotado el 26/08/2026, durante la
+  etapa 1 del rediseño visual.* El campo es `String estado` con el nombre visible (`"Recibido"`),
+  mientras que **`estado.nombre` es editable por CU-22**. El rediseño quiere pintar cada etapa con
+  su color, como el prototipo, y un mapa de colores en el frontend keyeado por ese texto **se
+  rompería en silencio** el día que alguien renombre una etapa desde la aplicación. Derivar el color
+  del código es lo único estable, y hoy el listado no lo trae.
+
+  **La salida limpia: que `OrdenResponse` incluya también el código**, con el precedente exacto de
+  `siguienteEstado`, que ya devuelve código y nombre por esta misma razón (decisión 16 de T-26: el
+  nombre es editable, así que derivarlo del código en el cliente rompería la pantalla al renombrar
+  una etapa). **Es cambio de contrato, se decide antes de la etapa 2 y no se resuelve por cuenta
+  propia.** Nota adicional: el prototipo define **seis** estados y el sistema tiene **siete** — no
+  hay color previsto para `CANCELADO`.
+
 ---
 
 ## (d) Orden de ejecución vigente
