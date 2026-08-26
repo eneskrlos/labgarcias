@@ -47,7 +47,7 @@ va el estado de avance y lo que se acordó de palabra y no quedó escrito en ell
 > curso se identifica por su rama; el hash o el merge se completan al integrarla a `develop`.
 
 **Verificación al día de hoy:** `mvn -o test` en `backend/` → **416 tests, 0 fallos**.
-`npm test` en `frontend/` → **313 tests, 0 fallos**. `npm run lint` y `npm run build` limpios.
+`npm test` en `frontend/` → **314 tests, 0 fallos**. `npm run lint` y `npm run build` limpios.
 
 T-30, T-31 y T-32 se probaron además de punta a punta con el backend levantado en `dev` contra la
 base real. De T-31, con un SMTP de prueba: el correo de credenciales llegó completo y la contraseña
@@ -834,6 +834,13 @@ CU-17 —eso cubre consultar y corregir datos, que sí puede vivir en la API—.
 8. **Editar el perfil refresca la sesión guardada.** El nombre se muestra en el saludo del panel y
    en el encabezado, que leen la sesión de `localStorage`: sin esto, el usuario cambiaba su nombre
    y seguía viendo el anterior hasta cerrar sesión.
+   > **Verificado que no amplía lo que se guarda** (25/08/2026, a pedido del desarrollador). La
+   > sesión guarda lo que puso el login —`id`, `nombreCompleto`, `rol` y la bandera
+   > `debeCambiarPassword`— y el refresco hace `{ ...usuario, nombreCompleto }`: el mismo conjunto
+   > de claves con una actualizada. **`GET`/`PUT /perfil` devuelve además correo, dirección,
+   > teléfono y el estado de Telegram, y ninguno de esos llega a `localStorage`.** No quedó en la
+   > lectura del código: hay un test que compara el conjunto de claves antes y después y falla si
+   > alguien guarda la respuesta entera.
 
 **Los tres pendientes heredados, cerrados:**
 

@@ -161,6 +161,35 @@ describe('Perfil', () => {
     expect(screen.getByText('ODONTOLOGO')).toBeInTheDocument();
   });
 
+  /**
+   * El nombre se muestra en el saludo del panel y en el encabezado, que leen la sesión guardada:
+   * si no se refresca, el usuario cambia su nombre y sigue viendo el anterior hasta salir.
+   *
+   * **La sesión no puede guardar más de lo que ya guardaba.** `GET/PUT /perfil` devuelve correo,
+   * dirección, teléfono y el estado de Telegram; en `localStorage` solo van las cuatro claves que
+   * puso el login. Este test falla si alguien guarda la respuesta entera.
+   */
+  it('§7 refrescar la sesión no amplía lo que se guarda en localStorage', async () => {
+    actualizarPerfil.mockResolvedValue({ ...PERFIL_SIN_VINCULAR, nombreCompleto: 'Dr. Juan P. Pérez' });
+    renderizar();
+    // Se toma después de renderizar: es `renderizar` quien guarda la sesión inicial.
+    const antes = Object.keys(JSON.parse(localStorage.getItem('labgarcias_usuario')));
+    await screen.findByLabelText('Nombre');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await screen.findByRole('status');
+
+    const guardado = JSON.parse(localStorage.getItem('labgarcias_usuario'));
+    expect(Object.keys(guardado).sort()).toEqual(antes.sort());
+    expect(Object.keys(guardado).sort()).toEqual(['id', 'nombreCompleto', 'rol']);
+    expect(guardado.nombreCompleto).toBe('Dr. Juan P. Pérez');
+    expect(guardado.id).toBe(12);
+    expect(guardado.rol).toBe('ODONTOLOGO');
+    for (const filtrado of ['correo', 'direccion', 'telefono', 'telegramVinculado']) {
+      expect(guardado).not.toHaveProperty(filtrado);
+    }
+  });
+
   /** El error de validación del backend se muestra en su campo. */
   it('muestra el error del backend en el campo que indica', async () => {
     actualizarPerfil.mockRejectedValue(
