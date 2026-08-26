@@ -547,4 +547,73 @@ class OrdenServiceTest {
 
         assertThat(detalleComo(ID_DUENO, false).siguienteEstado()).isNull();
     }
+
+    // --- §5.1/§5.3/§5.4: el código de la etapa viaja junto al nombre ---
+
+    /**
+     * El código se **suma** al nombre, no lo reemplaza: las tres respuestas siguen trayendo
+     * `estado` con el texto visible.
+     *
+     * `estado` es lo que CU-22 deja renombrar; `estadoCodigo` es lo estable, y es sobre eso que
+     * la pantalla decide el color de la etiqueta de etapa. Mismo criterio que ya aplicaban
+     * `siguienteEstado` (§5.4, T-26) y `DistribucionEstadoResponse` (§5.7, T-27).
+     */
+    @Test
+    void elListadoTraeElCodigoDeLaEtapaSinPerderElNombre() {
+        Pageable pagina = PageRequest.of(0, 10);
+        // La página se arma antes del `when`: `ordenCompleta()` crea mocks y stubearlos dentro
+        // del argumento dejaría a Mockito a mitad de un stub (UnfinishedStubbing).
+        PageImpl<Orden> resultado = new PageImpl<>(List.of(ordenCompleta()), pagina, 1);
+        when(ordenRepository.buscarDelOdontologo(ID_DUENO, null, false, pagina)).thenReturn(resultado);
+
+        OrdenListadoResponse item = ordenService.listarMisOrdenes(ID_DUENO, null, false, pagina).contenido().get(0);
+
+        assertThat(item.estadoCodigo()).isEqualTo("EN_PRODUCCION");
+        assertThat(item.estado()).isEqualTo("En producción");
+    }
+
+    @Test
+    void elDetalleTraeElCodigoDeLaEtapaSinPerderElNombre() {
+        OrdenDetalleResponse detalle = detalleComo(ID_DUENO, false);
+
+        assertThat(detalle.estadoCodigo()).isEqualTo("EN_PRODUCCION");
+        assertThat(detalle.estado()).isEqualTo("En producción");
+    }
+
+    @Test
+    void laCreacionTraeElCodigoDeLaEtapaInicialSinPerderElNombre() {
+        OrdenResponse respuesta = crearOrdenNormal();
+
+        assertThat(respuesta.estadoCodigo()).isEqualTo("RECIBIDO");
+        assertThat(respuesta.estado()).isEqualTo("Recibido");
+    }
+
+    /**
+     * El contrato es "se suma el código, no se reemplaza el nombre": las tres respuestas tienen
+     * que declarar **los dos** componentes. Un test estructural porque el modo de romper esto es
+     * que alguien, al refactorizar, sustituya un campo por el otro y los tests de arriba sigan
+     * pasando con el nombre convertido en código.
+     */
+    @Test
+    void lasTresRespuestasDeclaranEstadoYEstadoCodigo() {
+        assertThat(List.of(OrdenResponse.class, OrdenListadoResponse.class, OrdenDetalleResponse.class))
+                .allSatisfy(respuesta -> assertThat(respuesta.getRecordComponents())
+                        .extracting(java.lang.reflect.RecordComponent::getName)
+                        .contains("estado", "estadoCodigo"));
+    }
+
+    /**
+     * RN-22 sigue valiendo para el campo nuevo: el código de la etapa no puede convertirse en una
+     * vía por la que el nombre del paciente entre a un listado.
+     */
+    @Test
+    void elCampoNuevoNoAbreNingunaViaAlNombreDelPaciente() {
+        Pageable pagina = PageRequest.of(0, 10);
+        PageImpl<Orden> resultado = new PageImpl<>(List.of(ordenCompleta()), pagina, 1);
+        when(ordenRepository.buscarDelOdontologo(ID_DUENO, null, false, pagina)).thenReturn(resultado);
+
+        OrdenListadoResponse item = ordenService.listarMisOrdenes(ID_DUENO, null, false, pagina).contenido().get(0);
+
+        assertThat(item.toString()).doesNotContain("Martín Pérez");
+    }
 }

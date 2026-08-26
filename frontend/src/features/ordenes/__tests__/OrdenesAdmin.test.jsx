@@ -35,6 +35,7 @@ const ORDEN = {
   tipoTrabajo: 'BIMLER A ESTANDAR',
   tipoOrden: 'Urgente',
   estado: 'En produccion',
+  estadoCodigo: 'EN_PRODUCCION',
   fechaIngreso: '2026-08-22',
   fechaEstimadaEntrega: '2026-09-01',
   precioTotal: '450.00',

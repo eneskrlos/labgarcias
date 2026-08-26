@@ -551,6 +551,19 @@ listado se comporta como siempre.
 - Va como filtro del mismo endpoint y no como recurso aparte porque es **el mismo listado del mismo
   dueño** con una condición más; duplicar la ruta duplicaría también RN-01.
 
+**`estadoCodigo`** *(agregado el 26/08/2026 por el desarrollador, con el rediseño visual)* — el
+código de la etapa, **además de `estado` y no en su lugar**.
+
+- `estado` es el **nombre visible, y CU-22 lo deja renombrar**. Cualquier decisión de presentación
+  que la pantalla tome por etapa —el color de su etiqueta de estado— tiene que apoyarse en algo
+  estable, y lo estable es el código. Si el laboratorio renombra "En producción", una pantalla que
+  se apoyara en el nombre perdería el color en silencio.
+- **Es el mismo criterio ya aplicado dos veces**: `siguienteEstado` (§5.4) viaja con código y
+  nombre desde T-26, y `DistribucionEstadoResponse` (§5.7) con `estadoCodigo` y `estadoNombre`
+  desde T-27. Esta es la tercera aplicación de la misma regla, no una regla nueva.
+- **Se suma, no reemplaza:** `estado` sigue siendo el nombre y sigue siendo lo que se muestra.
+- Vale igual para el detalle (§5.4) y para la respuesta de creación (§5.1).
+
 **Respuesta por ítem** — nunca `pacienteNombre`:
 ```json
 {
@@ -560,6 +573,7 @@ listado se comporta como siempre.
   "tipoTrabajo": "DISYUNTOR CON TORNILLO ESTANDAR",
   "tipoOrden": "Normal",
   "estado": "En producción",
+  "estadoCodigo": "EN_PRODUCCION",
   "fechaIngreso": "2026-08-06",
   "fechaEstimadaEntrega": "2026-08-17",
   "precioTotal": 250.00
@@ -574,7 +588,9 @@ listado se comporta como siempre.
 
 **RN-01:** si un odontólogo pide una orden ajena → `404`, no `403` (no revelar existencia).
 
-Incluye los datos del listado más `descripcion`, `precioBase`, `recargoUrgencia`, archivos, y la **línea de tiempo**: lista de etapas alcanzadas desde `orden_historial_estado` con estado, fecha/hora y autor.
+Incluye los datos del listado —**`estadoCodigo` entre ellos** (§5.3)— más `descripcion`, `precioBase`, `recargoUrgencia`, archivos, y la **línea de tiempo**: lista de etapas alcanzadas desde `orden_historial_estado` con estado, fecha/hora y autor.
+
+> **La línea de tiempo no lleva el código.** Sus etapas no se colorean por estado sino por avance —alcanzada, actual o pendiente—, que se deduce de la posición en la lista y no del código. Agregárselo sería un campo sin uso (`Agente.md` §6.2).
 
 El `ADMIN` sí recibe `pacienteNombre` (lo necesita para operar); el `ODONTOLOGO` **no** (RN-22).
 

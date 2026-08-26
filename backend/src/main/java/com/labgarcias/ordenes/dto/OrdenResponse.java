@@ -26,6 +26,16 @@ public record OrdenResponse(
         @Schema(example = "Recibido")
         String estado,
 
+        /**
+         * §5.1: el código de la etapa inicial, **además** del nombre y no en su lugar.
+         *
+         * `estado` es el nombre visible y **CU-22 lo deja editar**; el código es lo estable.
+         * Mismo criterio que `siguienteEstado` (§5.4) y `DistribucionEstadoResponse` (§5.7).
+         */
+        @Schema(description = "Código estable de la etapa. El nombre (`estado`) es editable por CU-22.",
+                example = "RECIBIDO")
+        String estadoCodigo,
+
         @Schema(example = "Disyuntor superior, tornillo de expansión 7mm")
         String descripcion,
 

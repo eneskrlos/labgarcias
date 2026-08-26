@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useSesion } from '../../shared/hooks/useSesion';
+import { Icono } from '../../shared/components/Icono';
 import { logout } from './api';
 import estilos from './BotonCerrarSesion.module.css';
 
@@ -26,6 +27,7 @@ export default function BotonCerrarSesion() {
 
   return (
     <button type="button" className={estilos.boton} onClick={salir}>
+      <Icono nombre="cerrarSesion" tamano={16} />
       Cerrar sesión
     </button>
   );

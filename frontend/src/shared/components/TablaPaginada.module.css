@@ -1,9 +1,15 @@
+/* §8.1 Regla 5: la tabla es la misma en todos los recursos. Acá se define una sola vez. */
 .contenedor {
   width: 100%;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-tarjeta);
+  box-shadow: var(--sombra-tarjeta);
 }
 
 .envoltorioTabla {
   overflow-x: auto;
+  border-radius: var(--radio-tarjeta) var(--radio-tarjeta) 0 0;
 }
 
 .tabla {
@@ -12,27 +18,80 @@
   min-width: 480px;
 }
 
-.tabla th,
-.tabla td {
+.tabla th {
   text-align: left;
-  padding: var(--espaciado-sm);
+  padding: var(--espaciado-sm-md) var(--espaciado-sm-md);
   border-bottom: 1px solid var(--color-borde);
+  color: var(--color-texto-sutil);
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-fuerte);
   white-space: nowrap;
 }
 
+.tabla td {
+  text-align: left;
+  padding: var(--espaciado-md) var(--espaciado-sm-md);
+  border-bottom: 1px solid var(--color-borde-suave);
+  color: var(--color-texto-cuerpo);
+  font-size: var(--texto-md);
+  white-space: nowrap;
+}
+
+.tabla th:first-child,
+.tabla td:first-child {
+  padding-left: var(--espaciado-md-lg);
+}
+
+.tabla th:last-child,
+.tabla td:last-child {
+  padding-right: var(--espaciado-md-lg);
+}
+
+.tabla tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tabla tbody tr:hover {
+  background: var(--color-hover-fila);
+}
+
 .inactivo {
-  color: var(--color-texto-tenue);
+  color: var(--color-texto-sutil);
+}
+
+/* Acciones de fila: enlaces y botones con el mismo peso visual (§8.1 Regla 5). */
+.tabla td a {
+  font-size: var(--texto-md);
+  font-weight: var(--peso-fuerte);
 }
 
 .tabla button {
-  margin-right: var(--espaciado-xs);
-  padding: 4px 8px;
+  margin-right: var(--espaciado-sm);
+  padding: 5px var(--espaciado-sm-md);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-sm);
+  color: var(--color-texto-cuerpo);
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-medio);
   cursor: pointer;
+}
+
+.tabla button:hover:not(:disabled) {
+  color: var(--color-primario);
+  border-color: var(--color-primario);
+  background: var(--color-primario-suave);
+}
+
+.tabla button:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .estadoCelda {
   text-align: center;
   padding: var(--espaciado-xl) var(--espaciado-md);
+  color: var(--color-texto-tenue);
   white-space: normal;
 }
 
@@ -41,10 +100,11 @@
   margin: 0 0 var(--espaciado-sm);
 }
 
+/* §8.1 Regla 3: el esqueleto ocupa el alto de una celda para que no salte el layout. */
 .esqueleto {
   display: block;
   height: 1em;
-  border-radius: var(--radio-borde);
+  border-radius: var(--radio-sm);
   background: var(--color-borde);
   animation: pulso 1.2s ease-in-out infinite;
 }
@@ -55,7 +115,8 @@
 }
 
 .actualizando {
-  font-size: 0.85rem;
+  padding: var(--espaciado-sm) var(--espaciado-md-lg) 0;
+  font-size: var(--texto-sm);
   color: var(--color-texto-tenue);
   margin: 0;
 }
