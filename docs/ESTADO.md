@@ -993,19 +993,32 @@ T-35 y el propio T-28 los habían desactualizado. Los dos dan **limpio**.
   ADMIN y SUPERADMIN, pero D-20 le manda notificaciones por tres canales. Se implementó como dice la
   spec. Si la clienta quiere que el odontólogo elija, es un cambio de spec, no un error.
 
-- **`OrdenResponse.estado` viaja como nombre y no como código** — *anotado el 26/08/2026, durante la
-  etapa 1 del rediseño visual.* El campo es `String estado` con el nombre visible (`"Recibido"`),
-  mientras que **`estado.nombre` es editable por CU-22**. El rediseño quiere pintar cada etapa con
-  su color, como el prototipo, y un mapa de colores en el frontend keyeado por ese texto **se
-  rompería en silencio** el día que alguien renombre una etapa desde la aplicación. Derivar el color
-  del código es lo único estable, y hoy el listado no lo trae.
+- ~~**`OrdenResponse.estado` viaja como nombre y no como código**~~ — **resuelto el 26/08/2026 por
+  el desarrollador**, que tomó la decisión de contrato antes de empezar la etapa 2 del rediseño.
 
-  **La salida limpia: que `OrdenResponse` incluya también el código**, con el precedente exacto de
-  `siguienteEstado`, que ya devuelve código y nombre por esta misma razón (decisión 16 de T-26: el
-  nombre es editable, así que derivarlo del código en el cliente rompería la pantalla al renombrar
-  una etapa). **Es cambio de contrato, se decide antes de la etapa 2 y no se resuelve por cuenta
-  propia.** Nota adicional: el prototipo define **seis** estados y el sistema tiene **siete** — no
-  hay color previsto para `CANCELADO`.
+  El problema: `estado` es el nombre visible y **CU-22 lo deja renombrar**, así que un mapa de
+  colores en el frontend keyeado por ese texto se rompería en silencio al renombrar una etapa.
+
+  **Lo decidido y ya implementado (bloque 0 de la etapa 2):** las tres respuestas de orden
+  —`OrdenResponse` (§5.1), `OrdenListadoResponse` (§5.3) y `OrdenDetalleResponse` (§5.4)— suman
+  **`estadoCodigo`**. *Se suma, no reemplaza:* `estado` sigue trayendo el nombre y sigue siendo lo
+  que se muestra. Es la **tercera aplicación de la misma regla**, no una regla nueva: ya la
+  aplicaban `siguienteEstado` (decisión 16 de T-26) y `DistribucionEstadoResponse` (decisión 2 de
+  T-27). **§5.3 quedó actualizada** con el campo y su motivo, y §5.4 lo referencia.
+
+  **Dos delimitaciones explícitas:**
+  - **`EtapaSeguimientoResponse` (la línea de tiempo) NO lo lleva.** Sus etapas se colorean por
+    avance —alcanzada, actual, pendiente—, que sale de la posición en la lista y no del código.
+    Sería un campo sin uso (`Agente.md` §6.2). Anotado en §5.4.
+  - **`OrdenUrgenteResponse` (bloque de urgentes del dashboard) tampoco**, y esto **queda abierto
+    para el bloque 4**: se lee de la vista `v_ordenes_urgentes`, que selecciona `e.nombre AS estado`
+    y no el código, así que sumárselo **exige una migración** que cambie la vista. Es una decisión
+    aparte, no un olvido.
+
+  **El color de `CANCELADO`, decidido en la misma pasada:** el prototipo define seis estados y el
+  sistema tiene siete. `CANCELADO` va con fondo `#F6E2E1` y texto `#A03A32`. **No reutiliza
+  `--color-error`**: una orden cancelada es un estado de negocio legítimo, no un fallo de la
+  aplicación, y atarlos haría que al cambiar el rojo de error las canceladas se movieran con él.
 
 ---
 

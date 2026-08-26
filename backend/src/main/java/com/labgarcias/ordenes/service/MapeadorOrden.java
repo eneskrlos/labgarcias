@@ -24,6 +24,7 @@ public class MapeadorOrden {
                 orden.getTipoTrabajo().getNombre(),
                 orden.getTipoOrden().getNombre(),
                 orden.getEstado().getNombre(),
+                orden.getEstado().getCodigo(),
                 orden.getFechaIngreso(),
                 orden.getFechaEstimadaEntrega(),
                 orden.getPrecioTotal());
