@@ -3,8 +3,9 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { usePaginacion } from '../../shared/hooks/usePaginacion';
 import { TablaPaginada } from '../../shared/components/TablaPaginada';
+import { EncabezadoPantalla } from '../../shared/components/EncabezadoPantalla';
 import { cambiarEstado, listarPaginado } from './api';
-import estilos from './TiposTrabajoListado.module.css';
+import estilosEncabezado from '../../shared/components/EncabezadoPantalla.module.css';
 
 const CLAVE_CONSULTA = 'tipos-trabajo';
 
@@ -61,14 +62,11 @@ export default function TiposTrabajoListado() {
 
   return (
     <div className="contenedor">
-      <div className={estilos.encabezado}>
-        <h1>Tipos de trabajo</h1>
-        <Link to="/admin/tipos-trabajo/nuevo" className={estilos.botonNuevo}>
+      <EncabezadoPantalla titulo="Tipos de trabajo" confirmacion={mensajeConfirmacion}>
+        <Link to="/admin/tipos-trabajo/nuevo" className={estilosEncabezado.botonAccion}>
           Nuevo
         </Link>
-      </div>
-
-      {mensajeConfirmacion && <p className={estilos.confirmacion}>{mensajeConfirmacion}</p>}
+      </EncabezadoPantalla>
 
       <TablaPaginada
         columnas={columnas}

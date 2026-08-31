@@ -2,9 +2,10 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { usePaginacion } from '../../shared/hooks/usePaginacion';
 import { TablaPaginada } from '../../shared/components/TablaPaginada';
+import { EncabezadoPantalla } from '../../shared/components/EncabezadoPantalla';
 import { listarEstados } from '../catalogos/api';
 import { listarMisOrdenes } from './api';
-import estilos from './HistorialOrdenes.module.css';
+import estilosEncabezado from '../../shared/components/EncabezadoPantalla.module.css';
 
 const CLAVE_CONSULTA = 'historial-ordenes';
 
@@ -78,9 +79,8 @@ export default function HistorialOrdenes() {
 
   return (
     <div className="contenedor">
-      <div className={estilos.encabezado}>
-        <h1>Historial</h1>
-        <label className={estilos.filtro}>
+      <EncabezadoPantalla titulo="Historial">
+        <label className={estilosEncabezado.filtro}>
           Estado
           <select value={estado} onChange={(evento) => cambiarFiltro('estado', evento.target.value)}>
             <option value={SIN_FILTRO}>Todos</option>
@@ -91,7 +91,7 @@ export default function HistorialOrdenes() {
             ))}
           </select>
         </label>
-      </div>
+      </EncabezadoPantalla>
 
       <TablaPaginada
         columnas={columnas}
