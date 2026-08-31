@@ -26,6 +26,7 @@ const URGENTE = {
   codigo: 'LG-0007',
   odontologo: 'Dr. Juan Pérez',
   estado: 'En producción',
+  estadoCodigo: 'EN_PRODUCCION',
   fechaEstimadaEntrega: '2026-08-28',
 };
 

@@ -674,6 +674,11 @@ RECIBIDO → EN_EVALUACION → EN_PRODUCCION → CONTROL_CALIDAD → LISTO → E
 respuesta **no lo expone**, igual que ningún otro listado (`Agente.md` §8.2). La consulta ni
 siquiera lo selecciona. El laboratorio ve ese dato solo en el detalle de la orden (§5.4).
 
+**`estadoCodigo` (V3, bloque 4 de la etapa 2 del rediseño):** igual que `OrdenListadoResponse`
+(§5.3), el bloque de urgentes suma el código estable de la etapa **además** del nombre, no en su
+lugar. `v_ordenes_urgentes` ya hacía el `JOIN` contra `estado`; la vista pasó a seleccionar
+también `e.codigo AS estado_codigo`.
+
 #### Panel del odontólogo — CU-02
 
 *(Agregado el 23/08/2026 por el desarrollador, con T-27.)*

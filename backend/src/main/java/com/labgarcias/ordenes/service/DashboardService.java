@@ -143,6 +143,7 @@ public class DashboardService {
                         fila.getCodigo(),
                         fila.getOdontologo(),
                         fila.getEstado(),
+                        fila.getEstadoCodigo(),
                         fila.getFechaEstimadaEntrega()))
                 .toList();
     }

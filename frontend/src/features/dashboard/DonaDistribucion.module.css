@@ -1,0 +1,83 @@
+.contenedor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espaciado-xl);
+}
+
+.grafico {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  flex-shrink: 0;
+}
+
+.dona {
+  width: 100%;
+  height: 100%;
+}
+
+.vacia {
+  fill: none;
+  stroke: var(--color-borde);
+  stroke-width: 16;
+}
+
+.centro {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+}
+
+.total {
+  font-size: var(--texto-2xl);
+  font-weight: var(--peso-titulo);
+  line-height: 1;
+  color: var(--color-texto);
+}
+
+.totalEtiqueta {
+  font-size: var(--texto-xs);
+  color: var(--color-texto-tenue);
+}
+
+.leyenda {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaciado-sm);
+  flex: 1;
+  min-width: 12rem;
+}
+
+.itemLeyenda {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--espaciado-sm);
+}
+
+.marca {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: var(--radio-pildora);
+  flex-shrink: 0;
+}
+
+.nombreEstado {
+  font-size: var(--texto-base);
+  color: var(--color-texto-cuerpo);
+}
+
+.cantidad {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--peso-fuerte);
+  color: var(--color-texto);
+}
