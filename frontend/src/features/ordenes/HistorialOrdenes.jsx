@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { usePaginacion } from '../../shared/hooks/usePaginacion';
 import { TablaPaginada } from '../../shared/components/TablaPaginada';
 import { EncabezadoPantalla } from '../../shared/components/EncabezadoPantalla';
+import { EtiquetaEstado } from '../../shared/components/EtiquetaEstado';
 import { listarEstados } from '../catalogos/api';
 import { listarMisOrdenes } from './api';
 import estilosEncabezado from '../../shared/components/EncabezadoPantalla.module.css';
@@ -57,7 +58,11 @@ export default function HistorialOrdenes() {
     { clave: 'pacienteIdentificacion', encabezado: 'Paciente' },
     { clave: 'tipoTrabajo', encabezado: 'Trabajo' },
     { clave: 'tipoOrden', encabezado: 'Tipo' },
-    { clave: 'estado', encabezado: 'Estado' },
+    {
+      clave: 'estado',
+      encabezado: 'Estado',
+      render: (fila) => <EtiquetaEstado estado={fila.estado} estadoCodigo={fila.estadoCodigo} />,
+    },
     {
       clave: 'fechaIngreso',
       encabezado: 'Ingreso',
