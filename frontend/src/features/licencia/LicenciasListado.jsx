@@ -3,8 +3,10 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { usePaginacion } from '../../shared/hooks/usePaginacion';
 import { TablaPaginada } from '../../shared/components/TablaPaginada';
+import { EncabezadoPantalla } from '../../shared/components/EncabezadoPantalla';
 import { listarLicencias, obtenerLicenciaVigente } from './api';
 import estilos from './Licencias.module.css';
+import estilosEncabezado from '../../shared/components/EncabezadoPantalla.module.css';
 
 const CLAVE_LISTADO = 'licencias';
 const CLAVE_VIGENTE = 'licencia-vigente';
@@ -72,14 +74,11 @@ export default function LicenciasListado() {
 
   return (
     <div className="contenedor">
-      {mensajeConfirmacion && <p role="status">{mensajeConfirmacion}</p>}
-
-      <div className={estilos.encabezado}>
-        <h1>Licencias</h1>
-        <Link to="/admin/licencias/nueva" className={estilos.boton}>
+      <EncabezadoPantalla titulo="Licencias" confirmacion={mensajeConfirmacion}>
+        <Link to="/admin/licencias/nueva" className={estilosEncabezado.botonAccion}>
           Nuevo
         </Link>
-      </div>
+      </EncabezadoPantalla>
 
       {/* El estado vigente lo dice el backend, no se deriva del listado. */}
       {vigente.data && (

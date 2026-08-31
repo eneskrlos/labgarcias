@@ -3,8 +3,10 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { useLocation, useNavigate } from 'react-router-dom';
 import { usePaginacion } from '../../shared/hooks/usePaginacion';
 import { TablaPaginada } from '../../shared/components/TablaPaginada';
+import { EncabezadoPantalla } from '../../shared/components/EncabezadoPantalla';
 import { listarSolicitudes, rechazarSolicitud } from './api';
 import estilos from './SolicitudesListado.module.css';
+import estilosEncabezado from '../../shared/components/EncabezadoPantalla.module.css';
 
 const CLAVE_CONSULTA = 'solicitudes-acceso';
 
@@ -112,9 +114,8 @@ export default function SolicitudesListado() {
 
   return (
     <div className="contenedor">
-      <div className={estilos.encabezado}>
-        <h1>Solicitudes de acceso</h1>
-        <label className={estilos.filtro}>
+      <EncabezadoPantalla titulo="Solicitudes de acceso" confirmacion={mensajeConfirmacion}>
+        <label className={estilosEncabezado.filtro}>
           Estado
           <select value={estado} onChange={(evento) => cambiarFiltro('estado', evento.target.value)}>
             {OPCIONES_ESTADO.map((opcion) => (
@@ -124,9 +125,7 @@ export default function SolicitudesListado() {
             ))}
           </select>
         </label>
-      </div>
-
-      {mensajeConfirmacion && <p className={estilos.confirmacion}>{mensajeConfirmacion}</p>}
+      </EncabezadoPantalla>
 
       {mutacionRechazar.isError && <p className={estilos.error}>{mutacionRechazar.error.mensaje}</p>}
 
