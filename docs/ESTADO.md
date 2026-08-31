@@ -1020,6 +1020,26 @@ T-35 y el propio T-28 los habían desactualizado. Los dos dan **limpio**.
   `--color-error`**: una orden cancelada es un estado de negocio legítimo, no un fallo de la
   aplicación, y atarlos haría que al cambiar el rojo de error las canceladas se movieran con él.
 
+  **`EtiquetaEstado` (bloque 2 de la etapa 2, 31/08/2026): la píldora es solo para la orden.**
+  De los 8 listados de la etapa 2, únicamente `HistorialOrdenes`, `MisOrdenes` y `OrdenesAdmin`
+  la usan; los otros 5 —`SolicitudesListado`, `TiposTrabajoListado`, `UsuariosListado`,
+  `OdontologosListado` y `LicenciasListado`— siguen con su columna "Estado" en texto plano, y es
+  deliberado, no un olvido: **ninguno de esos cinco tiene un catálogo de estados como
+  `estado.codigo`**, que es lo único que el mapa de `coloresEstado.js` sabe colorear.
+
+  - `solicitud_acceso.estado` (`chk_solicitud_estado`), `usuario.estado_cuenta`
+    (`chk_usuario_estado`) y `licencia.estado` (`chk_licencia_estado`) son columnas de texto con
+    **`CHECK`** —`PENDIENTE/APROBADA/RECHAZADA`, `PENDIENTE_VERIFICACION/ACTIVA/INACTIVA` y
+    `ACTIVA/VENCIDA` respectivamente—, no una fila de una tabla catálogo con su propio código
+    estable como `estado.codigo` (RN-04). `tipo_trabajo.activo` ni siquiera es un estado: es un
+    booleano.
+  - Inventarles un segundo mapa de colores —sin que ninguna spec ni el prototipo lo pida— habría
+    sido una abstracción sin uso real (`Agente.md` §6.2/§7.2): mismo criterio que ya se aplicó al
+    no crear un `<SelectorFiltro>` para las 3 pantallas con el filtro de estado repetido (bloque 1).
+  - **Si en algún momento se decide colorear alguna de esas cinco**, el mapa de esa entidad va
+    aparte —nunca dentro de `coloresEstado.js`, que es específico de `estado.codigo`— porque sus
+    valores no comparten catálogo ni ciclo de vida con el de la orden.
+
 ---
 
 ## (d) Orden de ejecución vigente
