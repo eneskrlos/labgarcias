@@ -1010,10 +1010,19 @@ T-35 y el propio T-28 los habían desactualizado. Los dos dan **limpio**.
   - **`EtapaSeguimientoResponse` (la línea de tiempo) NO lo lleva.** Sus etapas se colorean por
     avance —alcanzada, actual, pendiente—, que sale de la posición en la lista y no del código.
     Sería un campo sin uso (`Agente.md` §6.2). Anotado en §5.4.
-  - **`OrdenUrgenteResponse` (bloque de urgentes del dashboard) tampoco**, y esto **queda abierto
-    para el bloque 4**: se lee de la vista `v_ordenes_urgentes`, que selecciona `e.nombre AS estado`
-    y no el código, así que sumárselo **exige una migración** que cambie la vista. Es una decisión
-    aparte, no un olvido.
+  - ~~**`OrdenUrgenteResponse` (bloque de urgentes del dashboard) tampoco**~~ — **resuelto el
+    31/08/2026, bloque 4 de la etapa 2.** `V3__vista_urgentes_estado_codigo.sql` agrega
+    `e.codigo AS estado_codigo` a `v_ordenes_urgentes` (la columna va al final: `CREATE OR REPLACE
+    VIEW` no admite reordenar ni quitar columnas existentes). Es una vista, no una tabla: la
+    migración no toca ninguna fila, solo la redefine. Verificado en dos bases —una con V1+V2 ya
+    aplicadas y una vacía corriendo las tres en orden— y contra el dashboard real: `codigo=LG-0007,
+    estado='Control de calidad', estado_codigo='CONTROL_CALIDAD'`.
+    - Se descartó resolverlo buscando el código por nombre en el catálogo de estados en memoria:
+      es exactamente el riesgo que motivó `estadoCodigo` en el bloque 0 (CU-22 deja renombrar la
+      etapa, y un mapa keyeado por ese nombre se rompería en silencio).
+      `OrdenUrgenteProyeccion` suma `getEstadoCodigo()`, `OrdenUrgenteResponse` suma `estadoCodigo`
+      —se suma, no reemplaza—, y `DashboardService.urgentes()` lo mapea. `v_ordenes_por_estado`
+      **no se tocó**: es una vista aparte que ya traía `estado_codigo` desde que se creó.
 
   **El color de `CANCELADO`, decidido en la misma pasada:** el prototipo define seis estados y el
   sistema tiene siete. `CANCELADO` va con fondo `#F6E2E1` y texto `#A03A32`. **No reutiliza

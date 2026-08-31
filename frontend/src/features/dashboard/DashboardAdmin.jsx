@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { TablaPaginada } from '../../shared/components/TablaPaginada';
 import { FilaContadores, TarjetaContador } from '../../shared/components/TarjetaContador';
+import { EtiquetaEstado } from '../../shared/components/EtiquetaEstado';
+import { DonaDistribucion } from './DonaDistribucion';
 import { obtenerDashboardAdmin } from './api';
 import estilos from './Panel.module.css';
 
@@ -17,8 +19,9 @@ const FORMATO_FECHA = new Intl.DateTimeFormat('es-AR', { dateStyle: 'short' });
  *
  * Los cuatro indicadores, la distribución por estado, las próximas a entregar, las recientes y
  * las urgentes, **todo tal como lo devuelve `GET /admin/dashboard`**: ni un número se arma acá
- * (§8, `Agente.md` §6.1). La distribución se dibuja con barras proporcionales al mayor de los
- * valores; eso es presentación, no cálculo de negocio.
+ * (§8, `Agente.md` §6.1). La distribución se dibuja como dona (`DonaDistribucion`, bloque 4 de la
+ * etapa 2); el total del centro y el largo de cada arco son presentación sobre cifras ya contadas
+ * por el backend, no cálculo de negocio.
  *
  * **RN-22**: ningún bloque muestra el nombre del paciente, ni siquiera el de urgentes, cuya vista
  * sí lo tiene. El laboratorio lo ve en el detalle de la orden (§5.4).
@@ -32,7 +35,6 @@ export default function DashboardAdmin() {
   const cargando = consulta.isLoading;
   const error = consulta.isError ? consulta.error.mensaje : null;
   const distribucion = consulta.data?.distribucionPorEstado ?? [];
-  const mayorCantidad = Math.max(1, ...distribucion.map((fila) => fila.cantidad));
 
   const columnasOrden = [
     {
@@ -42,7 +44,11 @@ export default function DashboardAdmin() {
     },
     { clave: 'pacienteIdentificacion', encabezado: 'Paciente' },
     { clave: 'tipoTrabajo', encabezado: 'Trabajo' },
-    { clave: 'estado', encabezado: 'Estado' },
+    {
+      clave: 'estado',
+      encabezado: 'Estado',
+      render: (fila) => <EtiquetaEstado estado={fila.estado} estadoCodigo={fila.estadoCodigo} />,
+    },
     {
       clave: 'fechaEstimadaEntrega',
       encabezado: 'Entrega estimada',
@@ -57,7 +63,11 @@ export default function DashboardAdmin() {
       render: (fila) => <Link to={`/admin/ordenes/${fila.id}`}>{fila.codigo}</Link>,
     },
     { clave: 'odontologo', encabezado: 'Odontólogo' },
-    { clave: 'estado', encabezado: 'Estado' },
+    {
+      clave: 'estado',
+      encabezado: 'Estado',
+      render: (fila) => <EtiquetaEstado estado={fila.estado} estadoCodigo={fila.estadoCodigo} />,
+    },
     {
       clave: 'fechaEstimadaEntrega',
       encabezado: 'Entrega estimada',
@@ -91,21 +101,7 @@ export default function DashboardAdmin() {
       <section>
         <h2>Distribución por estado</h2>
         {error && <p className={estilos.error}>{error}</p>}
-        {!error && (
-          <ul className={estilos.distribucion}>
-            {distribucion.map((fila) => (
-              <li key={fila.estadoCodigo} className={estilos.filaDistribucion}>
-                <span className={estilos.etiquetaEstado}>{fila.estadoNombre}</span>
-                <span
-                  className={estilos.barra}
-                  style={{ '--proporcion': `${(fila.cantidad / mayorCantidad) * 100}%` }}
-                />
-                <span className={estilos.cantidad}>{fila.cantidad}</span>
-              </li>
-            ))}
-            {!cargando && distribucion.length === 0 && <li>No hay etapas cargadas.</li>}
-          </ul>
-        )}
+        {!error && <DonaDistribucion distribucion={distribucion} cargando={cargando} />}
       </section>
 
       <div className={estilos.encabezadoBloque}>

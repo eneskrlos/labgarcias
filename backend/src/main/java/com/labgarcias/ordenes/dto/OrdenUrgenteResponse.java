@@ -26,6 +26,15 @@ public record OrdenUrgenteResponse(
         @Schema(example = "En producción")
         String estado,
 
+        /**
+         * V3/bloque 4 de la etapa 2: se suma, no reemplaza — mismo criterio que `estadoCodigo` en
+         * `OrdenListadoResponse` (bloque 0). Cierra el punto que había quedado abierto en
+         * `docs/ESTADO.md`: la vista ya hacía el JOIN contra `estado`, solo faltaba seleccionarlo.
+         */
+        @Schema(description = "Código estable de la etapa. El nombre (`estado`) es editable por CU-22.",
+                example = "EN_PRODUCCION")
+        String estadoCodigo,
+
         @Schema(example = "2026-08-28")
         LocalDate fechaEstimadaEntrega
 

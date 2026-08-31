@@ -6,43 +6,6 @@
   gap: var(--espaciado-sm);
 }
 
-.distribucion {
-  list-style: none;
-  margin: 0 0 var(--espaciado-lg);
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--espaciado-xs);
-}
-
-.filaDistribucion {
-  display: grid;
-  grid-template-columns: minmax(8rem, 12rem) 1fr auto;
-  align-items: center;
-  gap: var(--espaciado-sm);
-}
-
-.etiquetaEstado {
-  font-size: 0.9rem;
-  color: var(--color-texto-tenue);
-}
-
-/* La barra es proporcional al mayor valor de la serie. Es presentación: la cifra la trae el
-   backend y se muestra al lado sin recomponer. */
-.barra {
-  display: block;
-  height: 0.6rem;
-  width: var(--proporcion, 0%);
-  min-width: 2px;
-  border-radius: var(--radio-borde);
-  background: var(--color-primario);
-}
-
-.cantidad {
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-}
-
 .error {
   color: var(--color-error, #b00020);
 }

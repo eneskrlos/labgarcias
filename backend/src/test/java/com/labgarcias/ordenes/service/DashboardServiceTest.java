@@ -196,6 +196,7 @@ class DashboardServiceTest {
         assertThat(dashboard.urgentes()).singleElement().satisfies(fila -> {
             assertThat(fila.codigo()).isEqualTo("LG-0007");
             assertThat(fila.odontologo()).isEqualTo("Dr. Juan Pérez");
+            assertThat(fila.estadoCodigo()).isEqualTo("EN_PRODUCCION");
             assertThat(fila.toString()).doesNotContain("Martín Pérez");
         });
         assertThat(OrdenUrgenteProyeccion.class.getMethods())
@@ -233,6 +234,7 @@ class DashboardServiceTest {
         when(fila.getCodigo()).thenReturn("LG-0007");
         when(fila.getOdontologo()).thenReturn("Dr. Juan Pérez");
         when(fila.getEstado()).thenReturn("En producción");
+        when(fila.getEstadoCodigo()).thenReturn("EN_PRODUCCION");
         when(fila.getFechaEstimadaEntrega()).thenReturn(LocalDate.of(2026, 8, 28));
         return fila;
     }

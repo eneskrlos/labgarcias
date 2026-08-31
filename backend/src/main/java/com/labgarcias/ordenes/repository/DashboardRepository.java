@@ -101,7 +101,7 @@ public interface DashboardRepository extends Repository<Orden, Long> {
      * prohíbe (`Agente.md` §8.2).
      */
     @Query(value = "SELECT id AS \"id\", codigo AS \"codigo\", "
-            + "odontologo AS \"odontologo\", estado AS \"estado\", "
+            + "odontologo AS \"odontologo\", estado AS \"estado\", estado_codigo AS \"estadoCodigo\", "
             + "fecha_estimada_entrega AS \"fechaEstimadaEntrega\" "
             + "FROM v_ordenes_urgentes "
             + "ORDER BY fecha_estimada_entrega "
