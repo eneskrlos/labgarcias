@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePaginacion } from '../../shared/hooks/usePaginacion';
 import { TablaPaginada } from '../../shared/components/TablaPaginada';
+import { EncabezadoPantalla } from '../../shared/components/EncabezadoPantalla';
 import { useSesion } from '../../shared/hooks/useSesion';
 import { cambiarEstadoUsuario, listarUsuarios } from './api';
 import estilos from './Padron.module.css';
@@ -88,12 +89,9 @@ export default function UsuariosListado() {
 
   return (
     <div className="contenedor">
-      {confirmacion && <p role="status">{confirmacion}</p>}
       {cambio.isError && <p className={estilos.error}>{cambio.error.mensaje}</p>}
 
-      <div className={estilos.encabezado}>
-        <h1>Usuarios</h1>
-      </div>
+      <EncabezadoPantalla titulo="Usuarios" confirmacion={confirmacion} />
 
       <TablaPaginada
         columnas={columnas}

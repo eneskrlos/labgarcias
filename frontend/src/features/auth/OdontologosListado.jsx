@@ -3,8 +3,9 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { usePaginacion } from '../../shared/hooks/usePaginacion';
 import { TablaPaginada } from '../../shared/components/TablaPaginada';
+import { EncabezadoPantalla } from '../../shared/components/EncabezadoPantalla';
 import { listarOdontologos } from './api';
-import estilos from './Padron.module.css';
+import estilosEncabezado from '../../shared/components/EncabezadoPantalla.module.css';
 
 const CLAVE_CONSULTA = 'odontologos';
 
@@ -55,14 +56,11 @@ export default function OdontologosListado() {
 
   return (
     <div className="contenedor">
-      {mensajeConfirmacion && <p role="status">{mensajeConfirmacion}</p>}
-
-      <div className={estilos.encabezado}>
-        <h1>Odontólogos</h1>
-        <Link to="/admin/odontologos/nuevo" className={estilos.boton}>
+      <EncabezadoPantalla titulo="Odontólogos" confirmacion={mensajeConfirmacion}>
+        <Link to="/admin/odontologos/nuevo" className={estilosEncabezado.botonAccion}>
           Nuevo
         </Link>
-      </div>
+      </EncabezadoPantalla>
 
       <TablaPaginada
         columnas={columnas}

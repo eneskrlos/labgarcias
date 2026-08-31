@@ -1,0 +1,68 @@
+/*
+ * Tipografía auto-hospedada.
+ *
+ * D-16: cada laboratorio corre su propia instalación. Un `<link>` a fonts.googleapis.com
+ * dejaría la tipografía a merced de la red del laboratorio; los .woff2 viajan con el build.
+ *
+ * Solo lo que el sistema usa: Manrope para todo y Cormorant Garamond 600 para la marca del
+ * encabezado, en los subconjuntos `latin` y `latin-ext`. El `unicode-range` hace que el
+ * navegador baje `latin-ext` únicamente si la página lo necesita.
+ *
+ * **Manrope es una fuente variable y Cormorant Garamond no.** Verificado, no supuesto: los
+ * archivos que devuelve Google para Manrope en 400, 600, 700 y 800 son **byte a byte
+ * idénticos** (mismo md5), y su hoja declara el eje `400 800`; los de Cormorant en 400 y 600
+ * difieren, o sea que son instancias estáticas. De ahí la asimetría de abajo: Manrope se
+ * declara una vez por subconjunto con el rango de pesos, y Cormorant con su peso exacto.
+ *
+ * Declarar Manrope con cuatro reglas de peso fijo apuntando al mismo archivo —que fue el
+ * primer intento— hacía que Vite dedupdicara por hash y las cuatro terminaran sirviendo el
+ * mismo recurso: funcionaba de casualidad y desperdiciaba 150 KB en el repositorio.
+ */
+
+/* ── Manrope — variable, eje de peso 400 a 800 ───────────────────────────── */
+
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('./fuentes/manrope-variable-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0,
+    U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('./fuentes/manrope-variable-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+    U+FEFF, U+FFFD;
+}
+
+/* ── Cormorant Garamond — estática, solo el peso de la marca ─────────────── */
+
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fuentes/cormorant-garamond-600-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0,
+    U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fuentes/cormorant-garamond-600-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+    U+FEFF, U+FFFD;
+}

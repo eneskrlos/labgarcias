@@ -1,14 +1,43 @@
+/*
+ * Ítems de los dos menús de §8. Se dibujan dentro de la barra lateral de `LayoutAutenticado`,
+ * sobre el fondo de marca, así que la paleta es la de texto sobre marca.
+ */
 .enlace {
-  color: var(--color-texto-tenue);
+  display: flex;
+  align-items: center;
+  gap: var(--espaciado-sm-md);
+  padding: var(--espaciado-sm-md) var(--espaciado-sm-md);
+  border-radius: var(--radio-borde);
+  color: var(--color-marca-texto);
+  font-size: var(--texto-md);
+  font-weight: var(--peso-medio);
   text-decoration: none;
-  padding: var(--espaciado-xs) 0;
+  white-space: nowrap;
 }
 
 .enlace:hover {
-  text-decoration: underline;
+  background: var(--color-marca-hover);
+  color: var(--color-primario-contraste);
+  text-decoration: none;
 }
 
 .activo {
-  color: var(--color-primario);
-  font-weight: 600;
+  background: var(--color-primario);
+  color: var(--color-primario-contraste);
+  font-weight: var(--peso-fuerte);
+}
+
+.activo:hover {
+  background: var(--color-primario);
+}
+
+@media (max-width: 860px) {
+  .enlace {
+    flex: 1 0 auto;
+    flex-direction: column;
+    gap: var(--espaciado-xs);
+    padding: var(--espaciado-sm) var(--espaciado-sm);
+    font-size: var(--texto-xs);
+    text-align: center;
+  }
 }

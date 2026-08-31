@@ -3,10 +3,13 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { usePaginacion } from '../../shared/hooks/usePaginacion';
 import { TablaPaginada } from '../../shared/components/TablaPaginada';
+import { EncabezadoPantalla } from '../../shared/components/EncabezadoPantalla';
+import { EtiquetaEstado } from '../../shared/components/EtiquetaEstado';
 import { listarEstados, listarTiposOrden } from '../catalogos/api';
 import { listarOdontologosActivos } from '../auth/api';
 import { listarOrdenesAdmin } from './api';
 import estilos from './OrdenesAdmin.module.css';
+import estilosEncabezado from '../../shared/components/EncabezadoPantalla.module.css';
 
 const CLAVE_CONSULTA = 'admin-ordenes';
 
@@ -71,7 +74,11 @@ export default function OrdenesAdmin() {
     { clave: 'pacienteIdentificacion', encabezado: 'Paciente' },
     { clave: 'tipoTrabajo', encabezado: 'Trabajo' },
     { clave: 'tipoOrden', encabezado: 'Tipo' },
-    { clave: 'estado', encabezado: 'Estado' },
+    {
+      clave: 'estado',
+      encabezado: 'Estado',
+      render: (fila) => <EtiquetaEstado estado={fila.estado} estadoCodigo={fila.estadoCodigo} />,
+    },
     {
       clave: 'fechaIngreso',
       encabezado: 'Ingreso',
@@ -92,14 +99,11 @@ export default function OrdenesAdmin() {
 
   return (
     <div className="contenedor">
-      <div className={estilos.encabezado}>
-        <h1>Trabajos</h1>
-        <Link to="/admin/ordenes/nueva" className={estilos.nuevo}>
+      <EncabezadoPantalla titulo="Trabajos" confirmacion={mensajeConfirmacion}>
+        <Link to="/admin/ordenes/nueva" className={estilosEncabezado.botonAccion}>
           Nueva orden
         </Link>
-      </div>
-
-      {mensajeConfirmacion && <p role="status">{mensajeConfirmacion}</p>}
+      </EncabezadoPantalla>
 
       <div className={estilos.filtros}>
         <label>

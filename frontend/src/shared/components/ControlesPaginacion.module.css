@@ -1,25 +1,37 @@
+/* §8.1 Regla 2: los controles van debajo de la tabla, dentro de su misma tarjeta. */
 .controles {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--espaciado-md);
-  padding: var(--espaciado-md) 0;
+  padding: var(--espaciado-sm-md) var(--espaciado-md-lg);
+  border-top: 1px solid var(--color-borde);
 }
 
 .navegacion {
   display: flex;
   align-items: center;
-  gap: var(--espaciado-sm);
+  gap: var(--espaciado-sm-md);
+  font-size: var(--texto-md);
+  color: var(--color-texto-cuerpo);
 }
 
 .navegacion button {
-  padding: var(--espaciado-sm) var(--espaciado-md);
-  background: transparent;
-  color: var(--color-texto);
+  padding: var(--espaciado-sm) var(--espaciado-sm-md);
+  background: var(--color-superficie);
+  color: var(--color-texto-cuerpo);
   border: 1px solid var(--color-borde);
   border-radius: var(--radio-borde);
+  font-size: var(--texto-md);
+  font-weight: var(--peso-medio);
   cursor: pointer;
+}
+
+.navegacion button:hover:not(:disabled) {
+  color: var(--color-primario);
+  border-color: var(--color-primario);
+  background: var(--color-primario-suave);
 }
 
 .navegacion button:disabled {
@@ -30,13 +42,17 @@
 .selector {
   display: flex;
   align-items: center;
-  gap: var(--espaciado-xs);
-  font-size: 0.9rem;
+  gap: var(--espaciado-sm);
+  font-size: var(--texto-md);
   color: var(--color-texto-tenue);
 }
 
 .selector select {
-  padding: 4px var(--espaciado-sm);
-  border: 1px solid var(--color-borde);
+  padding: 6px var(--espaciado-sm);
+  background: var(--color-campo);
+  border: 1px solid var(--color-borde-campo);
   border-radius: var(--radio-borde);
+  color: var(--color-texto);
+  font-size: var(--texto-md);
+  cursor: pointer;
 }

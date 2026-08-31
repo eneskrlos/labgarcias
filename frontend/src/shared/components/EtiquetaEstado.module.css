@@ -1,0 +1,8 @@
+.etiqueta {
+  display: inline-block;
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-fuerte);
+  padding: var(--espaciado-xs) var(--espaciado-sm-md);
+  border-radius: var(--radio-pildora);
+  white-space: nowrap;
+}

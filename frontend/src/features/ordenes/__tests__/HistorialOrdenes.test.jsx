@@ -25,6 +25,7 @@ const ORDEN = {
   tipoTrabajo: 'DISYUNTOR CON TORNILLO ESTANDAR',
   tipoOrden: 'Urgente',
   estado: 'Entregado',
+  estadoCodigo: 'ENTREGADO',
   fechaIngreso: '2026-08-10',
   fechaEstimadaEntrega: '2026-08-19',
   precioTotal: '450.00',

@@ -51,6 +51,13 @@ describe('ConfiguracionNotificaciones', () => {
     expect(screen.getByLabelText('Chat de Telegram')).toHaveValue('');
   });
 
+  /** §8.1 Regla 1/CU-21: la ayuda del campo explica cuándo el chat de Telegram es obligatorio. */
+  it('muestra la regla CU-21 como ayuda del campo de Telegram', async () => {
+    renderizar();
+
+    expect(await screen.findByText('CU-21: obligatorio si activás Telegram.')).toBeInTheDocument();
+  });
+
   /** CU-21: el PUT reemplaza la configuración entera; las tres banderas viajan siempre. */
   it('guarda las tres banderas, también las que quedan apagadas', async () => {
     renderizar();

@@ -1,3 +1,4 @@
+@import './fuentes.css';
 @import './variables.css';
 
 * {
@@ -7,8 +8,10 @@
 body {
   margin: 0;
   font-family: var(--fuente-base);
+  font-size: var(--texto-base);
   color: var(--color-texto);
   background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
 }
 
 #root {
@@ -19,16 +22,44 @@ body {
 
 h1, h2, h3 {
   margin: 0 0 var(--espaciado-md);
+  color: var(--color-texto);
+  font-weight: var(--peso-titulo);
+  line-height: 1.25;
+}
+
+h1 { font-size: var(--texto-xl); }
+h2 { font-size: var(--texto-lg); }
+h3 { font-size: var(--texto-base); }
+
+a {
+  color: var(--color-primario);
+  text-decoration: none;
+  font-weight: var(--peso-medio);
+}
+
+a:hover {
+  color: var(--color-primario-fuerte);
+  text-decoration: underline;
 }
 
 button, input, select, textarea {
   font-family: inherit;
-  font-size: 1rem;
+  font-size: var(--texto-base);
 }
 
+::placeholder {
+  color: var(--color-placeholder);
+}
+
+/*
+ * El contenedor de cada pantalla. Con la barra lateral ocupando el flanco izquierdo, el ancho
+ * útil creció: pasa de 1024px a 1180px. Sigue centrado porque tres pantallas lo usan **fuera**
+ * del layout autenticado —las dos de licencias (§3.6) y los formularios públicos—, donde no hay
+ * barra lateral contra la cual alinearse.
+ */
 .contenedor {
   width: 100%;
-  max-width: var(--ancho-escritorio);
+  max-width: var(--ancho-contenido);
   margin: 0 auto;
   padding: var(--espaciado-md);
 }

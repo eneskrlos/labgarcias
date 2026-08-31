@@ -114,7 +114,11 @@ export default function ConfiguracionNotificaciones() {
 
   return (
     <div className="contenedor">
-      {confirmacion && <p role="status">{confirmacion}</p>}
+      {confirmacion && (
+        <p className={estilos.confirmacion} role="status">
+          {confirmacion}
+        </p>
+      )}
 
       <LayoutFormulario
         titulo="Configuración de notificaciones"

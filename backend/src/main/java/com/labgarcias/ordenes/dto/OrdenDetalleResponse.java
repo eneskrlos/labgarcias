@@ -39,6 +39,16 @@ public record OrdenDetalleResponse(
         @Schema(example = "En producción")
         String estado,
 
+        /**
+         * §5.4: el código de la etapa actual, **además** del nombre y no en su lugar.
+         *
+         * `estado` es el nombre visible y **CU-22 lo deja editar**; el código es lo estable.
+         * Es el mismo motivo por el que `siguienteEstado` viaja con los dos desde T-26.
+         */
+        @Schema(description = "Código estable de la etapa. El nombre (`estado`) es editable por CU-22.",
+                example = "EN_PRODUCCION")
+        String estadoCodigo,
+
         @Schema(example = "Disyuntor superior, tornillo de expansión 7mm")
         String descripcion,
 

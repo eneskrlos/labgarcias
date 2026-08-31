@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { useSesion } from '../../shared/hooks/useSesion';
+import { Icono } from '../../shared/components/Icono';
 import estilos from './Menu.module.css';
 
 const ROL_SUPERADMIN = 'SUPERADMIN';
@@ -31,29 +32,37 @@ export default function MenuAdmin() {
   return (
     <>
       <NavLink to="/admin" end className={clase}>
+        <Icono nombre="panel" />
         Dashboard
       </NavLink>
       <NavLink to="/admin/ordenes" className={clase}>
+        <Icono nombre="trabajos" />
         Trabajos
       </NavLink>
       <NavLink to="/admin/odontologos" className={clase}>
+        <Icono nombre="odontologos" />
         Odontólogos
       </NavLink>
       <NavLink to="/admin/solicitudes" className={clase}>
+        <Icono nombre="solicitudes" />
         Solicitudes
       </NavLink>
       <NavLink to="/admin/tipos-trabajo" className={clase}>
+        <Icono nombre="tiposTrabajo" />
         Tipos de trabajo
       </NavLink>
       <NavLink to="/admin/configuracion" className={clase}>
+        <Icono nombre="configuracion" />
         Configuración
       </NavLink>
       {usuario?.rol === ROL_SUPERADMIN && (
         <>
           <NavLink to="/admin/usuarios" className={clase}>
+            <Icono nombre="usuarios" />
             Usuarios
           </NavLink>
           <NavLink to="/admin/licencias" className={clase}>
+            <Icono nombre="licencias" />
             Licencias
           </NavLink>
         </>

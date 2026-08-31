@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Icono } from '../../shared/components/Icono';
 import { contarNoLeidas } from './api';
 import { CLAVE_CONTADOR } from './claves';
 import PanelNotificaciones from './PanelNotificaciones';
@@ -35,7 +36,7 @@ export default function Campana() {
         aria-label={etiquetaAccesible(noLeidas)}
         onClick={() => setAbierto((anterior) => !anterior)}
       >
-        <span aria-hidden="true">🔔</span>
+        <Icono nombre="campana" tamano={18} />
         {noLeidas > 0 && <span className={estilos.contador}>{noLeidas}</span>}
       </button>
 

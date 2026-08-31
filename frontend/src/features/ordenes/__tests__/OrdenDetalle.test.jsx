@@ -28,6 +28,7 @@ const ORDEN = {
   tipoTrabajo: 'AAK',
   tipoOrden: 'Normal',
   estado: 'Recibido',
+  estadoCodigo: 'RECIBIDO',
   descripcion: 'AAK superior',
   fechaIngreso: '2026-08-18',
   fechaEstimadaEntrega: '2026-08-27',
@@ -158,5 +159,16 @@ describe('OrdenDetalle', () => {
     expect(descargarArchivo).toHaveBeenCalledWith(3);
     expect(crearUrl).toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: /subir|eliminar/i })).not.toBeInTheDocument();
+  });
+
+  /**
+   * §5.4: el detalle trae `estado` (nombre visible, editable por CU-22) y `estadoCodigo`
+   * (estable). **Lo que se muestra es el nombre**, acá y en la línea de tiempo.
+   */
+  it('muestra el nombre de la etapa, nunca su código', async () => {
+    renderizar();
+
+    expect(await screen.findAllByText('Recibido')).not.toHaveLength(0);
+    expect(screen.queryAllByText('RECIBIDO')).toHaveLength(0);
   });
 });

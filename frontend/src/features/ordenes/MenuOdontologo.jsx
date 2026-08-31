@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { Icono } from '../../shared/components/Icono';
 import estilos from './Menu.module.css';
 
 /**
@@ -17,15 +18,19 @@ export default function MenuOdontologo() {
   return (
     <>
       <NavLink to="/inicio" className={clase}>
+        <Icono nombre="inicio" />
         Inicio
       </NavLink>
       <NavLink to="/ordenes" className={clase}>
+        <Icono nombre="trabajos" />
         Mis trabajos
       </NavLink>
       <NavLink to="/historial" className={clase}>
+        <Icono nombre="historial" />
         Historial
       </NavLink>
       <NavLink to="/perfil" className={clase}>
+        <Icono nombre="perfil" />
         Perfil
       </NavLink>
     </>

@@ -15,6 +15,7 @@ const ORDEN = {
   tipoTrabajo: 'DISYUNTOR CON TORNILLO ESTANDAR',
   tipoOrden: 'Urgente',
   estado: 'En producción',
+  estadoCodigo: 'EN_PRODUCCION',
   fechaIngreso: '2026-08-20',
   fechaEstimadaEntrega: '2026-08-28',
   precioTotal: '450.00',
@@ -25,6 +26,7 @@ const URGENTE = {
   codigo: 'LG-0007',
   odontologo: 'Dr. Juan Pérez',
   estado: 'En producción',
+  estadoCodigo: 'EN_PRODUCCION',
   fechaEstimadaEntrega: '2026-08-28',
 };
 

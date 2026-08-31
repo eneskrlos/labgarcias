@@ -1,40 +1,64 @@
+/* §8.1 Regla 4: el formulario es una tarjeta, igual en alta y en edición de cualquier recurso. */
 .formulario {
+  background: var(--color-superficie);
   border: 1px solid var(--color-borde);
-  border-radius: var(--radio-borde);
+  border-radius: var(--radio-tarjeta);
+  box-shadow: var(--sombra-tarjeta);
   padding: var(--espaciado-lg);
-  max-width: 420px;
+  max-width: 460px;
+}
+
+.formulario h2 {
+  margin: 0 0 var(--espaciado-md-lg);
 }
 
 .error {
   color: var(--color-error);
-  font-size: 0.9rem;
+  font-size: var(--texto-md);
   margin: 0 0 var(--espaciado-md);
 }
 
 .acciones {
   display: flex;
-  gap: var(--espaciado-sm);
+  gap: var(--espaciado-sm-md);
+  margin-top: var(--espaciado-md-lg);
 }
 
 .boton {
-  padding: var(--espaciado-sm) var(--espaciado-md);
+  padding: var(--espaciado-sm-md) var(--espaciado-md-lg);
   background: var(--color-primario);
   color: var(--color-primario-contraste);
   border: none;
   border-radius: var(--radio-borde);
+  font-size: var(--texto-base);
+  font-weight: var(--peso-fuerte);
+  box-shadow: var(--sombra-primario);
   cursor: pointer;
+}
+
+.boton:hover:not(:disabled) {
+  background: var(--color-primario-fuerte);
 }
 
 .boton:disabled {
   opacity: 0.6;
+  box-shadow: none;
   cursor: default;
 }
 
 .botonSecundario {
-  padding: var(--espaciado-sm) var(--espaciado-md);
-  background: transparent;
-  color: var(--color-texto);
+  padding: var(--espaciado-sm-md) var(--espaciado-md-lg);
+  background: var(--color-superficie);
+  color: var(--color-texto-cuerpo);
   border: 1px solid var(--color-borde);
   border-radius: var(--radio-borde);
+  font-size: var(--texto-base);
+  font-weight: var(--peso-medio);
   cursor: pointer;
+}
+
+.botonSecundario:hover {
+  color: var(--color-primario);
+  border-color: var(--color-primario);
+  background: var(--color-primario-suave);
 }

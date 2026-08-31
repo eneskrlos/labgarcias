@@ -20,5 +20,12 @@ public interface OrdenUrgenteProyeccion {
 
     String getEstado();
 
+    /**
+     * V3/bloque 4 de la etapa 2: el código estable de la etapa, para colorear la etiqueta sin
+     * depender del nombre editable por CU-22. Mismo criterio que `estadoCodigo` en las
+     * respuestas de orden (bloque 0).
+     */
+    String getEstadoCodigo();
+
     LocalDate getFechaEstimadaEntrega();
 }

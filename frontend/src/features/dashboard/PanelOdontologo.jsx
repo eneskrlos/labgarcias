@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useSesion } from '../../shared/hooks/useSesion';
 import { TablaPaginada } from '../../shared/components/TablaPaginada';
 import { FilaContadores, TarjetaContador } from '../../shared/components/TarjetaContador';
+import { EtiquetaEstado } from '../../shared/components/EtiquetaEstado';
 import { obtenerPanelOdontologo } from './api';
 import estilos from './Panel.module.css';
 
@@ -44,7 +45,11 @@ export default function PanelOdontologo() {
     },
     { clave: 'pacienteIdentificacion', encabezado: 'Paciente' },
     { clave: 'tipoTrabajo', encabezado: 'Trabajo' },
-    { clave: 'estado', encabezado: 'Estado' },
+    {
+      clave: 'estado',
+      encabezado: 'Estado',
+      render: (fila) => <EtiquetaEstado estado={fila.estado} estadoCodigo={fila.estadoCodigo} />,
+    },
     {
       clave: 'fechaEstimadaEntrega',
       encabezado: 'Entrega estimada',

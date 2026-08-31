@@ -47,7 +47,7 @@ va el estado de avance y lo que se acordó de palabra y no quedó escrito en ell
 > curso se identifica por su rama; el hash o el merge se completan al integrarla a `develop`.
 
 **Verificación al día de hoy:** `mvn -o test` en `backend/` → **416 tests, 0 fallos**.
-`npm test` en `frontend/` → **313 tests, 0 fallos**. `npm run lint` y `npm run build` limpios.
+`npm test` en `frontend/` → **314 tests, 0 fallos**. `npm run lint` y `npm run build` limpios.
 
 T-30, T-31 y T-32 se probaron además de punta a punta con el backend levantado en `dev` contra la
 base real. De T-31, con un SMTP de prueba: el correo de credenciales llegó completo y la contraseña
@@ -834,6 +834,13 @@ CU-17 —eso cubre consultar y corregir datos, que sí puede vivir en la API—.
 8. **Editar el perfil refresca la sesión guardada.** El nombre se muestra en el saludo del panel y
    en el encabezado, que leen la sesión de `localStorage`: sin esto, el usuario cambiaba su nombre
    y seguía viendo el anterior hasta cerrar sesión.
+   > **Verificado que no amplía lo que se guarda** (25/08/2026, a pedido del desarrollador). La
+   > sesión guarda lo que puso el login —`id`, `nombreCompleto`, `rol` y la bandera
+   > `debeCambiarPassword`— y el refresco hace `{ ...usuario, nombreCompleto }`: el mismo conjunto
+   > de claves con una actualizada. **`GET`/`PUT /perfil` devuelve además correo, dirección,
+   > teléfono y el estado de Telegram, y ninguno de esos llega a `localStorage`.** No quedó en la
+   > lectura del código: hay un test que compara el conjunto de claves antes y después y falla si
+   > alguien guarda la respuesta entera.
 
 **Los tres pendientes heredados, cerrados:**
 
@@ -985,6 +992,62 @@ T-35 y el propio T-28 los habían desactualizado. Los dos dan **limpio**.
 - **Un odontólogo no puede apagar ningún canal.** §6.4 reserva `/configuracion-notificaciones` a
   ADMIN y SUPERADMIN, pero D-20 le manda notificaciones por tres canales. Se implementó como dice la
   spec. Si la clienta quiere que el odontólogo elija, es un cambio de spec, no un error.
+
+- ~~**`OrdenResponse.estado` viaja como nombre y no como código**~~ — **resuelto el 26/08/2026 por
+  el desarrollador**, que tomó la decisión de contrato antes de empezar la etapa 2 del rediseño.
+
+  El problema: `estado` es el nombre visible y **CU-22 lo deja renombrar**, así que un mapa de
+  colores en el frontend keyeado por ese texto se rompería en silencio al renombrar una etapa.
+
+  **Lo decidido y ya implementado (bloque 0 de la etapa 2):** las tres respuestas de orden
+  —`OrdenResponse` (§5.1), `OrdenListadoResponse` (§5.3) y `OrdenDetalleResponse` (§5.4)— suman
+  **`estadoCodigo`**. *Se suma, no reemplaza:* `estado` sigue trayendo el nombre y sigue siendo lo
+  que se muestra. Es la **tercera aplicación de la misma regla**, no una regla nueva: ya la
+  aplicaban `siguienteEstado` (decisión 16 de T-26) y `DistribucionEstadoResponse` (decisión 2 de
+  T-27). **§5.3 quedó actualizada** con el campo y su motivo, y §5.4 lo referencia.
+
+  **Dos delimitaciones explícitas:**
+  - **`EtapaSeguimientoResponse` (la línea de tiempo) NO lo lleva.** Sus etapas se colorean por
+    avance —alcanzada, actual, pendiente—, que sale de la posición en la lista y no del código.
+    Sería un campo sin uso (`Agente.md` §6.2). Anotado en §5.4.
+  - ~~**`OrdenUrgenteResponse` (bloque de urgentes del dashboard) tampoco**~~ — **resuelto el
+    31/08/2026, bloque 4 de la etapa 2.** `V3__vista_urgentes_estado_codigo.sql` agrega
+    `e.codigo AS estado_codigo` a `v_ordenes_urgentes` (la columna va al final: `CREATE OR REPLACE
+    VIEW` no admite reordenar ni quitar columnas existentes). Es una vista, no una tabla: la
+    migración no toca ninguna fila, solo la redefine. Verificado en dos bases —una con V1+V2 ya
+    aplicadas y una vacía corriendo las tres en orden— y contra el dashboard real: `codigo=LG-0007,
+    estado='Control de calidad', estado_codigo='CONTROL_CALIDAD'`.
+    - Se descartó resolverlo buscando el código por nombre en el catálogo de estados en memoria:
+      es exactamente el riesgo que motivó `estadoCodigo` en el bloque 0 (CU-22 deja renombrar la
+      etapa, y un mapa keyeado por ese nombre se rompería en silencio).
+      `OrdenUrgenteProyeccion` suma `getEstadoCodigo()`, `OrdenUrgenteResponse` suma `estadoCodigo`
+      —se suma, no reemplaza—, y `DashboardService.urgentes()` lo mapea. `v_ordenes_por_estado`
+      **no se tocó**: es una vista aparte que ya traía `estado_codigo` desde que se creó.
+
+  **El color de `CANCELADO`, decidido en la misma pasada:** el prototipo define seis estados y el
+  sistema tiene siete. `CANCELADO` va con fondo `#F6E2E1` y texto `#A03A32`. **No reutiliza
+  `--color-error`**: una orden cancelada es un estado de negocio legítimo, no un fallo de la
+  aplicación, y atarlos haría que al cambiar el rojo de error las canceladas se movieran con él.
+
+  **`EtiquetaEstado` (bloque 2 de la etapa 2, 31/08/2026): la píldora es solo para la orden.**
+  De los 8 listados de la etapa 2, únicamente `HistorialOrdenes`, `MisOrdenes` y `OrdenesAdmin`
+  la usan; los otros 5 —`SolicitudesListado`, `TiposTrabajoListado`, `UsuariosListado`,
+  `OdontologosListado` y `LicenciasListado`— siguen con su columna "Estado" en texto plano, y es
+  deliberado, no un olvido: **ninguno de esos cinco tiene un catálogo de estados como
+  `estado.codigo`**, que es lo único que el mapa de `coloresEstado.js` sabe colorear.
+
+  - `solicitud_acceso.estado` (`chk_solicitud_estado`), `usuario.estado_cuenta`
+    (`chk_usuario_estado`) y `licencia.estado` (`chk_licencia_estado`) son columnas de texto con
+    **`CHECK`** —`PENDIENTE/APROBADA/RECHAZADA`, `PENDIENTE_VERIFICACION/ACTIVA/INACTIVA` y
+    `ACTIVA/VENCIDA` respectivamente—, no una fila de una tabla catálogo con su propio código
+    estable como `estado.codigo` (RN-04). `tipo_trabajo.activo` ni siquiera es un estado: es un
+    booleano.
+  - Inventarles un segundo mapa de colores —sin que ninguna spec ni el prototipo lo pida— habría
+    sido una abstracción sin uso real (`Agente.md` §6.2/§7.2): mismo criterio que ya se aplicó al
+    no crear un `<SelectorFiltro>` para las 3 pantallas con el filtro de estado repetido (bloque 1).
+  - **Si en algún momento se decide colorear alguna de esas cinco**, el mapa de esa entidad va
+    aparte —nunca dentro de `coloresEstado.js`, que es específico de `estado.codigo`— porque sus
+    valores no comparten catálogo ni ciclo de vida con el de la orden.
 
 ---
 

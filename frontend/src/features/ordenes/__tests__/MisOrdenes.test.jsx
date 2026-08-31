@@ -24,6 +24,7 @@ const ORDEN = {
   tipoTrabajo: 'AAK',
   tipoOrden: 'Normal',
   estado: 'Recibido',
+  estadoCodigo: 'RECIBIDO',
   fechaIngreso: '2026-08-18',
   fechaEstimadaEntrega: '2026-08-27',
   precioTotal: '250.00',
@@ -119,5 +120,18 @@ describe('MisOrdenes', () => {
     renderizar();
     expect(await screen.findByText('Ocurrió un error inesperado.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
+  });
+
+  /**
+   * §5.3: la respuesta trae `estado` (nombre visible, editable por CU-22) y `estadoCodigo`
+   * (estable). **Lo que se le muestra al usuario es el nombre.** El código está para que la
+   * pantalla decida presentación —el color de la etiqueta de etapa—, no para leerse.
+   */
+  it('muestra el nombre de la etapa, nunca su código', async () => {
+    renderizar();
+    const fila = (await screen.findByText('LG-0005')).closest('tr');
+
+    expect(within(fila).getByText('Recibido')).toBeInTheDocument();
+    expect(within(fila).queryByText('RECIBIDO')).not.toBeInTheDocument();
   });
 });

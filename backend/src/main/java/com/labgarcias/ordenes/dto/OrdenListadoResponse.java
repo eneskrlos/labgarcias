@@ -30,6 +30,18 @@ public record OrdenListadoResponse(
         @Schema(example = "En producción")
         String estado,
 
+        /**
+         * §5.3: el código de la etapa, **además** del nombre y no en su lugar.
+         *
+         * `estado` es el nombre visible y **CU-22 lo deja editar**. Cualquier decisión de
+         * presentación que la pantalla tome por etapa —el color de su etiqueta— tiene que
+         * apoyarse en algo estable, y lo estable es el código. Mismo criterio que ya aplican
+         * `siguienteEstado` (§5.4) y `DistribucionEstadoResponse` (§5.7).
+         */
+        @Schema(description = "Código estable de la etapa. El nombre (`estado`) es editable por CU-22.",
+                example = "EN_PRODUCCION")
+        String estadoCodigo,
+
         @Schema(example = "2026-08-06")
         LocalDate fechaIngreso,
 
