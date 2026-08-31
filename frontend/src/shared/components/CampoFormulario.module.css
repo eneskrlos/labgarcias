@@ -12,7 +12,7 @@
   color: var(--color-texto);
 }
 
-.campo input,
+.campo input:not([type='checkbox']):not([type='radio']),
 .campo select,
 .campo textarea {
   padding: var(--espaciado-sm-md);
@@ -23,11 +23,21 @@
   font-size: var(--texto-base);
 }
 
-.campo input:focus,
+.campo input:not([type='checkbox']):not([type='radio']):focus,
 .campo select:focus,
 .campo textarea:focus {
   outline: none;
   border-color: var(--color-primario);
+}
+
+/* Una casilla no es un campo de texto: el aspecto de tarjeta (fondo, borde, radio) no le
+   corresponde. Sin esto heredaba el mismo padding y fondo que un input de texto, lo que en
+   algunos navegadores agranda visiblemente el cuadrado nativo con un color que no es el suyo. */
+.campo input[type='checkbox'],
+.campo input[type='radio'] {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--color-primario);
 }
 
 .ayuda {
