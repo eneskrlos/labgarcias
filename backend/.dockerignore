@@ -1,0 +1,14 @@
+target/
+.mvn/
+*.log
+.env
+.env.*
+archivos/
+.git
+.gitignore
+run-dev.sh
+README.md
+*.md
+.idea/
+.vscode/
+*.iml
