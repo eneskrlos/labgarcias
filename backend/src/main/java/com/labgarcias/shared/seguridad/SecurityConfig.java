@@ -40,7 +40,10 @@ public class SecurityConfig {
      */
     private static final String[] RUTAS_PUBLICAS = {
             "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
-            "/api/v1/auth/login", "/api/v1/auth/solicitud-acceso"
+            "/api/v1/auth/login", "/api/v1/auth/solicitud-acceso",
+            // Healthcheck del contenedor. El puerto 8080 no se publica al host,
+            // solo lo alcanza nginx por la red interna de Docker.
+            "/actuator/health", "/actuator/health/**"
     };
 
     private final ObjectMapper objectMapper;
