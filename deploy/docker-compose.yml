@@ -55,6 +55,9 @@ services:
       # y el puerto es el interno (5432), no el 5437 del host.
       DB_HOST: db
       DB_PORT: 5432
+      # El backend necesita DB_NAME por separado: application-prod.yml lo usa
+      # para armar la URL JDBC. No alcanza con darselo solo al servicio db.
+      DB_NAME: ${DB_NAME}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
 
