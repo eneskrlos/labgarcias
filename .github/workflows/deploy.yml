@@ -1,0 +1,37 @@
+# Despliega automáticamente el stack de Docker cuando se pushea a "main".
+# Se ejecuta en un runner autohospedado (tu propia PC), no en la nube de
+# GitHub, porque necesita Docker local y el archivo de secretos que vive
+# fuera del repo (variable ENVFILESECRETS).
+
+name: Deploy a producción local
+
+on:
+  push:
+    branches: [main]
+
+# Si llegan dos pushes seguidos, evita que dos despliegues corran pisándose.
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, labgarcias]
+    timeout-minutes: 15
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Build y levantar contenedores
+        working-directory: deploy
+        run: docker compose --env-file "$ENVFILESECRETS" up -d --build --wait --wait-timeout 120
+
+      - name: Estado de los contenedores
+        working-directory: deploy
+        run: docker compose --env-file "$ENVFILESECRETS" ps
+
+      - name: Limpiar imágenes viejas sin usar
+        run: docker image prune -f

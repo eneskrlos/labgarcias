@@ -54,9 +54,34 @@ SELECT
     'LOCAL',
     'ACTIVA',
     TRUE,
-    TRUE
+    FALSE
 FROM rol r
 WHERE r.codigo = 'SUPERADMIN'
+ON CONFLICT (correo) DO NOTHING;
+
+INSERT INTO usuario (
+    rol_id,
+    nombre_completo,
+    correo,
+    nombre_usuario,
+    password_hash,
+    proveedor_auth,
+    estado_cuenta,
+    correo_verificado,
+    debe_cambiar_password
+)
+SELECT
+    r.id,
+    'Administrador',
+    'REEMPLAZAR@tucorreo.com',
+    'admin',
+    '$2b$10$REEMPLAZAR_POR_EL_HASH_GENERADO',
+    'LOCAL',
+    'ACTIVA',
+    TRUE,
+    FALSE
+FROM rol r
+WHERE r.codigo = 'ADMIN'
 ON CONFLICT (correo) DO NOTHING;
 
 
