@@ -31,6 +31,19 @@ const TRAZOS = {
   /* Encabezado */
   campana: 'M18 9a6 6 0 0 0-12 0c0 6-2 7-2 7h16s-2-1-2-7M10.5 20a2 2 0 0 0 3 0',
   cerrarSesion: 'M9 21H4V3h5m7 13 5-4-5-4m5 4H9',
+
+  /* Detalle de orden: volver, y una etapa por cada estado del flujo (§5.4/§5.5) */
+  flechaIzquierda: 'M20 12H4m6-6-6 6 6 6',
+  verificado: 'm5 13 5 5 9-11',
+  estadoRecibido: 'M6 3h8l4 4v14H6zM14 3v4h4',
+  estadoEnEvaluacion: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18m-4 9 3 3 5-6',
+  estadoEnProduccion:
+    'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5.2 5.2l1.9 1.9M16.9 16.9l1.9 1.9M18.8 5.2l-1.9 1.9M7.1 16.9l-1.9 1.9',
+  estadoControlCalidad: 'M3 8h18v12H3zM3 8l3-4h12l3 4M12 4v16',
+  estadoListo: 'M3 8h18v12H3zM3 8l3-4h12l3 4M12 4v16',
+  estadoEntregado: 'M3 8h18v12H3zM8 8V5h8v3M3 13h18',
+  // CANCELADO no está en el prototipo (define seis estados, el sistema tiene siete): es propio.
+  estadoCancelado: 'M6 6l12 12M18 6 6 18',
 };
 
 export function Icono({ nombre, tamano = 17 }) {

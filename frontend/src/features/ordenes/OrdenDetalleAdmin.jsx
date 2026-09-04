@@ -2,13 +2,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { avanzarEstado, descargarArchivo, obtenerOrden } from './api';
 import { abrirDescarga } from '../../shared/util/descargaArchivo';
+import { EncabezadoPantalla } from '../../shared/components/EncabezadoPantalla';
+import { EtiquetaEstado } from '../../shared/components/EtiquetaEstado';
+import { LineaTiempo } from '../../shared/components/LineaTiempo';
+import { Icono } from '../../shared/components/Icono';
 import estilos from './OrdenDetalle.module.css';
 
 const FORMATO_FECHA = new Intl.DateTimeFormat('es-AR', { dateStyle: 'short' });
-const FORMATO_FECHA_HORA = new Intl.DateTimeFormat('es-AR', { dateStyle: 'short', timeStyle: 'short' });
-
-/** §5.1 paso 9: el registro inicial no tiene autor porque lo asigna el sistema. */
-const AUTOR_SISTEMA = 'Sistema';
 
 function Dato({ etiqueta, valor }) {
   return (
@@ -65,84 +65,99 @@ export default function OrdenDetalleAdmin() {
 
   return (
     <div className="contenedor">
-      <div className={estilos.encabezado}>
-        <h1>Trabajo {orden.codigo}</h1>
-        <Link to="/admin/ordenes">Volver a los trabajos</Link>
-      </div>
+      <Link to="/admin/ordenes" className={estilos.volver}>
+        <Icono nombre="flechaIzquierda" tamano={16} />
+        Volver a los trabajos
+      </Link>
 
-      <section className={estilos.tarjeta}>
-        {/* §5.4: el laboratorio sí ve el nombre; al odontólogo el backend no se lo manda (RN-22). */}
-        <Dato etiqueta="Paciente" valor={orden.pacienteNombre} />
-        <Dato etiqueta="Identificación" valor={orden.pacienteIdentificacion} />
-        <Dato etiqueta="Trabajo" valor={orden.tipoTrabajo} />
-        <Dato etiqueta="Tipo" valor={orden.tipoOrden} />
-        <Dato etiqueta="Estado" valor={orden.estado} />
-        <Dato etiqueta="Descripción" valor={orden.descripcion} />
-        <Dato etiqueta="Ingreso" valor={FORMATO_FECHA.format(new Date(orden.fechaIngreso))} />
-        <Dato
-          etiqueta="Entrega estimada"
-          valor={FORMATO_FECHA.format(new Date(orden.fechaEstimadaEntrega))}
-        />
-        <Dato etiqueta="Precio base" valor={orden.precioBase} />
-        <Dato etiqueta="Recargo por urgencia" valor={orden.recargoUrgencia} />
-        <Dato etiqueta="Total" valor={orden.precioTotal} />
-      </section>
+      <EncabezadoPantalla titulo={`Trabajo ${orden.codigo}`}>
+        <EtiquetaEstado estado={orden.estado} estadoCodigo={orden.estadoCodigo} />
+      </EncabezadoPantalla>
 
-      <section className={estilos.tarjeta}>
-        <h2>Avance</h2>
-        {orden.siguienteEstado ? (
-          <>
-            <p className={estilos.ayuda}>
-              RN-04: el flujo es lineal. Desde acá solo se puede avanzar a la etapa siguiente.
-            </p>
-            <button
-              type="button"
-              className={estilos.boton}
-              disabled={avance.isPending}
-              onClick={() => avance.mutate(orden.siguienteEstado.codigo)}
-            >
-              {avance.isPending ? 'Avanzando...' : `Avanzar a ${orden.siguienteEstado.nombre}`}
-            </button>
-          </>
-        ) : (
-          <p className={estilos.ayuda}>
-            El trabajo está en {orden.estado} y ya no admite cambios de estado.
-          </p>
-        )}
-        {avance.isError && <p className={estilos.error}>{avance.error.mensaje}</p>}
-      </section>
+      {/* §5.4: el laboratorio sí ve el nombre; al odontólogo el backend no se lo manda (RN-22). */}
+      <p className={estilos.meta}>
+        <span>
+          <strong>Paciente:</strong> {orden.pacienteNombre}
+        </span>
+        <span>
+          <strong>Trabajo:</strong> {orden.tipoTrabajo}
+        </span>
+        <span>
+          <strong>Ingreso:</strong> {FORMATO_FECHA.format(new Date(orden.fechaIngreso))}
+        </span>
+        <span>
+          <strong>Entrega estimada:</strong> {FORMATO_FECHA.format(new Date(orden.fechaEstimadaEntrega))}
+        </span>
+      </p>
 
-      <section className={estilos.tarjeta}>
-        <h2>Seguimiento</h2>
-        <ol className={estilos.lineaTiempo}>
-          {orden.lineaTiempo.map((etapa) => (
-            <li key={`${etapa.estado}-${etapa.fechaHora}`}>
-              <strong>{etapa.estado}</strong>
-              <span>{FORMATO_FECHA_HORA.format(new Date(etapa.fechaHora))}</span>
-              <span className={estilos.autor}>{etapa.autor ?? AUTOR_SISTEMA}</span>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <section className={estilos.tarjeta}>
-        <h2>Archivos</h2>
-        {orden.archivos.length === 0 ? (
-          <p className={estilos.ayuda}>Este trabajo no tiene archivos adjuntos.</p>
-        ) : (
-          <ul className={estilos.archivos}>
-            {orden.archivos.map((archivo) => (
-              <li key={archivo.id}>
-                <span>{archivo.nombreOriginal}</span>
-                <button type="button" onClick={() => descarga.mutate(archivo)} disabled={descarga.isPending}>
-                  Descargar
+      <div className={estilos.grilla}>
+        <div className={estilos.columna}>
+          <section className={estilos.tarjeta}>
+            <h2>Avance</h2>
+            {orden.siguienteEstado ? (
+              <>
+                <p className={estilos.ayuda}>
+                  RN-04: el flujo es lineal. Desde acá solo se puede avanzar a la etapa siguiente.
+                </p>
+                <button
+                  type="button"
+                  className={estilos.boton}
+                  disabled={avance.isPending}
+                  onClick={() => avance.mutate(orden.siguienteEstado.codigo)}
+                >
+                  {avance.isPending ? 'Avanzando...' : `Avanzar a ${orden.siguienteEstado.nombre}`}
                 </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        {descarga.isError && <p className={estilos.error}>{descarga.error.mensaje}</p>}
-      </section>
+              </>
+            ) : (
+              <p className={estilos.ayuda}>
+                El trabajo está en {orden.estado} y ya no admite cambios de estado.
+              </p>
+            )}
+            {avance.isError && <p className={estilos.error}>{avance.error.mensaje}</p>}
+          </section>
+
+          <section className={estilos.tarjeta}>
+            <h2>Seguimiento del trabajo</h2>
+            <LineaTiempo etapas={orden.lineaTiempo} estadoActualCodigo={orden.estadoCodigo} />
+          </section>
+        </div>
+
+        <div className={estilos.columna}>
+          <section className={estilos.tarjeta}>
+            <h2>Información del trabajo</h2>
+            <Dato etiqueta="Identificación" valor={orden.pacienteIdentificacion} />
+            <Dato etiqueta="Tipo" valor={orden.tipoOrden} />
+            <Dato etiqueta="Descripción" valor={orden.descripcion} />
+            <Dato etiqueta="Precio base" valor={orden.precioBase} />
+            <Dato etiqueta="Recargo por urgencia" valor={orden.recargoUrgencia} />
+            <Dato etiqueta="Total" valor={orden.precioTotal} />
+          </section>
+
+          <section className={estilos.tarjeta}>
+            <h2>Archivos</h2>
+            {orden.archivos.length === 0 ? (
+              <p className={estilos.ayuda}>Este trabajo no tiene archivos adjuntos.</p>
+            ) : (
+              <div className={estilos.archivosGrid}>
+                {orden.archivos.map((archivo) => (
+                  <div key={archivo.id} className={estilos.archivo}>
+                    <span className={estilos.archivoNombre}>{archivo.nombreOriginal}</span>
+                    <button
+                      type="button"
+                      className={estilos.botonSecundario}
+                      onClick={() => descarga.mutate(archivo)}
+                      disabled={descarga.isPending}
+                    >
+                      Descargar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {descarga.isError && <p className={estilos.error}>{descarga.error.mensaje}</p>}
+          </section>
+        </div>
+      </div>
     </div>
   );
 }
