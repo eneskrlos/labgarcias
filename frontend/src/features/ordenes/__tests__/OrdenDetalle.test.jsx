@@ -70,7 +70,7 @@ describe('OrdenDetalle', () => {
   it('muestra la línea de tiempo fechada, con el autor de cada etapa', async () => {
     renderizar();
 
-    expect(await screen.findByText('Seguimiento')).toBeInTheDocument();
+    expect(await screen.findByText('Seguimiento del trabajo')).toBeInTheDocument();
     expect(screen.getByText('En evaluacion')).toBeInTheDocument();
     expect(screen.getByText('Mona')).toBeInTheDocument();
     // §5.1 paso 9: el registro inicial lo asigna el sistema y viene sin autor.
@@ -89,7 +89,7 @@ describe('OrdenDetalle', () => {
   /** D-11: la mensajería está pospuesta; la pantalla no la insinúa. */
   it('no tiene sección de mensajes', async () => {
     renderizar();
-    await screen.findByText('Seguimiento');
+    await screen.findByText('Seguimiento del trabajo');
 
     expect(screen.queryByText(/mensaje/i)).not.toBeInTheDocument();
   });
@@ -106,7 +106,7 @@ describe('OrdenDetalle', () => {
   /** CU-20/§5.6: cancelar es irreversible, así que se pide confirmación antes de llamar. */
   it('cancelar pide confirmación antes de llamar al backend', async () => {
     renderizar();
-    await screen.findByText('Seguimiento');
+    await screen.findByText('Seguimiento del trabajo');
 
     await userEvent.click(screen.getByRole('button', { name: 'Cancelar el trabajo' }));
     expect(cancelarOrden).not.toHaveBeenCalled();
@@ -119,7 +119,7 @@ describe('OrdenDetalle', () => {
   it('no ofrece cancelar cuando la orden está en un estado terminal', async () => {
     obtenerOrden.mockResolvedValue({ ...ORDEN, estado: 'Entregado' });
     renderizar();
-    await screen.findByText('Seguimiento');
+    await screen.findByText('Seguimiento del trabajo');
 
     expect(screen.queryByRole('button', { name: 'Cancelar el trabajo' })).not.toBeInTheDocument();
   });
@@ -128,7 +128,7 @@ describe('OrdenDetalle', () => {
   it('ofrece cancelar en cualquier estado no terminal', async () => {
     obtenerOrden.mockResolvedValue({ ...ORDEN, estado: 'En produccion' });
     renderizar();
-    await screen.findByText('Seguimiento');
+    await screen.findByText('Seguimiento del trabajo');
 
     expect(screen.getByRole('button', { name: 'Cancelar el trabajo' })).toBeInTheDocument();
   });
@@ -138,7 +138,7 @@ describe('OrdenDetalle', () => {
       new ApiError(409, 'ORDEN_NO_CANCELABLE', 'La orden ya no se puede cancelar.'),
     );
     renderizar();
-    await screen.findByText('Seguimiento');
+    await screen.findByText('Seguimiento del trabajo');
 
     await userEvent.click(screen.getByRole('button', { name: 'Cancelar el trabajo' }));
     await userEvent.click(screen.getByRole('button', { name: 'Confirmar cancelación' }));

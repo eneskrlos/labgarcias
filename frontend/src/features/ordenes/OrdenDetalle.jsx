@@ -6,6 +6,7 @@ import { abrirDescarga } from '../../shared/util/descargaArchivo';
 import { EncabezadoPantalla } from '../../shared/components/EncabezadoPantalla';
 import { EtiquetaEstado } from '../../shared/components/EtiquetaEstado';
 import { LineaTiempo } from '../../shared/components/LineaTiempo';
+import { Icono } from '../../shared/components/Icono';
 import { cancelarOrden, descargarArchivo, obtenerOrden } from './api';
 import estilos from './OrdenDetalle.module.css';
 
@@ -70,53 +71,72 @@ export default function OrdenDetalle() {
 
   return (
     <div className="contenedor">
+      <Link to="/ordenes" className={estilos.volver}>
+        <Icono nombre="flechaIzquierda" tamano={16} />
+        Volver a mis trabajos
+      </Link>
+
       <EncabezadoPantalla titulo={`Trabajo ${orden.codigo}`}>
-        <Link to="/ordenes">Volver a mis trabajos</Link>
+        <EtiquetaEstado estado={orden.estado} estadoCodigo={orden.estadoCodigo} />
       </EncabezadoPantalla>
 
-      <section className={estilos.tarjeta}>
-        <Dato etiqueta="Paciente" valor={orden.pacienteIdentificacion} />
-        <Dato etiqueta="Trabajo" valor={orden.tipoTrabajo} />
-        <Dato etiqueta="Tipo" valor={orden.tipoOrden} />
-        <Dato
-          etiqueta="Estado"
-          valor={<EtiquetaEstado estado={orden.estado} estadoCodigo={orden.estadoCodigo} />}
-        />
-        <Dato etiqueta="Descripción" valor={orden.descripcion} />
-        <Dato etiqueta="Ingreso" valor={FORMATO_FECHA.format(new Date(orden.fechaIngreso))} />
-        <Dato
-          etiqueta="Entrega estimada"
-          valor={FORMATO_FECHA.format(new Date(orden.fechaEstimadaEntrega))}
-        />
-        {/* Los tres importes vienen calculados por el backend; acá no se suma nada (Agente.md 6.1). */}
-        <Dato etiqueta="Precio base" valor={orden.precioBase} />
-        <Dato etiqueta="Recargo por urgencia" valor={orden.recargoUrgencia} />
-        <Dato etiqueta="Total" valor={orden.precioTotal} />
-      </section>
+      <p className={estilos.meta}>
+        <span>
+          <strong>Paciente:</strong> {orden.pacienteIdentificacion}
+        </span>
+        <span>
+          <strong>Trabajo:</strong> {orden.tipoTrabajo}
+        </span>
+        <span>
+          <strong>Ingreso:</strong> {FORMATO_FECHA.format(new Date(orden.fechaIngreso))}
+        </span>
+        <span>
+          <strong>Entrega estimada:</strong> {FORMATO_FECHA.format(new Date(orden.fechaEstimadaEntrega))}
+        </span>
+      </p>
 
-      <section className={estilos.tarjeta}>
-        <h2>Seguimiento</h2>
-        <LineaTiempo etapas={orden.lineaTiempo} />
-      </section>
+      <div className={estilos.grilla}>
+        <section className={estilos.tarjeta}>
+          <h2>Seguimiento del trabajo</h2>
+          <LineaTiempo etapas={orden.lineaTiempo} estadoActualCodigo={orden.estadoCodigo} />
+        </section>
 
-      <section className={estilos.tarjeta}>
-        <h2>Archivos</h2>
-        {orden.archivos.length === 0 ? (
-          <p className={estilos.ayuda}>Este trabajo no tiene archivos adjuntos.</p>
-        ) : (
-          <ul className={estilos.archivos}>
-            {orden.archivos.map((archivo) => (
-              <li key={archivo.id}>
-                <span>{archivo.nombreOriginal}</span>
-                <button type="button" onClick={() => descarga.mutate(archivo)} disabled={descarga.isPending}>
-                  Descargar
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        {descarga.isError && <p className={estilos.error}>{descarga.error.mensaje}</p>}
-      </section>
+        <div className={estilos.columna}>
+          <section className={estilos.tarjeta}>
+            <h2>Información del trabajo</h2>
+            <Dato etiqueta="Tipo" valor={orden.tipoOrden} />
+            <Dato etiqueta="Descripción" valor={orden.descripcion} />
+            {/* Los tres importes vienen calculados por el backend; acá no se suma nada (Agente.md 6.1). */}
+            <Dato etiqueta="Precio base" valor={orden.precioBase} />
+            <Dato etiqueta="Recargo por urgencia" valor={orden.recargoUrgencia} />
+            <Dato etiqueta="Total" valor={orden.precioTotal} />
+          </section>
+
+          <section className={estilos.tarjeta}>
+            <h2>Archivos</h2>
+            {orden.archivos.length === 0 ? (
+              <p className={estilos.ayuda}>Este trabajo no tiene archivos adjuntos.</p>
+            ) : (
+              <div className={estilos.archivosGrid}>
+                {orden.archivos.map((archivo) => (
+                  <div key={archivo.id} className={estilos.archivo}>
+                    <span className={estilos.archivoNombre}>{archivo.nombreOriginal}</span>
+                    <button
+                      type="button"
+                      className={estilos.botonSecundario}
+                      onClick={() => descarga.mutate(archivo)}
+                      disabled={descarga.isPending}
+                    >
+                      Descargar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {descarga.isError && <p className={estilos.error}>{descarga.error.mensaje}</p>}
+          </section>
+        </div>
+      </div>
 
       {/* CU-20/§5.6: cancelar es del propietario. Sin cargo por cancelación (P-14). */}
       {!esTerminal && (

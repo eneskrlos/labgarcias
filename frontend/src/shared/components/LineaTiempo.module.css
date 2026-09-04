@@ -6,7 +6,7 @@
 
 .item {
   display: grid;
-  grid-template-columns: 22px 1fr;
+  grid-template-columns: 22px 1fr 26px;
   gap: var(--espaciado-sm-md);
   align-items: start;
 }
@@ -54,6 +54,10 @@
 }
 
 .nombreEstado {
+  display: flex;
+  align-items: center;
+  gap: var(--espaciado-xs);
+  width: 100%;
   font-size: var(--texto-base);
   font-weight: var(--peso-fuerte);
   color: var(--color-texto);
@@ -67,4 +71,23 @@
 .autor {
   font-size: var(--texto-xs);
   color: var(--color-texto-tenue);
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--color-borde);
+}
+
+.alcanzada .marca {
+  background: var(--color-exito);
+}
+
+.actual .marca {
+  background: var(--color-primario);
 }

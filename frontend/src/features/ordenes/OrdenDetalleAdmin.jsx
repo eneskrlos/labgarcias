@@ -5,6 +5,7 @@ import { abrirDescarga } from '../../shared/util/descargaArchivo';
 import { EncabezadoPantalla } from '../../shared/components/EncabezadoPantalla';
 import { EtiquetaEstado } from '../../shared/components/EtiquetaEstado';
 import { LineaTiempo } from '../../shared/components/LineaTiempo';
+import { Icono } from '../../shared/components/Icono';
 import estilos from './OrdenDetalle.module.css';
 
 const FORMATO_FECHA = new Intl.DateTimeFormat('es-AR', { dateStyle: 'short' });
@@ -64,78 +65,99 @@ export default function OrdenDetalleAdmin() {
 
   return (
     <div className="contenedor">
+      <Link to="/admin/ordenes" className={estilos.volver}>
+        <Icono nombre="flechaIzquierda" tamano={16} />
+        Volver a los trabajos
+      </Link>
+
       <EncabezadoPantalla titulo={`Trabajo ${orden.codigo}`}>
-        <Link to="/admin/ordenes">Volver a los trabajos</Link>
+        <EtiquetaEstado estado={orden.estado} estadoCodigo={orden.estadoCodigo} />
       </EncabezadoPantalla>
 
-      <section className={estilos.tarjeta}>
-        {/* §5.4: el laboratorio sí ve el nombre; al odontólogo el backend no se lo manda (RN-22). */}
-        <Dato etiqueta="Paciente" valor={orden.pacienteNombre} />
-        <Dato etiqueta="Identificación" valor={orden.pacienteIdentificacion} />
-        <Dato etiqueta="Trabajo" valor={orden.tipoTrabajo} />
-        <Dato etiqueta="Tipo" valor={orden.tipoOrden} />
-        <Dato
-          etiqueta="Estado"
-          valor={<EtiquetaEstado estado={orden.estado} estadoCodigo={orden.estadoCodigo} />}
-        />
-        <Dato etiqueta="Descripción" valor={orden.descripcion} />
-        <Dato etiqueta="Ingreso" valor={FORMATO_FECHA.format(new Date(orden.fechaIngreso))} />
-        <Dato
-          etiqueta="Entrega estimada"
-          valor={FORMATO_FECHA.format(new Date(orden.fechaEstimadaEntrega))}
-        />
-        <Dato etiqueta="Precio base" valor={orden.precioBase} />
-        <Dato etiqueta="Recargo por urgencia" valor={orden.recargoUrgencia} />
-        <Dato etiqueta="Total" valor={orden.precioTotal} />
-      </section>
+      {/* §5.4: el laboratorio sí ve el nombre; al odontólogo el backend no se lo manda (RN-22). */}
+      <p className={estilos.meta}>
+        <span>
+          <strong>Paciente:</strong> {orden.pacienteNombre}
+        </span>
+        <span>
+          <strong>Trabajo:</strong> {orden.tipoTrabajo}
+        </span>
+        <span>
+          <strong>Ingreso:</strong> {FORMATO_FECHA.format(new Date(orden.fechaIngreso))}
+        </span>
+        <span>
+          <strong>Entrega estimada:</strong> {FORMATO_FECHA.format(new Date(orden.fechaEstimadaEntrega))}
+        </span>
+      </p>
 
-      <section className={estilos.tarjeta}>
-        <h2>Avance</h2>
-        {orden.siguienteEstado ? (
-          <>
-            <p className={estilos.ayuda}>
-              RN-04: el flujo es lineal. Desde acá solo se puede avanzar a la etapa siguiente.
-            </p>
-            <button
-              type="button"
-              className={estilos.boton}
-              disabled={avance.isPending}
-              onClick={() => avance.mutate(orden.siguienteEstado.codigo)}
-            >
-              {avance.isPending ? 'Avanzando...' : `Avanzar a ${orden.siguienteEstado.nombre}`}
-            </button>
-          </>
-        ) : (
-          <p className={estilos.ayuda}>
-            El trabajo está en {orden.estado} y ya no admite cambios de estado.
-          </p>
-        )}
-        {avance.isError && <p className={estilos.error}>{avance.error.mensaje}</p>}
-      </section>
-
-      <section className={estilos.tarjeta}>
-        <h2>Seguimiento</h2>
-        <LineaTiempo etapas={orden.lineaTiempo} />
-      </section>
-
-      <section className={estilos.tarjeta}>
-        <h2>Archivos</h2>
-        {orden.archivos.length === 0 ? (
-          <p className={estilos.ayuda}>Este trabajo no tiene archivos adjuntos.</p>
-        ) : (
-          <ul className={estilos.archivos}>
-            {orden.archivos.map((archivo) => (
-              <li key={archivo.id}>
-                <span>{archivo.nombreOriginal}</span>
-                <button type="button" onClick={() => descarga.mutate(archivo)} disabled={descarga.isPending}>
-                  Descargar
+      <div className={estilos.grilla}>
+        <div className={estilos.columna}>
+          <section className={estilos.tarjeta}>
+            <h2>Avance</h2>
+            {orden.siguienteEstado ? (
+              <>
+                <p className={estilos.ayuda}>
+                  RN-04: el flujo es lineal. Desde acá solo se puede avanzar a la etapa siguiente.
+                </p>
+                <button
+                  type="button"
+                  className={estilos.boton}
+                  disabled={avance.isPending}
+                  onClick={() => avance.mutate(orden.siguienteEstado.codigo)}
+                >
+                  {avance.isPending ? 'Avanzando...' : `Avanzar a ${orden.siguienteEstado.nombre}`}
                 </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        {descarga.isError && <p className={estilos.error}>{descarga.error.mensaje}</p>}
-      </section>
+              </>
+            ) : (
+              <p className={estilos.ayuda}>
+                El trabajo está en {orden.estado} y ya no admite cambios de estado.
+              </p>
+            )}
+            {avance.isError && <p className={estilos.error}>{avance.error.mensaje}</p>}
+          </section>
+
+          <section className={estilos.tarjeta}>
+            <h2>Seguimiento del trabajo</h2>
+            <LineaTiempo etapas={orden.lineaTiempo} estadoActualCodigo={orden.estadoCodigo} />
+          </section>
+        </div>
+
+        <div className={estilos.columna}>
+          <section className={estilos.tarjeta}>
+            <h2>Información del trabajo</h2>
+            <Dato etiqueta="Identificación" valor={orden.pacienteIdentificacion} />
+            <Dato etiqueta="Tipo" valor={orden.tipoOrden} />
+            <Dato etiqueta="Descripción" valor={orden.descripcion} />
+            <Dato etiqueta="Precio base" valor={orden.precioBase} />
+            <Dato etiqueta="Recargo por urgencia" valor={orden.recargoUrgencia} />
+            <Dato etiqueta="Total" valor={orden.precioTotal} />
+          </section>
+
+          <section className={estilos.tarjeta}>
+            <h2>Archivos</h2>
+            {orden.archivos.length === 0 ? (
+              <p className={estilos.ayuda}>Este trabajo no tiene archivos adjuntos.</p>
+            ) : (
+              <div className={estilos.archivosGrid}>
+                {orden.archivos.map((archivo) => (
+                  <div key={archivo.id} className={estilos.archivo}>
+                    <span className={estilos.archivoNombre}>{archivo.nombreOriginal}</span>
+                    <button
+                      type="button"
+                      className={estilos.botonSecundario}
+                      onClick={() => descarga.mutate(archivo)}
+                      disabled={descarga.isPending}
+                    >
+                      Descargar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {descarga.isError && <p className={estilos.error}>{descarga.error.mensaje}</p>}
+          </section>
+        </div>
+      </div>
     </div>
   );
 }

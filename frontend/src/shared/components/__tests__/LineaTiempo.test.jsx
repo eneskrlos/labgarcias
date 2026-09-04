@@ -36,4 +36,34 @@ describe('LineaTiempo', () => {
 
     expect(screen.queryAllByRole('listitem')).toHaveLength(0);
   });
+
+  /** Cada etapa lleva su ícono de flujo más el círculo de verificación: dos SVG por fila. */
+  it('cada etapa trae su ícono y su círculo de verificación', () => {
+    const { container } = render(<LineaTiempo etapas={ETAPAS} />);
+
+    expect(container.querySelectorAll('svg')).toHaveLength(ETAPAS.length * 2);
+  });
+
+  /**
+   * RN-04: sin `estadoActualCodigo`, la última etapa usa el ícono de su posición en el flujo
+   * normal (acá, la 2ª: "En producción"), no el de cancelación.
+   */
+  it('sin cancelación, la última etapa usa el ícono de su posición en el flujo', () => {
+    const etapas = [...ETAPAS, { estado: 'En produccion', fechaHora: '2026-08-20T08:00:00-03:00', autor: 'Mona' }];
+    const { container } = render(<LineaTiempo etapas={etapas} estadoActualCodigo="EN_PRODUCCION" />);
+
+    expect(container.querySelector('path[d="M6 6l12 12M18 6 6 18"]')).not.toBeInTheDocument();
+  });
+
+  /**
+   * Una orden cancelada no respeta la posición del flujo lineal —puede caer en cualquier paso—,
+   * así que el ícono de la última etapa no puede salir de `ICONOS_FLUJO` por índice: tiene que
+   * venir de `estadoActualCodigo`, el único dato estable disponible para esa fila.
+   */
+  it('con estadoActualCodigo CANCELADO, la última etapa muestra el ícono de cancelación', () => {
+    const etapas = [...ETAPAS, { estado: 'Cancelado', fechaHora: '2026-08-20T08:00:00-03:00', autor: 'Mona' }];
+    const { container } = render(<LineaTiempo etapas={etapas} estadoActualCodigo="CANCELADO" />);
+
+    expect(container.querySelector('path[d="M6 6l12 12M18 6 6 18"]')).toBeInTheDocument();
+  });
 });
