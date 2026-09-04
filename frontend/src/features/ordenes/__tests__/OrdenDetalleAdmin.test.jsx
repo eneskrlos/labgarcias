@@ -98,7 +98,7 @@ describe('OrdenDetalleAdmin', () => {
   /** §5.5 y RN-17/CU-20: el laboratorio no cancela; la cancelación es del odontólogo. */
   it('no ofrece cancelar la orden', async () => {
     renderizar();
-    await screen.findByText('Seguimiento');
+    await screen.findByText('Seguimiento del trabajo');
 
     expect(screen.queryByRole('button', { name: /cancelar/i })).not.toBeInTheDocument();
   });
@@ -118,7 +118,7 @@ describe('OrdenDetalleAdmin', () => {
   it('muestra la línea de tiempo fechada', async () => {
     renderizar();
 
-    expect(await screen.findByText('Seguimiento')).toBeInTheDocument();
+    expect(await screen.findByText('Seguimiento del trabajo')).toBeInTheDocument();
     expect(screen.getByText('Mona')).toBeInTheDocument();
     expect(screen.getByText('Sistema')).toBeInTheDocument();
   });
