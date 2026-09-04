@@ -3,14 +3,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { listarEstados } from '../catalogos/api';
 import { abrirDescarga } from '../../shared/util/descargaArchivo';
+import { EncabezadoPantalla } from '../../shared/components/EncabezadoPantalla';
+import { EtiquetaEstado } from '../../shared/components/EtiquetaEstado';
+import { LineaTiempo } from '../../shared/components/LineaTiempo';
 import { cancelarOrden, descargarArchivo, obtenerOrden } from './api';
 import estilos from './OrdenDetalle.module.css';
 
 const FORMATO_FECHA = new Intl.DateTimeFormat('es-AR', { dateStyle: 'short' });
-const FORMATO_FECHA_HORA = new Intl.DateTimeFormat('es-AR', { dateStyle: 'short', timeStyle: 'short' });
-
-/** §5.1 paso 9: el registro inicial no tiene autor porque lo asigna el sistema. */
-const AUTOR_SISTEMA = 'Sistema';
 
 function Dato({ etiqueta, valor }) {
   return (
@@ -71,16 +70,18 @@ export default function OrdenDetalle() {
 
   return (
     <div className="contenedor">
-      <div className={estilos.encabezado}>
-        <h1>Trabajo {orden.codigo}</h1>
+      <EncabezadoPantalla titulo={`Trabajo ${orden.codigo}`}>
         <Link to="/ordenes">Volver a mis trabajos</Link>
-      </div>
+      </EncabezadoPantalla>
 
       <section className={estilos.tarjeta}>
         <Dato etiqueta="Paciente" valor={orden.pacienteIdentificacion} />
         <Dato etiqueta="Trabajo" valor={orden.tipoTrabajo} />
         <Dato etiqueta="Tipo" valor={orden.tipoOrden} />
-        <Dato etiqueta="Estado" valor={orden.estado} />
+        <Dato
+          etiqueta="Estado"
+          valor={<EtiquetaEstado estado={orden.estado} estadoCodigo={orden.estadoCodigo} />}
+        />
         <Dato etiqueta="Descripción" valor={orden.descripcion} />
         <Dato etiqueta="Ingreso" valor={FORMATO_FECHA.format(new Date(orden.fechaIngreso))} />
         <Dato
@@ -95,15 +96,7 @@ export default function OrdenDetalle() {
 
       <section className={estilos.tarjeta}>
         <h2>Seguimiento</h2>
-        <ol className={estilos.lineaTiempo}>
-          {orden.lineaTiempo.map((etapa) => (
-            <li key={`${etapa.estado}-${etapa.fechaHora}`}>
-              <strong>{etapa.estado}</strong>
-              <span>{FORMATO_FECHA_HORA.format(new Date(etapa.fechaHora))}</span>
-              <span className={estilos.autor}>{etapa.autor ?? AUTOR_SISTEMA}</span>
-            </li>
-          ))}
-        </ol>
+        <LineaTiempo etapas={orden.lineaTiempo} />
       </section>
 
       <section className={estilos.tarjeta}>

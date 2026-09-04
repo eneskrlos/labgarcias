@@ -71,7 +71,9 @@ export function DonaDistribucion({ distribucion, cargando }) {
         </svg>
         <div className={estilos.centro} aria-hidden="true">
           <span className={estilos.total}>{total}</span>
-          <span className={estilos.totalEtiqueta}>en total</span>
+          {/* No "en total": con CANCELADO y ENTREGADO incluidos, esto es el total histórico de
+              órdenes, no un indicador de trabajo activo. "órdenes" a secas no sugiere lo segundo. */}
+          <span className={estilos.totalEtiqueta}>órdenes</span>
         </div>
       </div>
 
